@@ -15,9 +15,9 @@ function check_requriements()
 
 function setup_requriements()
 {
-    path_not_exists_link "/opt/docker/data1" "test link create" "/mountdisk/data/docker"
-    echo "over" 
-    read -e TTTT
+    # path_not_exists_link "/opt/docker/data1" "test link create" "/mountdisk/data/docker"
+    # echo "over" 
+    # read -e TTTT
 	echo "Start to init ${green}requriements libs${reset}"
 
     soft_${SYS_SETUP_COMMAND}_check_setup "vim-enhanced"

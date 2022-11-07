@@ -901,7 +901,7 @@ function soft_path_restore_confirm_link()
 # 参数1：软件名称名称
 # 参数2：是否强制删除（Y/N），强制删除则不提醒，默认N
 # 示例：
-#     soft_trail_clear "N"
+#     soft_trail_clear "wget" "N"
 function soft_trail_clear() 
 {
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_NAME=${1}
@@ -1027,6 +1027,12 @@ function soft_yum_check_action()
 	function _soft_yum_check_action()
 	{
 		local _TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME=${1}
+		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_SETUP_SCRIPT}"
+
+		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_EXISTS_SCRIPT}"
+		
 		echo ${TMP_SPLITER}
         echo_text_style "Checking the yum installed repos of '${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}'"
         echo ${TMP_SPLITER}
@@ -1034,10 +1040,13 @@ function soft_yum_check_action()
         local _TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS=`yum list installed | grep ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}`
         if [ -z "${_TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS}" ]; then
 			# 用于检测是否存在安装残留，可能文件存在，实际未安装
-			soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
+			if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
+				soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
+			fi
+
+			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
         else
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_EXISTS_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
+			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
         fi
 
         echo
@@ -1069,7 +1078,7 @@ function soft_yum_check_setup()
 		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"'${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}' was installed"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum  -y -q install %s" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum  -y install %s" "_soft_yum_check_setup_echo"
 
 	return $?
 }
