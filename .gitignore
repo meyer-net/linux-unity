@@ -1,0 +1,6 @@
+packages/*.tar.gz
+*test*
+plain.md
+.vscode/*
+.history/*
+sftp.json
