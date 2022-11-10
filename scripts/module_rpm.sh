@@ -75,8 +75,8 @@ function setup_$soft_name()
     path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}`
     path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}`
 
-	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
 	# ln -sf ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR} /var/lib/$setup_name
 
 	# 授权权限，否则无法写入
@@ -114,9 +114,9 @@ function conf_$soft_name()
     # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}`
 
 	# 替换原路径链接
-    # path_not_exists_link "/etc/$soft_name" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
-    # path_not_exists_link "/etc/$soft_name" "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}"
-	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+    # path_not_exists_link "/etc/$soft_name" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
+    # path_not_exists_link "/etc/$soft_name" "" "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
 	
     systemctl daemon-reload
 

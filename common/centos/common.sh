@@ -616,7 +616,7 @@ function setup_soft_basic()
 		echo "Start to install '${green}${_TMP_SETUP_SOFT_BASIC_NAME}${reset}'"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
-		cd ${DOWN_DIR}
+		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 		$_TMP_SETUP_SOFT_BASIC_FUNC
 
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
@@ -637,11 +637,11 @@ function path_not_exists_action()
 {
 	local _TMP_PATH_NOT_EXISTS_ACTION_PATH=${1}
 	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_SCRIPT=${2}
-	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_TEXT=${3}
+	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO=${3}
 
 	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT=""
-	if [ -n "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_TEXT}" ]; then
-		_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT="echo '${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_TEXT}'"
+	if [ -n "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO}" ]; then
+		_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT="echo '${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO}'"
 	fi
 
 	path_exists_yn_action "${1}" "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT}" "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_SCRIPT}"
@@ -735,17 +735,17 @@ function path_not_exists_create()
 # 参数4：链接完目录后执行函数或脚本
 function path_not_exists_link() 
 {
-	local _TMP_PATH_NOT_EXISTS_LINK_PATH="${1}"
-	local _TMP_PATH_NOT_EXISTS_LINK_ECHO="${2}"
-	local _TMP_PATH_NOT_EXISTS_LINK_SOUR="${3}"
-	local _TMP_PATH_NOT_EXISTS_LINK_SCRIPT="${4}"
+	local _TMP_PATH_NOT_EXISTS_LINK_PATH=${1}
+	local _TMP_PATH_NOT_EXISTS_LINK_ECHO=${2}
+	local _TMP_PATH_NOT_EXISTS_LINK_SOUR=${3}
+	local _TMP_PATH_NOT_EXISTS_LINK_SCRIPT=${4}
 
 	function _path_not_exists_link()
 	{
 		exec_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
 
-    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
+    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv `dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}` && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
 
@@ -882,7 +882,7 @@ function soft_path_restore_confirm_swap()
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME}" +%s` 
 
-	soft_path_restore_confirm_action "${1}" "" "cp -Rp ${1} ${2} && mv ${1} ${2}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${2} ${1}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${2}` && cp -Rp ${1} ${2} && mv ${1} ${2}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${2} ${1}" ""
 	return $?
 }
 
@@ -914,10 +914,11 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[3]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 
 	# 备份文件
 	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
@@ -1078,7 +1079,7 @@ function soft_yum_check_setup()
 		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"'${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}' was installed"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum  -y install %s" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style \"'%s'\" installed" "_soft_yum_check_setup_echo"
 
 	return $?
 }
@@ -1194,7 +1195,7 @@ function wget_unpack_dist()
 
 	local _TMP_WGET_UNPACK_FILE_NAME=`echo "${_TMP_WGET_UNPACK_DIST_URL}" | awk -F'/' '{print $NF}'`
 
-	cd ${DOWN_DIR}
+	mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 
 	if [ ! -f "${_TMP_WGET_UNPACK_FILE_NAME}" ]; then
 		wget -c --tries=0 --timeout=60 ${_TMP_WGET_UNPACK_DIST_URL}
@@ -1262,13 +1263,13 @@ function while_wget()
 	local _TMP_WHILE_WGET_DIST_FILE_EXT=`echo ${_TMP_WHILE_WGET_FILE_DEST_NAME##*.}`	
 	case ${_TMP_WHILE_WGET_DIST_FILE_EXT} in
 		"rpm")
-			cd ${RPMS_DIR}
+			mkdir -pv ${RPMS_DIR} && cd ${RPMS_DIR}
 		;;
 		"repo")
-			cd ${REPO_DIR}
+			mkdir -pv ${REPO_DIR} && cd ${REPO_DIR}
 		;;
 		*)
-		cd ${DOWN_DIR}
+		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 	esac
 
 	local _TMP_WHILE_WGET_COMMAND="wget -c --tries=0 --timeout=60 ${_TMP_WHILE_WGET_TRUE_URL} -O ${_TMP_WHILE_WGET_FILE_DEST_NAME}"
@@ -1507,7 +1508,7 @@ function setup_soft_git()
 	if [ $? -ne 0 ]; then
 		local _TMP_SOFT_GIT_FOLDER_NAME=`echo "${_TMP_SOFT_GIT_URL}" | awk -F'/' '{print $NF}'`
 
-		cd ${DOWN_DIR}
+		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 		if [ ! -f "${_TMP_SOFT_GIT_FOLDER_NAME}" ]; then
 			git clone ${_TMP_SOFT_GIT_URL} ${_TMP_SOFT_GIT_URL_PARAMS}
 		fi
@@ -2149,20 +2150,41 @@ function exec_check_action() {
 	fi
 	
 	# 空格数等于0的情况，可能是函数名或变量名。
-	local _TMP_EXEC_CHECK_ACTION_SPACE_COUNT=`echo "${1}" | grep -o ' ' | wc -l`
-	if [ ${_TMP_EXEC_CHECK_ACTION_SPACE_COUNT} -eq 0 ]; then
+	# local _TMP_EXEC_CHECK_ACTION_SPACE_COUNT=`echo "${1}" | grep -o ' ' | wc -l`
+	# if [ ${_TMP_EXEC_CHECK_ACTION_SPACE_COUNT} -eq 0 ]; then
+	# 	# 函数名优先
+	# 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" != "function" ] ; then
+	# 		_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=`eval echo '$'${1}`
+	# 	fi
+	# fi
+	
+	# 空格数等于0的情况，可能是函数名或变量名。
+	# 循环获取到最终的值，有可能是变量名嵌套传递。
+	while [ `echo "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}" | grep -o ' ' | wc -l` -eq 0 ]; do
 		# 函数名优先
 		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" != "function" ] ; then
-			_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=`eval echo '$'${1}`
+			_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=`eval echo '$'${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}`
+			
+			# 变量解析后可能为空，为空则不执行
+			if [ ${#_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} -eq 0 ]; then
+				return $?
+			fi
+		else
+			break
 		fi
-	fi
+	done
 	
 	# 变量传递脚本，有可能变量读取完以后，是执行脚本而非函数，所以此处再判断
 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" = "function" ] ; then
 		# 移除第一位选择器
 		shift
 
-		${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} ${@}
+		# path_not_exists_link "/opt/docker/bin/docker" "" "/usr/bin/docker" 这种也会被判别为function
+		if [ `echo "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}" | grep -o ' ' | wc -l` -eq 0 ]; then
+			${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} ${@}
+		else
+			eval "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}"
+		fi
 	else
 		eval "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}"
 	fi

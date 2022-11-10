@@ -27,6 +27,8 @@ function setup_requriements()
     #https://gitbook.curiouser.top/origin/linux-jq.html
     soft_${SYS_SETUP_COMMAND}_check_setup "jq"
     soft_${SYS_SETUP_COMMAND}_check_setup "git"
+    soft_${SYS_SETUP_COMMAND}_check_setup "zip"
+    soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
 
     function _setup_requriements_gum()
     {

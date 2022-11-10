@@ -61,16 +61,15 @@ function setup_docker()
     # 还原 & 创建
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
     
-    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
-    path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
+    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
+    path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
     
     # 目录调整完重启进程
     systemctl restart docker.service
     
     # 安装初始
     ## 安装不产生目录，所以手动创建
-    ???
-    path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '/usr/bin/docker'"
+    path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
 
     # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
     docker pull training/webapp
@@ -92,8 +91,7 @@ function setup_docker()
 
     # 删除容器
     # docker rm -f ${_TMP_SETUP_DOCKER_TEST_PS_ID}
-
-    ln -sf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${_TMP_SETUP_DOCKER_TEST_PS_ID}/${_TMP_SETUP_DOCKER_TEST_PS_ID}-json.log ${TMP_DOCKER_SETUP_LOGS_DIR}/training_webapp-json.log
+    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/training_webapp-json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${_TMP_SETUP_DOCKER_TEST_PS_ID}/${_TMP_SETUP_DOCKER_TEST_PS_ID}-json.log"
     
     # 授权权限，否则无法写入
     create_user_if_not_exists docker docker
@@ -122,8 +120,8 @@ function conf_docker()
 
 	# 开始配置
 	# 替换原路径链接
-    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
-    path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "/etc/docker"
+    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "" "/etc/docker"
+    path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "/etc/docker"
 
 	return $?
 }
