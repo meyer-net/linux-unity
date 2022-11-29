@@ -1,0 +1,235 @@
+#!/bin/bash
+#------------------------------------------------
+#      Centos7 Project Env InstallScript
+#      copyright https://devops.oshit.com/
+#      author: meyer.cheng
+#------------------------------------------------
+# 相关参考：
+#		  
+#------------------------------------------------
+# 安装标题：Sealos
+# 软件名称：sealos
+# 软件端口：$soft_port
+# 软件大写名称：SEALOS
+# 软件大写分组与简称：SLS
+# 软件安装名称：sealos
+# 软件授权用户名称&组：sealos/sealos
+# 软件GIT仓储名称：labring/sealos
+#------------------------------------------------
+local TMP_SLS_SETUP_PORT=1$soft_port
+
+##########################################################################################################
+
+# 1-配置环境
+function set_env_sealos()
+{
+    cd ${__DIR}
+
+    # soft_${SYS_SETUP_COMMAND}_check_setup ""
+
+	return $?
+}
+
+##########################################################################################################
+
+# 2-安装软件
+function setup_sealos()
+{
+	## 直装模式
+	cd `dirname ${TMP_SLS_CURRENT_DIR}`
+
+	# 轻量级安装的情况下不进行安装包还原操作
+	mv sealos /usr/bin/
+
+	cd ${TMP_SLS_SETUP_DIR}
+	
+	# 特殊多层结构下使用
+    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_LOGS_DIR}`
+    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_DATA_DIR}`
+
+	# 创建日志软链
+	local TMP_SLS_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/sealos
+	local TMP_SLS_SETUP_LNK_DATA_DIR=${DATA_DIR}/sealos
+	local TMP_SLS_SETUP_LOGS_DIR=${TMP_SLS_SETUP_DIR}/logs
+	local TMP_SLS_SETUP_DATA_DIR=${TMP_SLS_SETUP_DIR}/data
+	
+    # 还原 & 创建
+	soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_LOGS_DIR}"
+	soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_DATA_DIR}"
+	path_not_exists_link "${TMP_SLS_SETUP_LOGS_DIR}" "" "${TMP_SLS_SETUP_LNK_LOGS_DIR}"
+	path_not_exists_link "${TMP_SLS_SETUP_DATA_DIR}" "" "${TMP_SLS_SETUP_LNK_DATA_DIR}"
+
+	# 环境变量或软连接 ？？？/etc/profile写进函数
+	echo "SEALOS_HOME=${TMP_SLS_SETUP_DIR}" >> /etc/profile
+	echo 'PATH=$SEALOS_HOME/bin:$PATH' >> /etc/profile
+	echo 'export PATH SEALOS_HOME' >> /etc/profile
+
+    # 重新加载profile文件
+	source /etc/profile
+	path_not_exists_link "/usr/bin/sealos" "${TMP_SLS_SETUP_DIR}/bin/sealos"
+
+	# 授权权限，否则无法写入
+	# create_user_if_not_exists sealos sealos
+	# chown -R sealos:sealos ${TMP_SLS_SETUP_LNK_LOGS_DIR}
+	# chown -R sealos:sealos ${TMP_SLS_SETUP_LNK_DATA_DIR}
+	
+    # 安装初始
+
+	return $?
+}
+
+##########################################################################################################
+
+# 3-设置软件
+function conf_sealos()
+{
+	cd ${TMP_SLS_SETUP_DIR}
+	
+	# 统一编排到的etc路径
+	local TMP_SLS_SETUP_LNK_ETC_DIR=${ATT_DIR}/sealos
+	# 安装后的真实etc路径
+	local TMP_SLS_SETUP_ETC_DIR=${TMP_SLS_SETUP_DIR}/etc
+
+	# 开始配置
+	# 特殊多层结构下使用
+    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_ETC_DIR}`
+
+    # 还原 & 移动 - ①-Y：存在配置文件：原路径文件放给真实路径
+	soft_path_restore_confirm_move "${TMP_SLS_SETUP_ETC_DIR}" "${TMP_SLS_SETUP_LNK_ETC_DIR}"
+
+	# 还原 & 创建 - ②-N：不存在配置文件：
+	# soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_ETC_DIR}"
+
+	# 替换原路径链接
+    # path_not_exists_link "${TMP_SLS_SETUP_LNK_ETC_DIR}" "" "/etc/sealos" 
+    # path_not_exists_link "${TMP_SLS_SETUP_ETC_DIR}" "" "/etc/sealos"
+	path_not_exists_link "${TMP_SLS_SETUP_ETC_DIR}" "" "${TMP_SLS_SETUP_LNK_ETC_DIR}" 
+
+# 	# -- 服务配置加载 ？？？服务配置还原操作
+# 	tee /usr/lib/systemd/system/sealos.service <<-EOF
+# [Unit]
+# Description=SEALOS Server Service
+# After=network.target
+
+# [Service]
+# Type=simple
+# User=sealos
+# Restart=on-failure
+# RestartSec=5s
+# ExecStart=/usr/bin/sealos -c /etc/sealos/sealos.ini
+# LimitNOFILE=infinity
+# LimitNPROC=infinity
+# LimitCORE=infinity
+
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+#
+# 	# 重新加载服务配置
+#     systemctl daemon-reload
+
+	# 授权权限，否则无法写入
+	# chown -R sealos:sealos ${TMP_SLS_SETUP_DIR}
+	# chown -R sealos:sealos ${TMP_SLS_SETUP_LNK_ETC_DIR}
+
+	return $?
+}
+
+##########################################################################################################
+
+# 4-启动软件
+function boot_sealos()
+{
+	cd ${TMP_SLS_SETUP_DIR}
+	
+	# 验证安装
+    bin/sealos -v
+	
+    # 当前启动命令 && 等待启动
+#     chkconfig sealos on
+#     chkconfig --list | grep sealos
+	echo
+    echo "Starting sealos，Waiting for a moment"
+    echo "--------------------------------------------"
+	nohup bin/sealos > logs/boot.log 2>&1 &
+#     nohup systemctl start sealos.service > logs/boot.log 2>&1 &
+    exec_sleep 15
+
+    cat logs/boot.log
+    # cat /var/log/sealos/sealos.log
+    echo "--------------------------------------------"
+
+	# 启动状态检测
+	# systemctl status sealos.service
+	# lsof -i:${TMP_SLS_SETUP_PORT}
+	bin/sealos status  
+
+	# 添加系统启动命令
+    echo_startup_config "sealos" "${TMP_SLS_SETUP_DIR}" "bin/sealos" "" "100"
+#     systemctl enable sealos.service
+	
+	# 授权iptables端口访问
+	echo_soft_port ${TMP_SLS_SETUP_PORT}
+
+    # 生成web授权访问脚本
+    #echo_web_service_init_scripts "sealos${LOCAL_ID}" "sealos${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SLS_SETUP_PORT} "${LOCAL_HOST}"
+
+	return $?
+}
+
+##########################################################################################################
+
+# 下载驱动/插件
+function down_plugin_sealos()
+{
+	return $?
+}
+
+# 安装驱动/插件
+function setup_plugin_sealos()
+{
+	return $?
+}
+
+##########################################################################################################
+
+# x2-执行步骤
+function exec_step_sealos()
+{
+	# 变量覆盖特性，其它方法均可读取
+	local TMP_SLS_SETUP_DIR=${1}
+	local TMP_SLS_CURRENT_DIR=`pwd`
+    
+	set_env_sealos 
+
+	setup_sealos 
+
+	conf_sealos 
+
+    # down_plugin_sealos 
+    # setup_plugin_sealos 
+
+	boot_sealos 
+
+	# reconf_sealos 
+
+	return $?
+}
+
+##########################################################################################################
+
+# x1-下载软件
+function down_sealos()
+{
+	local TMP_SLS_SETUP_NEWER="4.1.3"
+	set_github_soft_releases_newer_version "TMP_SLS_SETUP_NEWER" "labring/sealos"
+	exec_text_printf "TMP_SLS_SETUP_NEWER" "https://github.com/labring/sealos/releases/download/v%s/sealos_%s_linux_amd64.tar.gz"
+    setup_soft_wget "sealos" "${TMP_SLS_SETUP_NEWER}" "exec_step_sealos"
+
+	return $?
+}
+
+##########################################################################################################
+
+#安装主体
+setup_soft_basic "Sealos" "down_sealos"

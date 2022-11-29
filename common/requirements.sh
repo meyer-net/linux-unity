@@ -15,7 +15,7 @@ function check_requriements()
 
 function setup_requriements()
 {
-    # path_not_exists_link "/opt/docker/data1" "test link create" "/mountdisk/data/docker"
+    # change_service_user "docker" "docker"
     # echo "over" 
     # read -e TTTT
 	echo "Start to init ${green}requriements libs${reset}"
@@ -29,6 +29,7 @@ function setup_requriements()
     soft_${SYS_SETUP_COMMAND}_check_setup "git"
     soft_${SYS_SETUP_COMMAND}_check_setup "zip"
     soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
+    soft_${SYS_SETUP_COMMAND}_check_setup "rsync"
 
     function _setup_requriements_gum()
     {
@@ -46,8 +47,9 @@ function setup_requriements()
     }
     path_exists_confirm_action "${PUP_PATH}" "The soft of 'pup' exists, please sure u will setup the newer 'still or not'?" "_setup_requriements_pup" "" "_setup_requriements_pup"
 
-    # 优先，后续会输出port
-    source scripts/required/*.sh
+    # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。docker>miniconda>sealos）
+    # source scripts/required/*.sh
+    source scripts/required/docker.sh
 
     # 优先，后续会输出port
     # source scripts/softs/supervisor.sh

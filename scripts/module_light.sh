@@ -38,41 +38,35 @@ function setup_$soft_name()
 	## 直装模式
 	cd `dirname ${TMP_$soft_upper_short_name_CURRENT_DIR}`
 
+	# 轻量级安装的情况下不进行安装包还原操作
 	mv ${TMP_$soft_upper_short_name_CURRENT_DIR} ${TMP_$soft_upper_short_name_SETUP_DIR}
 
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+	
+	# 特殊多层结构下使用
+    # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}`
+    # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}`
 
 	# 创建日志软链
 	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/$setup_name
 	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
 	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
 	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
-
-	# 先清理文件，再创建文件
-	rm -rf ${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}
-	rm -rf ${TMP_$soft_upper_short_name_SETUP_DATA_DIR}
-	path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-	path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-	# mv /var/lib/$setup_name ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
-	## cp /var/lib/$setup_name ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR} -Rp
-    ## mv /var/lib/$setup_name ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}_empty
 	
-	# 特殊多层结构下使用
-    # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}`
-    # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}`
+    # 还原 & 创建
+	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
 
-	ln -sf ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR} ${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}
-	ln -sf ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR} ${TMP_$soft_upper_short_name_SETUP_DATA_DIR}
-	# ln -sf ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR} /var/lib/$setup_name
-
-	# 环境变量或软连接
+	# 环境变量或软连接 ？？？/etc/profile写进函数
 	echo "$soft_upper_name_HOME=${TMP_$soft_upper_short_name_SETUP_DIR}" >> /etc/profile
 	echo 'PATH=$$soft_upper_name_HOME/bin:$PATH' >> /etc/profile
 	echo 'export PATH $soft_upper_name_HOME' >> /etc/profile
 
     # 重新加载profile文件
 	source /etc/profile
-	# ln -sf ${TMP_$soft_upper_short_name_SETUP_DIR}/bin/$setup_name /usr/bin/$setup_name
+	path_not_exists_link "/usr/bin/$setup_name" "${TMP_$soft_upper_short_name_SETUP_DIR}/bin/$setup_name"
 
 	# 授权权限，否则无法写入
 	# create_user_if_not_exists $setup_owner $setup_owner_group
@@ -91,27 +85,27 @@ function conf_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 	
+	# 统一编排到的etc路径
 	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/$setup_name
+	# 安装后的真实etc路径
 	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
 
 	# 开始配置
-
-	# ①-Y：存在配置文件：原路径文件放给真实路径
-	mv ${TMP_$soft_upper_short_name_SETUP_ETC_DIR} ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
-
-	# ①-N：不存在配置文件：
-	# rm -rf ${TMP_$soft_upper_short_name_SETUP_ETC_DIR}
-	# path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
-
 	# 特殊多层结构下使用
     # path_not_exists_create `dirname ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}`
 
-	# 替换原路径链接（存在etc下时，不能作为软连接存在）
-    # ln -sf /etc/$soft_name ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR} 
-    # ln -sf /etc/$soft_name ${TMP_$soft_upper_short_name_SETUP_ETC_DIR} 
-	ln -sf ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR} ${TMP_$soft_upper_short_name_SETUP_ETC_DIR}
+    # 还原 & 移动 - ①-Y：存在配置文件：原路径文件放给真实路径
+	soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
 
-# 	# -- 服务配置加载
+	# 还原 & 创建 - ②-N：不存在配置文件：
+	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
+
+	# 替换原路径链接
+    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "" "/etc/$soft_name" 
+    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "/etc/$soft_name"
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+
+# 	# -- 服务配置加载 ？？？服务配置还原操作
 # 	tee /usr/lib/systemd/system/$setup_name.service <<-EOF
 # [Unit]
 # Description=$soft_upper_name Server Service
@@ -131,9 +125,11 @@ function conf_$soft_name()
 # WantedBy=multi-user.target
 # EOF
 #
+# 	# 重新加载服务配置
 #     systemctl daemon-reload
 
-	# -- 授权权限，否则无法写入
+	# 授权权限，否则无法写入
+	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_DIR}
 	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
 
 	return $?

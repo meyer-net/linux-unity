@@ -23,7 +23,7 @@
 echo 3 > /proc/sys/vm/drop_caches
 
 #获取IP
-#参数1：需要设置的变量名
+# 参数1：需要设置的变量名
 function get_iplocal () {
 	#  | grep noprefixroute，qcloud无此属性
 	local _TMP_GET_IP_LOCAL_IP=`ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}'`
@@ -37,7 +37,7 @@ function get_iplocal () {
 }
 
 #获取IPv4
-#参数1：需要设置的变量名
+# 参数1：需要设置的变量名
 function get_ipv4 () {
 	#wget -qO- -t1 -T2 ipv4.icanhazip.com
     local _TMP_GET_IPV4_LOCAL_IPV4=`curl -s -A Mozilla ipv4.icanhazip.com | awk 'NR==1'`
@@ -52,7 +52,7 @@ function get_ipv4 () {
 }
 
 #获取IPv6
-#参数1：需要设置的变量名
+# 参数1：需要设置的变量名
 function get_ipv6 () {
     local _TMP_GET_IPV6_IP=`curl -s -A Mozilla ipv6.icanhazip.com | awk 'NR==1'`
 
@@ -64,7 +64,7 @@ function get_ipv6 () {
 }
 
 #获取国码
-#参数1：需要设置的变量名
+# 参数1：需要设置的变量名
 function get_country_code () {
 	local _TMP_GET_COUNTRY_CODE_DFT=`eval echo '$'${1}`
 	local _TMP_GET_COUNTRY_CODE_CODE=`echo ${_TMP_GET_COUNTRY_CODE_DFT:-"CN"}`
@@ -267,9 +267,9 @@ function kill_deleted()
 }
 
 #随机数
-#参数1：需要设置的变量名
-#参数2：最小值
-#参数3：最大值
+# 参数1：需要设置的变量名
+# 参数2：最小值
+# 参数3：最大值
 #调用：rand_val "TMP_CURR_RAND" 1000 2000
 function rand_val() {
     local _TMP_RAND_VAL_MIN=${2}
@@ -283,8 +283,8 @@ function rand_val() {
 }
 
 #随机数
-#参数1：需要设置的变量名
-#参数2：指定长度
+# 参数1：需要设置的变量名
+# 参数2：指定长度
 #调用：rand_str "TMP_CURR_RAND" 1000 2000
 function rand_str() {
 	local _TMP_RAND_STR_VAR_NAME=${1}
@@ -318,7 +318,7 @@ function trim_str() {
 }
 
 #转换路径
-#参数1：原始路径
+# 参数1：原始路径
 function convert_path () {
 	local _TMP_CONVERT_PATH_SOURCE=`eval echo '$'${1}`
 	local _TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/root@g"`
@@ -360,31 +360,30 @@ function symlink_link_path()
 	return $?
 }
 
-#查询内容所在行
-#参数1：需要设置的变量名
-#参数2：文件位置
-#参数3：关键字
+# 查询内容所在行
+# 参数1：需要设置的变量名
+# 参数2：文件路径
+# 参数3：关键字
+# 示例：
+#      get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "/usr/lib/systemd/system/docker.service" "User="
+#      -> 10:User=docker -> 10
 function get_line()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_GET_LINE_FILE_PATH=${2}
 	local _TMP_GET_LINE_KEY_WORDS=${3}
 
-	local TMP_KEY_WORDS_LINE=`more ${_TMP_GET_LINE_FILE_PATH} | grep "${_TMP_GET_LINE_KEY_WORDS}" -n | awk -F':' '{print $1}' | awk NR==1`
+	local TMP_KEY_WORDS_LINE=`cat ${_TMP_GET_LINE_FILE_PATH} | grep -nE "${_TMP_GET_LINE_KEY_WORDS}" | cut -d':' -f1 | awk NR==1`
 
 	eval ${1}='$TMP_KEY_WORDS_LINE'
 
 	return $?
 }
 
-#关键行插入
-#参数1：需要设置的变量名
-#参数2：文件位置
-#参数3：关键字
-#参数4：插入内容
+# 关键行插入
+# 参数1：需要设置的变量名
+# 参数2：文件路径
+# 参数3：关键字
+# 参数4：插入内容
 function curx_line_insert()
 {
 	get_line "${1}" "${2}" ${3}
@@ -405,23 +404,57 @@ function curx_line_insert()
 	return $?
 }
 
+# 修改服务运行时用户
+# 参数1：需要修改的服务名称
+# 参数2：服务运行时所用的用户
+# 示例：
+#      change_service_user "docker" "docker"
+function change_service_user()
+{
+	local _TMP_CHANGE_SERVICE_USER_SNAME=${1}
+	local _TMP_CHANGE_SERVICE_USER_UNAME=${2}
+
+	local _TMP_CHANGE_SERVICE_USER_PATH="/usr/lib/systemd/system/${1}.service"
+	local _TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=""
+	# get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" "^([#]*[[:space:]]*)User="
+	get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" '^([[:space:]]*)User='
+
+	# 不存在用户设置
+	if [ -z "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}" ]; then
+		get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" '^\[Service\]$'
+		_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=$((_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE+1))
+	else
+		# 删除用户设置
+		sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}d" ${_TMP_CHANGE_SERVICE_USER_PATH}
+		_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=$((_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE-1))
+	fi
+
+	# 插入用户设置
+	sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}a User=${_TMP_CHANGE_SERVICE_USER_UNAME}" ${_TMP_CHANGE_SERVICE_USER_PATH}
+
+	# 重新加载服务配置
+    systemctl daemon-reload
+
+	return $?
+}
+
 # 执行休眠
 # 参数1：休眠数值
 # 参数2：休眠等待文字
 function exec_sleep()
 {
 	local _TMP_EXEC_SLEEP_TIMES=${1}
-	local _TMP_EXEC_SLEEP_NOTICE=${2}
+	local _TMP_EXEC_SLEEP_ECHO=${2}
 
 	function _TMP_EXEC_SLEEP_NORMAL_FUNC() {
-		echo_text_style "${_TMP_EXEC_SLEEP_NOTICE}"
+		echo_text_style "${_TMP_EXEC_SLEEP_ECHO}"
 		sleep ${_TMP_EXEC_SLEEP_TIMES}
 		return $?
 	}
 	
 	function _TMP_EXEC_SLEEP_GUM_FUNC() {
 		
-		gum spin --spinner monkey --title "${_TMP_EXEC_SLEEP_NOTICE}" -- sleep ${_TMP_EXEC_SLEEP_TIMES}
+		gum spin --spinner monkey --title "${_TMP_EXEC_SLEEP_ECHO}" -- sleep ${_TMP_EXEC_SLEEP_TIMES}
 
 		return $?
 	}
@@ -527,9 +560,9 @@ function resolve_unmount_disk () {
 }
 
 #复制nginx启动器
-#参数1：程序命名
-#参数2：程序启动的目录
-#参数3：程序启动的端口
+# 参数1：程序命名
+# 参数2：程序启动的目录
+# 参数3：程序启动的端口
 function cp_nginx_starter()
 {
 	local _TMP_CP_NGX_STT_NAME=${1}
@@ -594,8 +627,8 @@ function gen_nginx_starter()
 }
 
 #安装软件基础
-#参数1：软件安装名称
-#参数2：软件安装需调用的函数
+# 参数1：软件安装名称
+# 参数2：软件安装需调用的函数
 function setup_soft_basic()
 {
 	if [ $? -ne 0 ]; then
@@ -733,10 +766,13 @@ function path_not_exists_create()
 # 参数2：路径存在时输出信息
 # 参数3：源(真实)路径
 # 参数4：链接完目录后执行函数或脚本
+# 示例：
+#      path_not_exists_link "/var/lib/docker" "" "/mountdisk/data/docker"
+#      -> ln -sf /mountdisk/data/docker /var/lib/docker
 function path_not_exists_link() 
 {
 	local _TMP_PATH_NOT_EXISTS_LINK_PATH=${1}
-	local _TMP_PATH_NOT_EXISTS_LINK_ECHO=${2}
+	local _TMP_PATH_NOT_EXISTS_LINK_ECHO=${2:-"The link of '${1}' exists."}
 	local _TMP_PATH_NOT_EXISTS_LINK_SOUR=${3}
 	local _TMP_PATH_NOT_EXISTS_LINK_SCRIPT=${4}
 
@@ -744,7 +780,7 @@ function path_not_exists_link()
 	{
 		exec_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
-
+	# ？？？缺乏/etc的链接改写操作，该场景下，配置目录或文件会被复原
     path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv `dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}` && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
@@ -756,10 +792,14 @@ function path_not_exists_link()
 # 参数4：存在备份，执行脚本
 # 示例：
 #	   soft_path_restore_confirm_action "/opt/docker" "" "echo 'create_dir'" "echo 'exec_restore'"
+#      -> [setup_docker] Checked current soft got some backup path for '/opt/docker', please sure u want to 'restore still or not'?
+#      --> [setup_docker] Please sure 'which version' u want to 'restore', by follow keys, then enter it
+#      ---> |>[1]1669633047
+#      soft_path_restore_confirm_action "/etc/docker"
 function soft_path_restore_confirm_action() 
 {
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC="${FUNCNAME[1]}"
-	if [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_create" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_link" ]; then
+	if [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_create" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_move" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_copy" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_swap" ]; then
 		_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC="${FUNCNAME[2]}"
 	fi
 
@@ -793,6 +833,7 @@ function soft_path_restore_confirm_action()
 				echo_text_style "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}'"
 				
 				# 直接覆盖，进cover
+				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/cover%s && cp -Rp %s /tmp/cover%s/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME_STAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style 'Dir of <%s> backuped to </tmp/cover%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT="${1}"
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT}"
@@ -840,7 +881,7 @@ function soft_path_restore_confirm_action()
 	return $?
 }
 
-# 软件安装的路径还原创建（因为很多路径可能存在于手动创建，所以该功能针对于备份后的还原）
+# 软件安装的路径还原创建（还原不存在则创建）
 # 参数1：还原路径
 # 示例：
 #	   soft_path_restore_confirm_create "/opt/docker"
@@ -850,50 +891,39 @@ function soft_path_restore_confirm_create()
 	return $?
 }
 
-# 软件安装的路径还原移动（因为很多路径可能存在于手动创建，所以该功能针对于备份后的还原）
-# 参数1：操作路径
-# 参数2：移动路径
+# 软件安装的路径还原移动（还原不存在则移动）
+# 参数1：还原路径
+# 参数2：来源路径
 # 示例：
-#	   soft_path_restore_confirm_move "/var/lib/docker" "/mountdisk/data/docker_empty" 
+#	   soft_path_restore_confirm_move "/mountdisk/data/docker_empty" "/var/lib/docker" 
 function soft_path_restore_confirm_move() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mv ${1} ${2}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && mv ${2} ${1} && ln -sf ${1} ${2}" "mv ${2} ${1} && ln -sf ${1} ${2}"
 	return $?
 }
 
-# 软件安装的路径还原复制（因为很多路径可能存在于手动创建，所以该功能针对于备份后的还原）
-# 参数1：操作路径
-# 参数2：移动路径
+# 软件安装的路径还原复制（还原不存在则复制）
+# 参数1：还原路径
+# 参数2：来源路径
 # 示例：
-#	   soft_path_restore_confirm_copy "/var/data/docker" "/mountdisk/data/docker"
+#	   soft_path_restore_confirm_copy "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_copy() 
 {
-	soft_path_restore_confirm_action "${1}" "" "cp -Rp ${1} ${2}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1}" ""
 	return $?
 }
 
-# 软件安装的路径还原迁移（因为很多路径可能存在于手动创建，所以该功能针对于备份后的还原）
-# 参数1：操作路径
-# 参数2：移动路径
+# 软件安装的路径还原迁移（还原不存在则迁移且移动并备份原始目录）
+# 参数1：还原路径
+# 参数2：来源路径(为空则默认取还原路径)
 # 示例：
-#	   soft_path_restore_confirm_swap "/var/data/docker" "/mountdisk/data/docker"
+#	   soft_path_restore_confirm_swap "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_swap() 
 {
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME}" +%s` 
 
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${2}` && cp -Rp ${1} ${2} && mv ${1} ${2}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${2} ${1}" ""
-	return $?
-}
-
-# 软件安装的路径还原链接（因为很多路径可能存在于手动创建，所以该功能针对于备份后的还原）
-# 参数1：真实路径
-# 参数2：链接路径
-# 示例：
-#	   soft_path_restore_confirm_link "/mountdisk/log/docker" "/var/log/docker"
-function soft_path_restore_confirm_link() 
-{
-	soft_path_restore_confirm_action "${1}" "" "ln -sf ${1} ${2}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -991,9 +1021,9 @@ function soft_trail_clear()
 }
 
 #Rpm不存在执行
-#参数1：包名称
-#参数2：执行函数名称
-#参数3：包存在时输出信息
+# 参数1：包名称
+# 参数2：执行函数名称
+# 参数3：包存在时输出信息
 function soft_rpm_check_action() 
 {
 	local _TMP_SOFT_RPM_CHECK_ACTION_SOFT=${1}
@@ -1123,6 +1153,16 @@ function soft_yum_check_upgrade_action()
 					_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="Y"
 			esac
 			
+			# 清理服务残留（备份前执行，否则会有资源占用的问题）
+			function _soft_yum_check_upgrade_action_exec_svr_remove() 
+			{
+				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+			}
+
+			export -f _soft_yum_check_upgrade_action_exec_svr_remove
+
+			systemctl list-unit-files --type=service | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} bash -c "_soft_yum_check_upgrade_action_exec_svr_remove {}"
+
 			# 卸载包前检测，备份残留或NO
 			soft_trail_clear "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
 
@@ -1131,17 +1171,13 @@ function soft_yum_check_upgrade_action()
 			# 清理安装包，删除空行（cut -d可能带来空行）
 			yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} yum -y remove {}
 
-			# 清理服务残留
-			function _soft_yum_check_upgrade_action_exec_svr_remove() 
-			{
-				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
-			}
-
-			systemctl list-unit-files --type=service | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} _soft_yum_check_upgrade_action_exec_svr_remove {}
-
 			echo_text_style "The yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was removed"
 			
 			# 执行安装
+			## 更新包
+			soft_yum_check_setup "yum-utils"
+			yum -y update && yum makecache fast
+			
 			exec_check_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}
 		}
 		
@@ -1153,11 +1189,11 @@ function soft_yum_check_upgrade_action()
 	return $?
 }
 
-#Npm不存在执行
-#参数1：包名称
-#参数2：执行函数名称
-#参数3：包存在时输出信息
-#参数4：模式
+# Npm不存在执行
+# 参数1：包名称
+# 参数2：执行函数名称
+# 参数3：包存在时输出信息
+# 参数4：模式
 function soft_npm_check_action() 
 {
 	local _TMP_SOFT_NPM_CHECK_ACTION_SOFT=${1}
@@ -1170,17 +1206,17 @@ function soft_npm_check_action()
 	else
 		echo "${3}"
 
-		return 0;
+		return 0
 	fi
 
 	return $?
 }
 
-#安装软件下载模式
-#参数1：软件下载地址
-#参数2：软件下载后，需移动的文件夹名
-#参数3：目标文件夹
-#参数4：解包后执行脚本
+# 安装软件下载模式
+# 参数1：软件下载地址
+# 参数2：软件下载后，需移动的文件夹名
+# 参数3：目标文件夹
+# 参数4：解包后执行脚本
 function wget_unpack_dist() 
 {
 	if [ $? -ne 0 ]; then
@@ -1227,9 +1263,9 @@ function wget_unpack_dist()
 	return $?
 }
 
-#无限循环重试下载
-#参数1：软件下载地址
-#参数2：软件下载后执行函数名称
+# 无限循环重试下载
+# 参数1：软件下载地址
+# 参数2：软件下载后执行函数名称
 function while_wget()
 {
 	if [ $? -ne 0 ]; then
@@ -1300,9 +1336,9 @@ function while_wget()
 	return $?
 }
 
-#无限循环重试下载
-#参数1：软件下载地址
-#参数2：软件下载后执行函数名称
+# 无限循环重试下载
+# 参数1：软件下载地址
+# 参数2：软件下载后执行函数名称
 function while_curl()
 {
 	if [ $? -ne 0 ]; then
@@ -1357,11 +1393,11 @@ function while_curl()
 	return $?
 }
 
-#无限循环尝试启动程序
-#参数1：程序启动命令
-#参数2：程序检测命令（返回1）
-#参数3：失败后执行
-#例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
+# 无限循环尝试启动程序
+# 参数1：程序启动命令
+# 参数2：程序检测命令（返回1）
+# 参数3：失败后执行
+# 例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function while_exec()
 {
 	if [ $? -ne 0 ]; then
@@ -1412,10 +1448,11 @@ function while_exec()
 }
 
 #安装软件下载模式
-#参数1：软件安装名称
-#参数2：软件下载地址
-#参数3：软件下载后执行函数名称
-#参数4：软件安装路径（不填入默认识别为 ${SETUP_DIR}）
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+# 参数4：软件安装路径（不填入默认识别为 ${SETUP_DIR}）
+# 参数5：软件已安装执行函数
 function setup_soft_wget() 
 {
 	if [ $? -ne 0 ]; then
@@ -1426,6 +1463,7 @@ function setup_soft_wget()
 	local _TMP_SOFT_WGET_URL=${2}
 	local _TMP_SOFT_WGET_SETUP_FUNC=${3}
 	local _TMP_SOFT_WGET_SETUP_DIR=$([ -n "${4}" ] && echo "${4}" || echo ${SETUP_DIR})
+	local _TMP_SOFT_WGET_INSTALLED_SCRIPTS=${5}
 	
 	typeset -l TMP_SOFT_LOWER_NAME
 	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_WGET_NAME}
@@ -1479,16 +1517,19 @@ function setup_soft_wget()
 		${_TMP_SOFT_WGET_SETUP_FUNC} "${TMP_SOFT_SETUP_PATH}"
 	
 		echo "Complete."
+	else
+		# 执行安装
+		exec_check_action "_TMP_SOFT_WGET_INSTALLED_SCRIPTS" "${_TMP_SOFT_WGET_NAME}"
 	fi
 
 	return $?
 }
 
 #安装软件下载模式
-#参数1：软件安装名称
-#参数2：软件下载地址
-#参数3：软件下载后执行函数名称
-#参数4：软件下载附加参数
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+# 参数4：软件下载附加参数
 function setup_soft_git() 
 {	
 	if [ $? -ne 0 ]; then
@@ -1535,7 +1576,6 @@ function setup_soft_pip()
 	fi
 
 	local _TMP_SOFT_PIP_NAME=`echo "${1}" | awk -F',' '{print $1}'`
-	local _TMP_SOFT_PIP_PATH=`echo "${1}" | awk -F',' '{print $NF}'`
 	local _TMP_SOFT_PIP_SETUP_FUNC=${2}
 	local _TMP_SOFT_PIP_VERS=${3:-2}
 	
@@ -1562,7 +1602,7 @@ function setup_soft_pip()
 		echo "Pip installed ${_TMP_SOFT_PIP_NAME}"
 
 		#安装后配置函数
-		${_TMP_SOFT_PIP_SETUP_FUNC} "${PY_PKGS_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}"
+		exec_check_action "_TMP_SOFT_PIP_SETUP_FUNC" "${PY_PKGS_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}"
 	else
     	ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep ${_TMP_SOFT_PIP_NAME} | grep -v grep
 
@@ -1572,10 +1612,37 @@ function setup_soft_pip()
 	return $?
 }
 
+# PIP安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载后执行脚本
+# 参数3：pip版本，默认2
+function setup_soft_conda() 
+{
+	if [ $? -ne 0 ]; then
+		return $?
+	fi
+
+	local _TMP_SOFT_CONDA_PIP_NAME=${1}
+	local _TMP_SOFT_CONDA_PIP_SETUP_FUNC=${2}
+	local _TMP_SOFT_CONDA_PIP_VERS=${3:-2}
+
+	function _setup_soft_conda()
+	{
+		source activate ${PY_ENV}
+		
+		exec_check_action "setup_soft_pip" "${1}" "_TMP_SOFT_CONDA_PIP_SETUP_FUNC" ${3}
+	}
+
+	bash -c "_setup_soft_conda"
+
+	return $?
+}
+
+
 #安装软件下载模式
-#参数1：软件安装名称
-#参数2：软件下载后执行函数名称
-#参数3：指定node版本（node有兼容性问题）
+# 参数1：软件安装名称
+# 参数2：软件下载后执行函数名称
+# 参数3：指定node版本（node有兼容性问题）
 function setup_soft_npm() 
 {
 	if [ $? -ne 0 ]; then
@@ -1633,8 +1700,8 @@ function setup_soft_npm()
 }
 
 # #循环执行
-# #参数1：提示标题
-# #参数2：函数名称
+# # 参数1：提示标题
+# # 参数2：函数名称
 # function cycle_exec()
 # {
 # 	if [ $? -ne 0 ]; then
@@ -1645,8 +1712,8 @@ function setup_soft_npm()
 # }
 
 #设置变量值函数如果为空
-#参数1：需要设置的变量名
-#参数2：需要设置的变量值
+# 参数1：需要设置的变量名
+# 参数2：需要设置的变量值
 function set_if_empty()
 {
 	local _TMP_SET_IF_EMPTY_VAR_NAME=${1}
@@ -1662,9 +1729,9 @@ function set_if_empty()
 }
 
 #设置变量值函数如果相同
-#参数1：需要对比的原始变量名
-#参数2：需要对比的变量名/值
-#参数3：需要对比的变量值
+# 参数1：需要对比的原始变量名
+# 参数2：需要对比的变量名/值
+# 参数3：需要对比的变量值
 function set_if_equals()
 {
 	local _TMP_SET_IF_EQS_SOURCE_VAR_NAME=${1}
@@ -1686,9 +1753,9 @@ function set_if_equals()
 }
 
 #是否类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：是否内容加密（默认：不显示，y/Y：密文）
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：是否内容加密（默认：不显示，y/Y：密文）
 function input_if_empty()
 {
 	local _TMP_INPUT_IF_EMPTY_VAR_NAME=${1}
@@ -1736,14 +1803,14 @@ function input_if_empty()
 }
 
 #是否类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
+# 参数1：需要设置的变量名
+# 参数2：提示信息
 
 #查找网页文件列表中，最新的文件名
 #描述：本函数先获取关键字最新的发布日期，再找对应行的文件名，最后提取href，适合比较通用型的文件列表
-#参数1：需要设置的变量名
-#参数2：需要找寻的URL路径
-#参数3：查找关键字
+# 参数1：需要设置的变量名
+# 参数2：需要找寻的URL路径
+# 参数3：查找关键字
 #示例：
 # 	set_newer_by_url_list_link_date "TMP_NEWER_LINK" "http://repo.yandex.ru/clickhouse/rpm/stable/x86_64/" "clickhouse-common-static-dbg-.*.x86_64.rpm"
 function set_newer_by_url_list_link_date()
@@ -1778,9 +1845,9 @@ function set_newer_by_url_list_link_date()
 
 #查找网页文件列表中，最新的文件名
 #描述：本函数先获取href标签行，再提取href内容，最后提取文本关键字中最新的版本号，该方法合适比较简单的数字关键字版本信息
-#参数1：需要设置的变量名
-#参数2：需要找寻的URL路径
-#参数3：查找关键字（必须在关键字中将版本号括起‘()’，否则无法匹配具体的版本）
+# 参数1：需要设置的变量名
+# 参数2：需要找寻的URL路径
+# 参数3：查找关键字（必须在关键字中将版本号括起‘()’，否则无法匹配具体的版本）
 #示例：
 # 	set_newer_by_url_list_link_text "TMP_NEWER_LINK" "http://repo.yandex.ru/clickhouse/rpm/stable/x86_64/" "clickhouse-common-static-dbg-().x86_64.rpm"
 # 	set_newer_by_url_list_link_text "TMP_NEWER_LINK" "https://services.gradle.org/distributions/" "gradle-()-bin.zip"
@@ -1821,8 +1888,8 @@ function set_newer_by_url_list_link_text()
 }
 
 #检测github最新版本
-#参数1：需要设置的变量名
-#参数2：Github仓储/项目，例如meyer.cheng/linux_scripts
+# 参数1：需要设置的变量名
+# 参数2：Github仓储/项目，例如meyer.cheng/linux_scripts
 #示例：
 #	TMP_ELASTICSEARCH_NEWER_VERS="0.0.1"
 #	set_github_soft_releases_newer_version "TMP_ELASTICSEARCH_NEWER_VERS" "elastic/elasticsearch"
@@ -1861,9 +1928,9 @@ function set_github_soft_releases_newer_version()
 }
 
 #查找列表中，获取关键字首行
-#参数1：需要设置的变量名
-#参数2：需要查找的内容
-#参数3：查找关键字
+# 参数1：需要设置的变量名
+# 参数2：需要查找的内容
+# 参数3：查找关键字
 function find_content_list_first_line()
 {
 	local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_NAME=${1}
@@ -1880,10 +1947,10 @@ function find_content_list_first_line()
 }
 
 #填充右处
-#参数1：需要设置的变量名
-#参数2：填充字符
-#参数3：总长度
-#参数4：格式化字符
+# 参数1：需要设置的变量名
+# 参数2：填充字符
+# 参数3：总长度
+# 参数4：格式化字符
 function fill_right()
 {
 	local _TMP_FILL_RIGHT_VAR_NAME=${1}
@@ -1907,10 +1974,10 @@ function fill_right()
 }
 
 #按键选择类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：选项参数
-#参数4：自定义的Spliter
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：选项参数
+# 参数4：自定义的Spliter
 function set_if_choice()
 {
 	local _TMP_SET_IF_CHOICE_VAR_NAME=${1}
@@ -2030,12 +2097,12 @@ function set_if_choice()
 }
 
 #按键选择类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：选项参数
-#参数4：自定义的Spliter
-#参数5：脚本路径/前缀
-#参数6：执行脚本后的操作
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：选项参数
+# 参数4：自定义的Spliter
+# 参数5：脚本路径/前缀
+# 参数6：执行脚本后的操作
 function exec_if_choice_custom()
 {
 	# 非首次运行时，清理命令台
@@ -2105,22 +2172,22 @@ function exec_if_choice_custom()
 }
 
 #按键选择类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：选项参数
-#参数4：自定义的Spliter
-#参数5：脚本路径/前缀
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：选项参数
+# 参数4：自定义的Spliter
+# 参数5：脚本路径/前缀
 function exec_if_choice()
 {
 	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5" 'exec_if_choice "${1}" "${2}" ${3} "${4}" "$5"'
 }
 
 #按键选择类型的弹出动态设置变量值函数
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：选项参数
-#参数4：自定义的Spliter
-#参数5：脚本路径/前缀
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：选项参数
+# 参数4：自定义的Spliter
+# 参数5：脚本路径/前缀
 function exec_if_choice_onece()
 {
 	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5"
@@ -2193,8 +2260,8 @@ function exec_check_action() {
 }
 
 #分割并执行动作
-#参数1：用于分割的字符串
-#参数2：对分割字符串执行脚本
+# 参数1：用于分割的字符串
+# 参数2：对分割字符串执行脚本
 #例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function exec_split_action()
 {
@@ -2218,8 +2285,8 @@ function exec_split_action()
 }
 
 #执行需要判断的Y/N逻辑函数
-#参数1：并行逻辑执行参数/脚本
-#参数2：提示信息
+# 参数1：并行逻辑执行参数/脚本
+# 参数2：提示信息
 function exec_yn_action()
 {
 	local _TMP_EXEC_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${1}
@@ -2246,11 +2313,11 @@ function exec_yn_action()
 }
 
 #执行需要判断的Y/N逻辑函数
-#参数1：需要针对存放的变量名
-#参数2：提示信息
-#参数3：执行Y时脚本
-#参数4：执行N时脚本
-#参数5：动态参数传递
+# 参数1：需要针对存放的变量名
+# 参数2：提示信息
+# 参数3：执行Y时脚本
+# 参数4：执行N时脚本
+# 参数5：动态参数传递
 function confirm_yn_action()
 {
 	local _TMP_CONFIRM_YN_ACTION_VAR_NAME=${1}
@@ -2325,9 +2392,9 @@ function check_yn_action() {
 }
 
 #按数组循环执行函数
-#参数1：需要针对存放的变量名
-#参数2：循环数组
-#参数3：循环执行脚本函数
+# 参数1：需要针对存放的变量名
+# 参数2：循环数组
+# 参数3：循环执行脚本函数
 #exec_repeat_funcs "TMP_EXEC_REPS_RESULT" "1000,2000" "num_sum"
 function exec_repeat_funcs()
 {
@@ -2355,9 +2422,9 @@ function exec_repeat_funcs()
 }
 
 #循环执行函数，执行true时终止(函数的入参列表必须一致)
-#参数1：需要针对存放的变量名
-#参数2：循环函数数组
-#参数3：函数入参(不定长)
+# 参数1：需要针对存放的变量名
+# 参数2：循环函数数组
+# 参数3：函数入参(不定长)
 #exec_funcs_repeat_until_output "TMP_EXEC_FUNCS_REPS_UNTIL_OUTPUT_RESULT" "funa,funb" "_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNCa" "paramc" ...
 function exec_funcs_repeat_until_output()
 {
@@ -2393,8 +2460,8 @@ function exec_funcs_repeat_until_output()
 }
 
 #执行文本格式化
-#参数1：需要格式化的变量名
-#参数2：格式化字符串规格
+# 参数1：需要格式化的变量名
+# 参数2：格式化字符串规格
 #示例：
 #	TMP_TEST_FORMATED_TEXT="World"
 #	exec_text_printf "TMP_TEST_FORMATED_TEXT" "Hello %s"
@@ -2421,8 +2488,8 @@ function exec_text_printf()
 }
 
 #执行文本格式化
-#参数1：需要格式化的变量名
-#参数2：格式化字符串规格
+# 参数1：需要格式化的变量名
+# 参数2：格式化字符串规格
 #示例：
 #	TMP_TEST_STYLED_TEXT="[Hello] world"
 #	exec_text_style "TMP_TEST_STYLED_TEXT" "red"
@@ -2560,10 +2627,10 @@ function exec_in_yml_list()
 }
 
 #循环读取值
-#参数1：需要设置的变量名（即是默认值，也是逗号分隔的数组字符串）
-#参数2：提示信息
-#参数3：格式化字符串
-#参数4：需执行的脚本
+# 参数1：需要设置的变量名（即是默认值，也是逗号分隔的数组字符串）
+# 参数2：提示信息
+# 参数3：格式化字符串
+# 参数4：需执行的脚本
 function exec_while_read() 
 {
 	local _TMP_EXEC_WHILE_READ_VAR_NAME=${1}
@@ -2627,9 +2694,9 @@ function exec_while_read()
 }
 
 #循环读取JSON值
-#参数1：需要设置的变量名
-#参数2：提示信息
-#参数3：选项参数
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：选项参数
 function exec_while_read_json() 
 {
 	local _TMP_EXEC_WHILE_READ_JSON_VAR_NAME=${1}
@@ -2679,13 +2746,13 @@ function exec_while_read_json()
 }
 
 #生成启动配置文件
-#参数1：程序命名
-#参数2：程序启动的目录
-#参数3：程序启动的命令
-#参数4：程序启动的环境
-#参数5：优先级序号
-#参数6：运行环境，默认/etc/profile
-#参数7：运行所需的用户，默认root
+# 参数1：程序命名
+# 参数2：程序启动的目录
+# 参数3：程序启动的命令
+# 参数4：程序启动的环境
+# 参数5：优先级序号
+# 参数6：运行环境，默认/etc/profile
+# 参数7：运行所需的用户，默认root
 function echo_startup_config()
 {
 	set_if_empty "SUPERVISOR_ATT_DIR" "${ATT_DIR}/supervisor"
@@ -2905,9 +2972,9 @@ EOF
 }
 
 #新增一个授权端口
-#参数1：需放开端口
-#参数2：授权IP
-#参数3：ALL/TCP/UDP
+# 参数1：需放开端口
+# 参数2：授权IP
+# 参数3：ALL/TCP/UDP
 function echo_soft_port()
 {
 	local _TMP_ECHO_SOFT_PORT=${1}
@@ -2984,7 +3051,7 @@ EOF
 }
 
 #构建shadowsocks服务
-#参数1：构建模式（默认自检）
+# 参数1：构建模式（默认自检）
 function proxy_by_ss()
 {
 	local _TMP_PROXY_BY_SS_MODE="${1}"
