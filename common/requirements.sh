@@ -20,6 +20,7 @@ function setup_requriements()
     # read -e TTTT
 	echo "Start to init ${green}requriements libs${reset}"
 
+    soft_${SYS_SETUP_COMMAND}_check_setup "epel-release"
     soft_${SYS_SETUP_COMMAND}_check_setup "vim-enhanced"
     soft_${SYS_SETUP_COMMAND}_check_setup "wget"
 
@@ -37,7 +38,7 @@ function setup_requriements()
         set_github_soft_releases_newer_version "TMP_GUM_SETUP_NEWER" "charmbracelet/gum"
         while_wget "--content-disposition https://github.com/charmbracelet/gum/releases/download/v${TMP_GUM_SETUP_NEWER}/gum_${TMP_GUM_SETUP_NEWER}_linux_amd64.rpm" "rpm -ivh gum_${TMP_GUM_SETUP_NEWER}_linux_amd64.rpm"
     }
-    path_exists_confirm_action "${GUM_PATH}" "The soft of 'gum' exists, please sure u will setup the newer 'still or not'?" "_setup_requriements_gum" "" "_setup_requriements_gum"
+    path_exists_confirm_action "${GUM_PATH}" "The soft of 'gum' exists, please sure u will setup the newer 'still or not'" "_setup_requriements_gum" "" "_setup_requriements_gum"
     
     function _setup_requriements_pup()
     {
@@ -45,7 +46,7 @@ function setup_requriements()
         set_github_soft_releases_newer_version "TMP_PUP_SETUP_NEWER" "ericchiang/pup"
         while_wget "--content-disposition https://github.com/ericchiang/pup/releases/download/v${TMP_PUP_SETUP_NEWER}/pup_v${TMP_PUP_SETUP_NEWER}_linux_amd64.zip" "unzip pup_v${TMP_PUP_SETUP_NEWER}_linux_amd64.zip && mv pup /usr/bin/"
     }
-    path_exists_confirm_action "${PUP_PATH}" "The soft of 'pup' exists, please sure u will setup the newer 'still or not'?" "_setup_requriements_pup" "" "_setup_requriements_pup"
+    path_exists_confirm_action "${PUP_PATH}" "The soft of 'pup' exists, please sure u will setup the newer 'still or not'" "_setup_requriements_pup" "" "_setup_requriements_pup"
 
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。docker>miniconda>sealos）
     # source scripts/required/*.sh

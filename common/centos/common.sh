@@ -233,22 +233,64 @@ function create_user_if_not_exists()
 	local _TMP_CREATE_USER_IF_NOT_EXISTS_USER=${2}
 	local _TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR=${3}
 
+	# local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_DATA=$(id ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
+
 	#create group if not exists
-	egrep "^${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" /etc/group >& /dev/null
+	egrep "^${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}:" /etc/group >& /dev/null
 	if [ $? -ne 0 ]; then
 		groupadd ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}
 	fi
-
+	
 	#create user if not exists
-	egrep "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" /etc/passwd >& /dev/null
+	egrep "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:" /etc/passwd >& /dev/null
 	if [ $? -ne 0 ]; then
 		local _TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT=""
 		if [ -n "${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}" ] && [ ! -d "${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}" ]; then
 			_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT="-d ${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}"
 		fi
-		
-		useradd -g ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT}
-		newgrp ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}
+
+		# 正在创建信箱文件: 文件已存在
+		if [ ! -f /var/spool/mail/${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ]; then
+			# -c：加上备注文字，备注文字保存在passwd的备注栏中。 
+			# -d：指定用户登入时的启始目录。
+			# -D：变更预设值。
+			# -e：指定账号的有效期限，缺省表示永久有效。
+			# -f：指定在密码过期后多少天即关闭该账号。
+			# -g：指定用户所属的起始群组。
+			# -G：指定用户所属的附加群组。
+			# -m：自动建立用户的登入目录。
+			# -M：不要自动建立用户的登入目录。
+			# -n：取消建立以用户名称为名的群组。
+			# -r：建立系统账号。
+			# -s：指定用户登入后所使用的shell。
+			# -u：指定用户ID号。
+
+			useradd -g ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT}
+		fi
+
+		# docker用户及组的情况
+		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
+			# 给docker添加sudo权限
+			chmod -v u+w /etc/sudoers
+			curx_line_insert "_TMP_LINE" "/etc/sudoers" "root    ALL=(ALL)       ALL" "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}  ALL=(ALL)       ALL"
+			chmod -v u-w /etc/sudoers
+
+			# 以当前用户修改docker对应的用户UID
+			local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
+			local _TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID=$(id -u $(whoami))
+			sed -i "s@^\(${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:x\):${_TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID}@\1:${_TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID}@g" /etc/passwd
+		fi
+	else
+		# 1、设置某个用户所在组
+		# 	 usermod -g 用户组 用户名
+		# 注：
+		#    -g|--gid，修改用户的gid，该组一定存在
+		# 2、把用户添加进入某个组(s）
+		# 	 usermod -a -G 用户组 用户名
+		# 注：
+		# 	 -a|--append，把用户追加到某些组中，仅与-G选项一起使用
+		# 	 -G|--groups，把用户追加到某些组中，仅与-a选项一起使用
+		usermod -a -G ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}
 	fi
 
 	return $?
@@ -384,6 +426,8 @@ function get_line()
 # 参数2：文件路径
 # 参数3：关键字
 # 参数4：插入内容
+# 示例：
+#      curx_line_insert "_TMP_LINE" "/etc/sudoer" "root    ALL=(ALL)       ALL" "docker    ALL=(ALL)       ALL"
 function curx_line_insert()
 {
 	get_line "${1}" "${2}" ${3}
@@ -414,23 +458,31 @@ function change_service_user()
 	local _TMP_CHANGE_SERVICE_USER_SNAME=${1}
 	local _TMP_CHANGE_SERVICE_USER_UNAME=${2}
 
-	local _TMP_CHANGE_SERVICE_USER_PATH="/usr/lib/systemd/system/${1}.service"
+	local _TMP_CHANGE_SERVICE_USER_SERVICE_PATH="/usr/lib/systemd/system/${1}.service"
+	local _TMP_CHANGE_SERVICE_USER_SOCKET_PATH="/usr/lib/systemd/system/${1}.socket"
 	local _TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=""
-	# get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" "^([#]*[[:space:]]*)User="
-	get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" '^([[:space:]]*)User='
+	# get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" "^([#]*[[:space:]]*)User="
+	get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^([[:space:]]*)User='
 
 	# 不存在用户设置
 	if [ -z "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}" ]; then
-		get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_PATH}" '^\[Service\]$'
+		get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^\[Service\]$'
 		_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=$((_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE+1))
 	else
 		# 删除用户设置
-		sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}d" ${_TMP_CHANGE_SERVICE_USER_PATH}
+		sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}d" ${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}
 		_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=$((_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE-1))
 	fi
 
+	# 有socket的情况
+	if [ -f ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH} ]; then
+		local _TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP=$(groups ${_TMP_CHANGE_SERVICE_USER_UNAME} | cut -d' ' -f3)
+		sed -i "s@\(SocketUser\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_UNAME}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
+		sed -i "s@\(SocketGroup\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
+	fi
+
 	# 插入用户设置
-	sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}a User=${_TMP_CHANGE_SERVICE_USER_UNAME}" ${_TMP_CHANGE_SERVICE_USER_PATH}
+	sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}a User=${_TMP_CHANGE_SERVICE_USER_UNAME}" ${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}
 
 	# 重新加载服务配置
     systemctl daemon-reload
@@ -742,6 +794,115 @@ function path_exists_yn_action()
 	return $?
 }
 
+# 执行文本格式化
+# 参数1：需要格式化的变量名
+# 参数2：格式化字符串规格
+# 示例：
+#	TMP_TEST_STYLED_TEXT="[Hello] world"
+#	exec_text_style "TMP_TEST_STYLED_TEXT" "red"
+#	echo "The styled text is ‘$TMP_TEST_STYLED_TEXT’"
+function exec_text_style()
+{
+	local _TMP_EXEC_TEXT_STYLE_VAR_NAME=${1}
+	local _TMP_EXEC_TEXT_STYLE_VAR_STYLE=${2} #${2:-"${red}"}
+	# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}'`
+	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '$'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}`
+
+	function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
+		_TMP_EXEC_TEXT_STYLE_VAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${red}"}
+
+		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}${reset}"
+
+		return $?
+	}
+	
+	function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
+		# Gum模式存在默认样式，普通模式不存在
+		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}")
+
+		return $?
+	}
+
+	function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=${1}
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE='\'
+		case ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT} in
+		'[')
+			# 加入转义符
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='['
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=']'
+		;;
+		# '{')
+		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='{'
+		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='}'
+		# ;;
+		'<')
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='<'
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='>'
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
+		;;
+		'"')
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='"'
+		;;
+		*)
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
+		esac
+
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS=$IFS   # Save current IFS
+		IFS=$'\n'      # Change IFS to new line
+
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}"
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}"
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}[^${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}]+${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+		# local _TMP_EXEC_TEXT_STYLE_MATCH_PREFIX=`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o '^\[[^]]+\]'`
+		# wrap类型 [] <>
+		local _TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR=(`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX}"`)
+		for _TMP_EXEC_TEXT_STYLE_MATCH_ITEM in ${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR[@]}; do
+			local _TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}"
+			if [ -n "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}" ]; then
+				# 清除第一个]及其左边字符串
+				# echo "${A/\[reset_os\]/}" 
+				trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}"
+				if [ "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}" != "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}" ]; then
+					trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+				fi
+				
+				local _TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+				path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_TEXT_STYLE_GUM_FUNC" "_TMP_EXEC_TEXT_STYLE_NORMAL_FUNC"	
+
+				_TMP_EXEC_TEXT_STYLE_VAR_VAL=`echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}}`
+			fi
+		done
+
+		IFS=${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS}   # Restore IFS
+
+		return $?
+	}
+
+	# 自动样式化消息
+	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "["
+	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "<"
+	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "'"
+	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC '"'
+	# _TMP_EXEC_TEXT_STYLE_WRAP_FUNC "{"
+
+	eval ${_TMP_EXEC_TEXT_STYLE_VAR_NAME}='${_TMP_EXEC_TEXT_STYLE_VAR_VAL}'
+}
+
+# 输出文本格式化
+# 参数1：需要格式化的变量名
+# 示例：
+#	TMP_ECHO_TEXT_STYLED_TEXT="[Hello] 'World'"
+#	echo_text_style "TMP_ECHO_TEXT_STYLED_TEXT"
+function echo_text_style() {
+	local _TMP_EXEC_TEXT_STYLE_VAL="${1}"
+	exec_text_style "_TMP_EXEC_TEXT_STYLE_VAL"
+	echo ${_TMP_EXEC_TEXT_STYLE_VAL}
+	
+	return $?
+}
+
 # 路径不存在则创建
 # 参数1：检测路径
 # 参数2：路径存在时输出信息
@@ -941,8 +1102,8 @@ function soft_trail_clear()
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR=()
 
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[0]="/var/lib/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[3]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
@@ -955,6 +1116,13 @@ function soft_trail_clear()
 	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
 
 	# 获取软链接后的真实路径
+	# Record really dir of </mountdisk/data/docker> from source link </mountdisk/data/docker -> /var/lib/docker>
+	# Checked dir of </var/lib/docker> is a symlink for really dir </mountdisk/data/docker>, sys deleted.
+	# Record really dir of </run/docker> from source link </var/run/docker -> /var/run/docker>
+	# Record really dir of </etc/docker> from source link </etc/docker -> /etc/docker>
+	# Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
+	# Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
+	# Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
 	echo
 	echo_text_style "Starting resolve the dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
@@ -987,7 +1155,6 @@ function soft_trail_clear()
 		fi
 	done
 	echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
-	echo
 		
 	# 备份 && 删除文件
 	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/backup%s && cp -Rp %s /tmp/backup%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> backuped to </tmp/backup%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
@@ -1002,17 +1169,19 @@ function soft_trail_clear()
 		local _TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT="${1}"
 		exec_text_printf "_TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
 
+		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
+		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
 		path_exists_confirm_action "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
 	}
 	
 	echo		
-	echo_text_style "Starting backup the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+	echo_text_style "Starting backup/force/cover the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 	if [ ${_TMP_SOFT_TRAIL_CLEAR_FORCE} == "N" ]; then
 		exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
 	else
 		exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
 	fi
-	echo_text_style "The soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was backuped"
+	echo_text_style "The soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was executed backup/force/cover done"
 	echo
 
 	systemctl daemon-reload
@@ -1130,17 +1299,20 @@ function soft_yum_check_upgrade_action()
     
 	function _soft_yum_check_upgrade_action_exec()
 	{
+		# 当前操作软件名称
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
+		# 提示是否重装的值，默认不重装
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_REMOVE_Y_N="N"
 
 		# 卸载找到的关联包
 		function _soft_yum_check_upgrade_action_exec_remove()
 		{
-			# 重装先确认备份
+			# 重装先确认备份，默认备份
+			## Please sure the soft of 'docker' u will 'backup check still or not'?
 			local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
 			confirm_yn_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' u will 'backup check still or not'"
 
-			# 是否强制删除这里取反
+			# 是否强制删除这里取反，soft_trail_clear参数需要
 			local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="N"
 			case ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N} in
 				"Y" | "y")
@@ -1156,6 +1328,15 @@ function soft_yum_check_upgrade_action()
 			# 清理服务残留（备份前执行，否则会有资源占用的问题）
 			function _soft_yum_check_upgrade_action_exec_svr_remove() 
 			{
+				local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME=`echo "${1}" | sed 's@\.service@\.socket@g'`
+				if [ -f "/usr/lib/systemd/system/${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}" ]; then
+					# echo_text_style "Found '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}', start stop"
+					systemctl stop ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}
+					# fix 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?'
+					rm -rf /var/run/`echo "${1}" | sed 's@\.service@\.sock@g'`
+				fi				
+				
+				# echo_text_style "Starting stop & disable & remove about the service of '${1}'"
 				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
 			}
 
@@ -1169,6 +1350,7 @@ function soft_yum_check_upgrade_action()
 			echo_text_style "Starting remove yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}'"
 
 			# 清理安装包，删除空行（cut -d可能带来空行）
+			yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log
 			yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} yum -y remove {}
 
 			echo_text_style "The yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was removed"
@@ -1176,14 +1358,21 @@ function soft_yum_check_upgrade_action()
 			# 执行安装
 			## 更新包
 			soft_yum_check_setup "yum-utils"
+			yum-complete-transaction --cleanup-only
 			yum -y update && yum makecache fast
 			
 			exec_check_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}
 		}
 		
+		# 检测到软件已安装，确认重装或不重装。
+		## 例如：Checked the soft of 'docker' was installed, please sure u will 'reinstall still or not'?
 		confirm_yn_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_REMOVE_Y_N" "Checked the soft of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was installed, please sure u will 'reinstall still or not'" "_soft_yum_check_upgrade_action_exec_remove" "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXISTS_SCRIPT" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+
+		# 不管是否重装，都进行更新
+		yum -y update ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}
 	}
 	
+	# 检测执行，未安装则运行外部安装脚本（exec_step_docker），已安装则运行内部函数进行安装还原操作
 	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SOFTS}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT}" "_soft_yum_check_upgrade_action_exec"
 
 	return $?
@@ -2484,115 +2673,6 @@ function exec_text_printf()
 
 	eval ${1}='${_TMP_EXEC_TEXT_FORMAT_FORMATED_VAL:-${_TMP_EXEC_TEXT_FORMAT_VAR_VAL}}'
 
-	return $?
-}
-
-#执行文本格式化
-# 参数1：需要格式化的变量名
-# 参数2：格式化字符串规格
-#示例：
-#	TMP_TEST_STYLED_TEXT="[Hello] world"
-#	exec_text_style "TMP_TEST_STYLED_TEXT" "red"
-#	echo "The styled text is ‘$TMP_TEST_STYLED_TEXT’"
-function exec_text_style()
-{
-	local _TMP_EXEC_TEXT_STYLE_VAR_NAME=${1}
-	local _TMP_EXEC_TEXT_STYLE_VAR_STYLE=${2} #${2:-"${red}"}
-	# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}'`
-	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '$'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}`
-
-	function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
-		_TMP_EXEC_TEXT_STYLE_VAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${red}"}
-
-		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}${reset}"
-
-		return $?
-	}
-	
-	function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
-		# Gum模式存在默认样式，普通模式不存在
-		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}")
-
-		return $?
-	}
-
-	function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=${1}
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE='\'
-		case ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT} in
-		'[')
-			# 加入转义符
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='['
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=']'
-		;;
-		# '{')
-		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='{'
-		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='}'
-		# ;;
-		'<')
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='<'
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='>'
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
-		;;
-		'"')
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='"'
-		;;
-		*)
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
-		esac
-
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS=$IFS   # Save current IFS
-		IFS=$'\n'      # Change IFS to new line
-
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}"
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}"
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}[^${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}]+${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
-		# local _TMP_EXEC_TEXT_STYLE_MATCH_PREFIX=`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o '^\[[^]]+\]'`
-		# wrap类型 [] <>
-		local _TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR=(`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX}"`)
-		for _TMP_EXEC_TEXT_STYLE_MATCH_ITEM in ${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR[@]}; do
-			local _TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}"
-			if [ -n "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}" ]; then
-				# 清除第一个]及其左边字符串
-				# echo "${A/\[reset_os\]/}" 
-				trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}"
-				if [ "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}" != "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}" ]; then
-					trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
-				fi
-				
-				local _TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
-				path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_TEXT_STYLE_GUM_FUNC" "_TMP_EXEC_TEXT_STYLE_NORMAL_FUNC"	
-
-				_TMP_EXEC_TEXT_STYLE_VAR_VAL=`echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}}`
-			fi
-		done
-
-		IFS=${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS}   # Restore IFS
-
-		return $?
-	}
-
-	# 自动样式化消息
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "["
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "<"
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "'"
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC '"'
-	# _TMP_EXEC_TEXT_STYLE_WRAP_FUNC "{"
-
-	eval ${_TMP_EXEC_TEXT_STYLE_VAR_NAME}='${_TMP_EXEC_TEXT_STYLE_VAR_VAL}'
-}
-
-# 输出文本格式化
-# 参数1：需要格式化的变量名
-# 示例：
-#	TMP_ECHO_TEXT_STYLED_TEXT="[Hello] 'World'"
-#	echo_text_style "TMP_ECHO_TEXT_STYLED_TEXT"
-function echo_text_style() {
-	local _TMP_EXEC_TEXT_STYLE_VAL="${1}"
-	exec_text_style "_TMP_EXEC_TEXT_STYLE_VAL"
-	echo ${_TMP_EXEC_TEXT_STYLE_VAL}
-	
 	return $?
 }
 

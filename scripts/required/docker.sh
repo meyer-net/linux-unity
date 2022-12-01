@@ -48,7 +48,13 @@ function formal_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
     # 预先初始化一次，启动后才有文件生成
-    systemctl start docker.service
+    systemctl start docker
+    # 停止服务，否则运行时修改会引起未知错误
+    # 不执行会出警告：
+    # Warning: Stopping docker.service, but it can still be activated by:
+    #     docker.socket
+    systemctl stop docker.socket
+    systemctl stop docker.service
 
     # 还原 & 创建 & 迁移
 	## 日志
@@ -71,9 +77,7 @@ function formal_docker()
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
         
 	# 预实验部分
-    ## 目录调整完重启进程(目录调整是否有效的验证点)
-    systemctl restart docker.service
-
+    
 	return $?
 }
 
@@ -85,18 +89,20 @@ function conf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	# 开始配置
+    ## 目录调整完重启进程(目录调整是否有效的验证点)
     ## 修改服务运行用户
     change_service_user docker docker
     
     ## 授权权限，否则无法写入
+    ### 默认的安装有docker组，无docker用户
     create_user_if_not_exists docker docker
+    
 	chown -R docker:docker ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
 	chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
 
-    # 中止进程
-    systemctl stop docker.service
+    systemctl start docker.service
 
 	return $?
 }
@@ -109,16 +115,24 @@ function test_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	# 实验部分
-    # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
-    docker pull training/webapp
+    local _TMP_SETUP_DOCKER_TEST_IMG_INSPECT=$(docker inspect -f {{".Id"}} training/webapp)
+    if [ -z "${_TMP_SETUP_DOCKER_TEST_IMG_INSPECT}" ]; then
+        # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
+        docker pull training/webapp
+    fi
 
     # -P :是容器内部端口随机映射到主机的端口。
     # -p : 是容器内部端口绑定到指定的主机端口。
-    local _TMP_SETUP_DOCKER_TEST_PS_ID=`docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py`
+    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py)
     exec_sleep 5 "Booting the test image 'training/webapp' to port '${TMP_DOCKER_SETUP_TEST_PS_PORT}'，Waiting for a moment"
-    local _TMP_SETUP_DOCKER_TEST_PS_PORT=`docker port ${_TMP_SETUP_DOCKER_TEST_PS_ID} | cut -d':' -f2`
+    local _TMP_SETUP_DOCKER_TEST_PS_PORT=$(docker port ${_TMP_SETUP_DOCKER_TEST_PS_ID} | cut -d':' -f2)
 
+    # 查看日志
     docker inspect ${_TMP_SETUP_DOCKER_TEST_PS_ID} | jq >> logs/test_image.log
+    echo "--------------------------------------------"
+    cat logs/test_image.log
+    echo "--------------------------------------------"
+
     docker logs ${_TMP_SETUP_DOCKER_TEST_PS_ID}
     curl -s http://localhost:${_TMP_SETUP_DOCKER_TEST_PS_PORT}
     echo
@@ -148,22 +162,23 @@ function boot_docker()
     chkconfig docker on
 	chkconfig --list | grep docker
 	echo
-    echo_text_style "Starting 'docker'，Waiting for a moment"
+    echo_text_style "Starting 'docker'，waiting for a moment"
     echo "--------------------------------------------"
-    nohup systemctl start docker.service > logs/boot.log 2>&1 &
-    exec_sleep 3 "Initing 'docker'，Waiting for a moment"
+	# 启动及状态检测
+    nohup systemctl start docker.service >> logs/boot.log 2>&1 &
+    nohup systemctl status docker.service >> logs/boot.log 2>&1 &
+
+    exec_sleep 3 "Initing 'docker'，waiting for a moment"
 
     cat logs/boot.log
-    echo "--------------------------------------------"
-
-	# 启动状态检测
-	systemctl status docker.service
-	
+    echo "--------------------------------------------"	
 	# 添加系统启动命令
 	systemctl enable docker.service
 
     # 结束
-    exec_sleep 5 "Boot 'docker' over，Stay 5 secs to exit"
+    exec_sleep 5 "Boot 'docker' over，stay 5 secs to exit"
+
+    read -e TTT
 
 	return $?
 }
