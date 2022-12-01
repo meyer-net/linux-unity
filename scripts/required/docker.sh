@@ -178,8 +178,6 @@ function boot_docker()
     # 结束
     exec_sleep 5 "Boot 'docker' over，stay 5 secs to exit"
 
-    read -e TTT
-
 	return $?
 }
 
