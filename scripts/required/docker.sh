@@ -127,7 +127,7 @@ function test_docker()
     # -P :是容器内部端口随机映射到主机的端口。
     # -p : 是容器内部端口绑定到指定的主机端口。
     # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 training/webapp python app.py
-    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run --rm -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 --restart always -e "PREBOOT_CHROME=true" -e "CONNECTION_TIMEOUT=-1" -e "MAX_CONCURRENT_SESSIONS=10" -e "WORKSPACE_DELETE_EXPIRED=true" -e "WORKSPACE_EXPIRE_DAYS=7" browserless/chrome)
+    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 --restart always -e "PREBOOT_CHROME=true" -e "CONNECTION_TIMEOUT=-1" -e "MAX_CONCURRENT_SESSIONS=10" -e "WORKSPACE_DELETE_EXPIRED=true" -e "WORKSPACE_EXPIRE_DAYS=7" browserless/chrome)
     exec_sleep 5 "Booting the test image 'browserless/chrome' to port '${TMP_DOCKER_SETUP_TEST_PS_PORT}'，Waiting for a moment"
     local _TMP_SETUP_DOCKER_TEST_PS_PORT=$(docker port ${_TMP_SETUP_DOCKER_TEST_PS_ID} | cut -d':' -f2)
 
@@ -185,7 +185,7 @@ function boot_docker()
 
     # 结束
     exec_sleep 10 "Boot 'docker' over，stay 10 secs to exit"
-read -e TTTT
+
 	return $?
 }
 
