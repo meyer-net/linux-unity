@@ -6,8 +6,9 @@
 #------------------------------------------------
 # 相关参考：
 #		  https://www.runoob.com/docker/centos-docker-install.html
+#         https://zhuanlan.zhihu.com/p/377456104
 #------------------------------------------------
-local TMP_DOCKER_SETUP_TEST_PS_PORT=15000
+local TMP_DOCKER_SETUP_TEST_PS_PORT=13000
 
 ##########################################################################################################
 
@@ -49,6 +50,7 @@ function formal_docker()
     
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
+    
     # 停止服务，否则运行时修改会引起未知错误
     # 不执行会出警告：
     # Warning: Stopping docker.service, but it can still be activated by:
@@ -90,12 +92,13 @@ function conf_docker()
     
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
-    ## 修改服务运行用户
-    change_service_user docker docker
     
     ## 授权权限，否则无法写入
     ### 默认的安装有docker组，无docker用户
     create_user_if_not_exists docker docker
+
+    ## 修改服务运行用户
+    change_service_user docker docker
     
 	chown -R docker:docker ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
@@ -115,16 +118,17 @@ function test_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	# 实验部分
-    local _TMP_SETUP_DOCKER_TEST_IMG_INSPECT=$(docker inspect -f {{".Id"}} training/webapp)
+    local _TMP_SETUP_DOCKER_TEST_IMG_INSPECT=$(docker inspect -f {{".Id"}} browserless/chrome)
     if [ -z "${_TMP_SETUP_DOCKER_TEST_IMG_INSPECT}" ]; then
         # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
-        docker pull training/webapp
+        docker pull browserless/chrome
     fi
 
     # -P :是容器内部端口随机映射到主机的端口。
     # -p : 是容器内部端口绑定到指定的主机端口。
-    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py)
-    exec_sleep 5 "Booting the test image 'training/webapp' to port '${TMP_DOCKER_SETUP_TEST_PS_PORT}'，Waiting for a moment"
+    # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 training/webapp python app.py
+    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run --rm -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 --restart always -e "PREBOOT_CHROME=true" -e "CONNECTION_TIMEOUT=-1" -e "MAX_CONCURRENT_SESSIONS=10" -e "WORKSPACE_DELETE_EXPIRED=true" -e "WORKSPACE_EXPIRE_DAYS=7" browserless/chrome)
+    exec_sleep 5 "Booting the test image 'browserless/chrome' to port '${TMP_DOCKER_SETUP_TEST_PS_PORT}'，Waiting for a moment"
     local _TMP_SETUP_DOCKER_TEST_PS_PORT=$(docker port ${_TMP_SETUP_DOCKER_TEST_PS_ID} | cut -d':' -f2)
 
     # 查看日志
@@ -132,14 +136,14 @@ function test_docker()
     echo "--------------------------------------------"
     cat logs/test_image.log
     echo "--------------------------------------------"
-
     docker logs ${_TMP_SETUP_DOCKER_TEST_PS_ID}
+    echo "--------------------------------------------"
     curl -s http://localhost:${_TMP_SETUP_DOCKER_TEST_PS_PORT}
     echo
     # docker stop ${_TMP_SETUP_DOCKER_TEST_PS_ID}
 
     # # 删除images
-    # docker rmi training/webapp
+    # docker rmi browserless/chrome
 
     # 删除容器
     # docker rm -f ${_TMP_SETUP_DOCKER_TEST_PS_ID}
@@ -154,30 +158,34 @@ function test_docker()
 function boot_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
-	
-	# 验证安装
-    docker -v
 
     # 当前启动命令 && 等待启动
-    chkconfig docker on
-	chkconfig --list | grep docker
 	echo
     echo_text_style "Starting 'docker'，waiting for a moment"
     echo "--------------------------------------------"
+    # 设置系统管理，开机启动
+    chkconfig docker on # systemctl enable docker.service
+	systemctl enable docker.socket
+	
+	systemctl list-unit-files | grep docker
+    echo "--------------------------------------------"
+
 	# 启动及状态检测
-    nohup systemctl start docker.service >> logs/boot.log 2>&1 &
+    systemctl start docker.service
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
 
     exec_sleep 3 "Initing 'docker'，waiting for a moment"
 
     cat logs/boot.log
+
     echo "--------------------------------------------"	
-	# 添加系统启动命令
-	systemctl enable docker.service
+	
+	# 验证安装/启动
+    docker -v
 
     # 结束
-    exec_sleep 5 "Boot 'docker' over，stay 5 secs to exit"
-
+    exec_sleep 10 "Boot 'docker' over，stay 10 secs to exit"
+read -e TTTT
 	return $?
 }
 

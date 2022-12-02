@@ -478,7 +478,10 @@ function change_service_user()
 	if [ -f ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH} ]; then
 		local _TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP=$(groups ${_TMP_CHANGE_SERVICE_USER_UNAME} | cut -d' ' -f3)
 		sed -i "s@\(SocketUser\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_UNAME}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
-		sed -i "s@\(SocketGroup\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
+		
+		if [ -n "${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}" ]; then
+			sed -i "s@\(SocketGroup\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
+		fi
 	fi
 
 	# 插入用户设置
@@ -1327,22 +1330,14 @@ function soft_yum_check_upgrade_action()
 			
 			# 清理服务残留（备份前执行，否则会有资源占用的问题）
 			function _soft_yum_check_upgrade_action_exec_svr_remove() 
-			{
-				local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME=`echo "${1}" | sed 's@\.service@\.socket@g'`
-				if [ -f "/usr/lib/systemd/system/${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}" ]; then
-					# echo_text_style "Found '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}', start stop"
-					systemctl stop ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXEC_REMOVE_SOCKET_NAME}
-					# fix 'Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?'
-					rm -rf /var/run/`echo "${1}" | sed 's@\.service@\.sock@g'`
-				fi				
-				
+			{				
 				# echo_text_style "Starting stop & disable & remove about the service of '${1}'"
 				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
 			}
 
 			export -f _soft_yum_check_upgrade_action_exec_svr_remove
 
-			systemctl list-unit-files --type=service | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} bash -c "_soft_yum_check_upgrade_action_exec_svr_remove {}"
+			systemctl list-unit-files | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} bash -c "_soft_yum_check_upgrade_action_exec_svr_remove {}"
 
 			# 卸载包前检测，备份残留或NO
 			soft_trail_clear "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
