@@ -8,7 +8,7 @@
 #		  https://www.runoob.com/docker/centos-docker-install.html
 #         https://zhuanlan.zhihu.com/p/377456104
 #------------------------------------------------
-local TMP_DOCKER_SETUP_TEST_PS_PORT=13000
+local TMP_DOCKER_SETUP_BC_PS_PORT=13000
 
 ##########################################################################################################
 
@@ -118,8 +118,8 @@ function test_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	# 实验部分
-    local _TMP_SETUP_DOCKER_TEST_IMG_INSPECT=$(docker inspect -f {{".Id"}} browserless/chrome)
-    if [ -z "${_TMP_SETUP_DOCKER_TEST_IMG_INSPECT}" ]; then
+    local _TMP_SETUP_DOCKER_BC_IMG_INSPECT=$(docker inspect -f {{".Id"}} browserless/chrome)
+    if [ -z "${_TMP_SETUP_DOCKER_BC_IMG_INSPECT}" ]; then
         # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
         docker pull browserless/chrome
     fi
@@ -127,27 +127,27 @@ function test_docker()
     # -P :是容器内部端口随机映射到主机的端口。
     # -p : 是容器内部端口绑定到指定的主机端口。
     # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 training/webapp python app.py
-    local _TMP_SETUP_DOCKER_TEST_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:3000 --restart always -e "PREBOOT_CHROME=true" -e "CONNECTION_TIMEOUT=-1" -e "MAX_CONCURRENT_SESSIONS=10" -e "WORKSPACE_DELETE_EXPIRED=true" -e "WORKSPACE_EXPIRE_DAYS=7" browserless/chrome)
-    exec_sleep 5 "Booting the test image 'browserless/chrome' to port '${TMP_DOCKER_SETUP_TEST_PS_PORT}'，Waiting for a moment"
-    local _TMP_SETUP_DOCKER_TEST_PS_PORT=$(docker port ${_TMP_SETUP_DOCKER_TEST_PS_ID} | cut -d':' -f2)
+    local _TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always -e "PREBOOT_CHROME=true" -e "CONNECTION_TIMEOUT=-1" -e "MAX_CONCURRENT_SESSIONS=10" -e "WORKSPACE_DELETE_EXPIRED=true" -e "WORKSPACE_EXPIRE_DAYS=7" browserless/chrome)
+    exec_sleep 5 "Booting the test image 'browserless/chrome' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}'，Waiting for a moment"
+    local _TMP_SETUP_DOCKER_BC_PS_PORT=$(docker port ${_TMP_SETUP_DOCKER_BC_PS_ID} | cut -d':' -f2)
 
-    # 查看日志
-    docker inspect ${_TMP_SETUP_DOCKER_TEST_PS_ID} | jq >> logs/test_image.log
+    # 查看日志（config/image）
+    docker inspect ${_TMP_SETUP_DOCKER_BC_PS_ID} | jq >> logs/browserless_chrome.log
     echo "--------------------------------------------"
-    cat logs/test_image.log
+    cat logs/browserless_chrome.log
     echo "--------------------------------------------"
-    docker logs ${_TMP_SETUP_DOCKER_TEST_PS_ID}
+    docker logs ${_TMP_SETUP_DOCKER_BC_PS_ID}
     echo "--------------------------------------------"
-    curl -s http://localhost:${_TMP_SETUP_DOCKER_TEST_PS_PORT}
+    curl -s http://localhost:${_TMP_SETUP_DOCKER_BC_PS_PORT}
     echo
-    # docker stop ${_TMP_SETUP_DOCKER_TEST_PS_ID}
+    # docker stop ${_TMP_SETUP_DOCKER_BC_PS_ID}
 
     # # 删除images
     # docker rmi browserless/chrome
 
     # 删除容器
-    # docker rm -f ${_TMP_SETUP_DOCKER_TEST_PS_ID}
-    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/training_webapp-json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${_TMP_SETUP_DOCKER_TEST_PS_ID}/${_TMP_SETUP_DOCKER_TEST_PS_ID}-json.log"
+    # docker rm -f ${_TMP_SETUP_DOCKER_BC_PS_ID}
+    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/training_webapp-json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${_TMP_SETUP_DOCKER_BC_PS_ID}/${_TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
 
 	return $?
 }
