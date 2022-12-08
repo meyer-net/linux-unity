@@ -181,7 +181,7 @@ function test_docker()
 		    local TMP_SETUP_DOCKER_SNAP_VERS=`ls ${TMP_SETUP_DOCKER_SNAP_BASE_DIR} | sort -rV | cut -d'.' -f1 | uniq`
             local TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
             local TMP_SETUP_DOCKER_SNAP_LNK_NAME="${1/_//}"
-            local TMP_SETUP_DOCKER_SNAP_TYPES=("Image" "Container")
+            local TMP_SETUP_DOCKER_SNAP_TYPES="Image,Container"
             local TMP_SETUP_DOCKER_SNAP_TYPE="Container"
             
             if [ -n "${TMP_SETUP_DOCKER_SNAP_VER}" ]; then
