@@ -178,7 +178,6 @@ function test_docker()
             # /mountdisk/repo/migrate/snapshot/browserless_chrome/
             local TMP_SETUP_DOCKER_SNAP_BASE_DIR="${TMP_DOCKER_SETUP_SNAP_DIR}/${1}"
             # /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
-            local TMP_SETUP_DOCKER_SNAP_SNAP_FILE_NONE_PATH="${TMP_SETUP_DOCKER_SNAP_BASE_DIR}/${TMP_SETUP_DOCKER_SNAP_VER}"
 		    local TMP_SETUP_DOCKER_SNAP_VERS=`ls ${TMP_SETUP_DOCKER_SNAP_BASE_DIR} | sort -rV | cut -d'.' -f1 | uniq`
             local TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
             local TMP_SETUP_DOCKER_SNAP_LNK_NAME="${1/_//}"
@@ -189,6 +188,7 @@ function test_docker()
                 set_if_choice "TMP_SETUP_DOCKER_SNAP_VER" "[special_restore_docker] Please sure 'which version' u want to 'restore' of the snapshop '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}'" "${TMP_SETUP_DOCKER_SNAP_VERS}"
                 set_if_choice "TMP_SETUP_DOCKER_SNAP_TYPE" "[special_restore_docker] Please sure 'which type' u want to 'restore' of the snapshop '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}(${TMP_SETUP_DOCKER_SNAP_VER})'" ${TMP_SETUP_DOCKER_SNAP_TYPES}
                 
+                local TMP_SETUP_DOCKER_SNAP_SNAP_FILE_NONE_PATH="${TMP_SETUP_DOCKER_SNAP_BASE_DIR}/${TMP_SETUP_DOCKER_SNAP_VER}"
                 typeset -l TMP_SETUP_DOCKER_SNAP_TYPE
                 
                 echo_text_style "Starting restore the '${TMP_SETUP_DOCKER_SNAP_TYPE}' snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}'"      
