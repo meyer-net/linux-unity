@@ -50,6 +50,7 @@ DMIDECODE_MANUFACTURER=`dmidecode -t system | grep "Manufacturer" | awk -F':' '{
 
 #---------- SYSTEM ---------- {
 LOCAL_TIME=`date +"%Y-%m-%d %H:%M:%S"`
+LOCAL_TIMESTAMP=`date -d "${LOCAL_TIME}" +%s` 
 #---------- SYSTEM ---------- }
 
 #---------- DIR ---------- {    
@@ -80,6 +81,11 @@ DEFAULT_DIR=/home/${CURRENT_USER}/default
 ATT_DIR=${MOUNT_DIR}/etc
 DATA_DIR=${MOUNT_DIR}/data
 LOGS_DIR=${MOUNT_DIR}/logs
+
+BACKUP_DIR=${MOUNT_DIR}/repo/backup
+COVER_DIR=${MOUNT_DIR}/repo/cover
+FORCE_DIR=${MOUNT_DIR}/repo/force
+MIGRATE_DIR=${MOUNT_DIR}/repo/migrate
 
 CRTB_LOGS_DIR=${LOGS_DIR}/crontab
 SYNC_DIR=${MOUNT_DIR}/svr_sync

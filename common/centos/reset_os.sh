@@ -21,9 +21,7 @@ function reset_passwd()
 
 function reset_dns()
 {
-    local _TMP_RESET_DNS_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-    local _TMP_RESET_DNS_CURRENT_TIME_STAMP=`date -d "${_TMP_RESET_DNS_CURRENT_TIME}" +%s` 
-    cp /etc/resolv.conf /etc/resolv.${_TMP_RESET_DNS_CURRENT_TIME_STAMP}.conf
+    cp /etc/resolv.conf /etc/resolv.${LOCAL_TIMESTAMP}.conf
 
 	input_if_empty "COUNTRY_CODE" "[${FUNCNAME[0]}] Please sure 'your country code'"
 

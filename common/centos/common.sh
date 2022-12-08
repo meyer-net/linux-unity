@@ -296,19 +296,20 @@ function create_user_if_not_exists()
 	return $?
 }
 
-#关闭删除文件占用进程
+# 关闭删除文件占用进程
 function kill_deleted()
 {
 	if [ ! -f "/usr/sbin/lsof" ]; then
 		yum -y install lsof
 	fi
 
-	`lsof -w | grep deleted | awk -F' ' '{print $2}' | awk '!a[$0]++' | xargs -I {} kill -9 {}`
+	lsof -w | grep deleted | awk -F' ' '{print $2}' | awk '!a[$0]++' | xargs -I {} kill -9 {} >& /dev/null
+	# lsof -w | grep deleted | awk -F' ' '{print $2}' | awk '!a[$0]++' | xargs -I {} ps aux | awk '{print $2}'| grep -w {} && kill -9 {}
 
 	return $?
 }
 
-#随机数
+# 随机数
 # 参数1：需要设置的变量名
 # 参数2：最小值
 # 参数3：最大值
@@ -972,7 +973,7 @@ function soft_path_restore_confirm_action()
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS=${3}
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH="/tmp/backup${1}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH="${BACKUP_DIR}${1}"
 	function _soft_path_restore_confirm_action_restore_exec()
 	{
 		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS=`ls ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH} | sort -rV`
@@ -982,9 +983,6 @@ function soft_path_restore_confirm_action()
 		# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
 		function _soft_path_restore_confirm_action_restore_choice_exec()
 		{
-			local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-			local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME}" +%s` 
-
 			# 覆盖目录
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
@@ -998,7 +996,7 @@ function soft_path_restore_confirm_action()
 				
 				# 直接覆盖，进cover
 				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/cover%s && cp -Rp %s /tmp/cover%s/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME_STAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style 'Dir of <%s> backuped to </tmp/cover%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style 'Dir of <%s> backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT="${1}"
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT}"
 
@@ -1015,7 +1013,7 @@ function soft_path_restore_confirm_action()
 			function _soft_path_restore_confirm_action_restore_choice_force_exec()
 			{
 				# 移动到备份，再覆盖
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/force%s && cp -Rp %s /tmp/force%s/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to </tmp/force%s/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
@@ -1084,10 +1082,7 @@ function soft_path_restore_confirm_copy()
 #	   soft_path_restore_confirm_swap "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_swap() 
 {
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME}" +%s` 
-
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${_TMP_SOFT_PATH_RESTORE_CONFIRM_MIGRATE_CURRENT_TIME_STAMP} && ln -sf ${1} ${2}"
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -1109,23 +1104,21 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[3]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 
-	# 备份文件
-	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
-
-	# 获取软链接后的真实路径
-	# Record really dir of </mountdisk/data/docker> from source link </mountdisk/data/docker -> /var/lib/docker>
-	# Checked dir of </var/lib/docker> is a symlink for really dir </mountdisk/data/docker>, sys deleted.
-	# Record really dir of </run/docker> from source link </var/run/docker -> /var/run/docker>
-	# Record really dir of </etc/docker> from source link </etc/docker -> /etc/docker>
-	# Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
-	# Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
-	# Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
+	# 备份文件	
+	## 获取软链接后的真实路径
+	### Record really dir of </mountdisk/data/docker> from source link </mountdisk/data/docker -> /var/lib/docker>
+	### Checked dir of </var/lib/docker> is a symlink for really dir </mountdisk/data/docker>, sys deleted.
+	### Record really dir of </run/docker> from source link </var/run/docker -> /var/run/docker>
+	### Record really dir of </etc/docker> from source link </etc/docker -> /etc/docker>
+	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
+	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
+	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
 	echo
 	echo_text_style "Starting resolve the dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
@@ -1158,11 +1151,13 @@ function soft_trail_clear()
 		fi
 	done
 	echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
-		
+
 	# 备份 && 删除文件
-	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/backup%s && cp -Rp %s /tmp/backup%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> backuped to </tmp/backup%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
+	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
+	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
+	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> backuped to <${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
 	# local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_SOFT_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
-	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv /tmp/force%s && cp -Rp %s /tmp/force%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to </tmp/force%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
+	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
 	function _soft_trail_clear_exec_backup()
 	{
 		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="[${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}]Checked the trail dir of '${1}', please sure u will 'backup still or not'"
@@ -1177,22 +1172,93 @@ function soft_trail_clear()
 		path_exists_confirm_action "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
 	}
 	
-	echo		
-	echo_text_style "Starting backup/force/cover the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
-	if [ ${_TMP_SOFT_TRAIL_CLEAR_FORCE} == "N" ]; then
-		exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
-	else
-		exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
+	# 有记录的情况下才执行
+	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
+		## 具备特殊性质的备份，优先执行
+		local _TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+		if [ "$(type -t ${_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
+			exec_check_action "_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+		fi
+
+		## 清理服务残留（备份前执行，否则会有资源占用的问题）
+		echo
+		echo_text_style "Starting trail the systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+		function _soft_trail_clear_svr_remove() 
+		{
+			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+		}
+		echo_text_style "The systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was trailed"
+
+		export -f _soft_trail_clear_svr_remove
+		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
+			
+		echo
+		echo_text_style "Starting backup/force/cover the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+
+		if [ ${_TMP_SOFT_TRAIL_CLEAR_FORCE} == "N" ]; then
+			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
+		else
+			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
+		fi
+
+		echo_text_style "The soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was executed backup/force/cover done"
+		echo
 	fi
-	echo_text_style "The soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was executed backup/force/cover done"
-	echo
 
 	systemctl daemon-reload
 
 	return $?
 }
 
-#Rpm不存在执行
+# 创建 docker 快照
+# 参数1：容器ID，例 e75f9b427730
+# 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
+# 参数3：快照存储的时间戳，例 1670329246
+# 参数4：创建完执行
+function docker_snap_create()
+{
+	# 完整的PSID
+	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep ${1} | cut -d' ' -f1)
+	# browserless/chrome
+	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	# browserless_chrome
+	local _TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
+	# browserless_chrome/1670329246
+	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME}/${3}
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
+	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
+	echo_text_style "Making snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	
+	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
+
+	# 备份容器信息
+	docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
+	docker export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
+	## 打开后不是标准json格式，先格式化！
+	### :%!python -m json.tool
+	local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
+	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/config.v2.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json
+
+	# 备份镜像信息
+	docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
+	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
+
+	# 执行信息
+	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | cut -d' ' -f7 | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+
+	# 停止容器
+	docker stop ${_TMP_DOCKER_SNAP_CREATE_PS_ID}
+
+	# 将容器打包成镜像
+	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} restore/${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}
+
+	# 创建完执行
+	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}"
+
+	return $?
+}
+
+# Rpm不存在执行
 # 参数1：包名称
 # 参数2：执行函数名称
 # 参数3：包存在时输出信息
@@ -1290,7 +1356,6 @@ function soft_yum_check_setup()
 # 参数1：包名称
 # 参数2：执行安装函数名称
 # 参数3：执行存在包时执行函数名称
-# 参数4：备份包，如果不写入备份将会删除。默认都会带上安装目录data,conf,etc
 # 示例：
 #     soft_yum_check_upgrade_setup "vvv" "%s was installed"
 function soft_yum_check_upgrade_action() 
@@ -1298,7 +1363,6 @@ function soft_yum_check_upgrade_action()
 	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SOFTS=${1}
 	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT=${2}
     local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXISTS_SCRIPT=${3}
-	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SOFTS_BACKUP_DIRS=${4}
     
 	function _soft_yum_check_upgrade_action_exec()
 	{
@@ -1327,17 +1391,6 @@ function soft_yum_check_upgrade_action()
 				*)
 					_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="Y"
 			esac
-			
-			# 清理服务残留（备份前执行，否则会有资源占用的问题）
-			function _soft_yum_check_upgrade_action_exec_svr_remove() 
-			{				
-				# echo_text_style "Starting stop & disable & remove about the service of '${1}'"
-				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
-			}
-
-			export -f _soft_yum_check_upgrade_action_exec_svr_remove
-
-			systemctl list-unit-files | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} bash -c "_soft_yum_check_upgrade_action_exec_svr_remove {}"
 
 			# 卸载包前检测，备份残留或NO
 			soft_trail_clear "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
@@ -2257,10 +2310,16 @@ function set_if_choice()
 		done
 
 		local _TMP_SET_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_SET_IF_CHOICE_ARR[*]}")
+		if [ -z "${_TMP_SET_IF_CHOICE_ARR_STR}" ]; then
+			echo
+			echo_text_style "'No choice' set, please check your 'str arr'"
+
+			return 0
+		fi
 		local _TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_SET_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
 		
 		if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
-			echo "${_TMP_SET_IF_CHOICE_NOTICE}, by follow keys, then enter it"
+			echo_text_style "${_TMP_SET_IF_CHOICE_NOTICE}, by 'follow keys', then enter it"
 		fi
 		
 		_TMP_SET_IF_CHOICE_NEW_VAL=`eval ${_TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT}`
@@ -2375,6 +2434,37 @@ function exec_if_choice()
 function exec_if_choice_onece()
 {
 	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5"
+}
+
+# 在管道内运行函数执行此方法
+# 参数1：要执行的函数/脚本名称，或变量名称
+# 示例：
+#      该示例传递了管道内的数据给到内部变量
+#		function funca()
+#		{
+#		    echo $1
+#		    echo $2
+#		    funcb
+#		}
+#		
+#		function funcb()
+#		{
+#		    echo "b"
+#		}
+#      docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action funca 123"
+#      输出：
+#			074c3737df15
+#			123
+#			b
+function exec_channel_action()
+{
+	local _TMP_EXEC_CHANNEL_ACTION_FUNC=${1}
+
+	shift
+	while read _TMP_EXEC_CHANNEL_TEXT_LINE
+	do
+		${_TMP_EXEC_CHANNEL_ACTION_FUNC} "${_TMP_EXEC_CHANNEL_TEXT_LINE}" $@
+	done
 }
 
 # 检测并执行指令
