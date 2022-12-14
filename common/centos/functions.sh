@@ -148,7 +148,7 @@ function mkdirs()
     path_not_exists_create "${RPMS_DIR}"
     path_not_exists_create "${REPO_DIR}"
     path_not_exists_create "${CURL_DIR}"
-    path_not_exists_create "${SETUP_DIR}"
+    path_not_exists_create "${DOCKER_SETUP_DIR}"
     path_not_exists_create "${WWW_DIR}"
     path_not_exists_create "${APP_DIR}"
     path_not_exists_create "${BOOT_DIR}"

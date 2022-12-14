@@ -55,6 +55,7 @@ LOCAL_TIMESTAMP=`date -d "${LOCAL_TIME}" +%s`
 
 #---------- DIR ---------- {    
 SETUP_DIR=/opt
+DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 # NVM_PATH=~/.nvm/nvm.sh
 NVM_PATH=${SETUP_DIR}/nvm/nvm.sh
 CURRENT_USER=`whoami`

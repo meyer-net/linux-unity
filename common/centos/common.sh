@@ -393,7 +393,7 @@ function symlink_link_path()
 		
 		_TMP_SYMLINK_TRUE_PATH_INDEX=$((_TMP_SYMLINK_TRUE_PATH_INDEX+1))
 		if [ ${_TMP_SYMLINK_TRUE_PATH_INDEX} -gt 9 ]; then
-			echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, can not resolve, please check, system exit."
+			echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, Cannot resolve, please check, system exit."
 			exit
 		fi
 	done
@@ -516,6 +516,37 @@ function exec_sleep()
 	}
 
 	path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_SLEEP_GUM_FUNC" "_TMP_EXEC_SLEEP_NORMAL_FUNC"
+
+	return $?
+}
+
+# 执行休眠，直到不为空
+# 参数1：休眠等待文字
+# 参数2：等待输出不为空时的判断脚本
+# 参数3：最长等待时长（秒）, 默认120
+# 参数4：延迟时长（秒）, 默认0
+# 示例：
+#      exec_sleep_until_not_empty "test wait" "lsof -i:13000" 10 1
+function exec_sleep_until_not_empty()
+{
+	local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CHECK_SCRIPTS=${2}
+	local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS=${3:-120}
+	local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_DELAY_SECONDS=${4:-0}
+	
+	local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX=1
+	for _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX in $(seq ${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS});  
+	do
+		local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_VAL=$(eval "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CHECK_SCRIPTS}")		
+		if [ -z "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_VAL}" ]; then
+			exec_sleep 1 "${1}, take [${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX}/${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS}]s"
+		else
+			break
+		fi
+	done
+
+	if [ ${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_DELAY_SECONDS} -ne 0 ]; then
+		exec_sleep ${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_DELAY_SECONDS} "${1}"
+	fi
 
 	return $?
 }
@@ -987,7 +1018,7 @@ function soft_path_restore_confirm_action()
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
 			{
-				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Please sure 'which version' u want to 'restore'" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
+				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to 'restore'" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER}"
 
@@ -1181,16 +1212,17 @@ function soft_trail_clear()
 		fi
 
 		## 清理服务残留（备份前执行，否则会有资源占用的问题）
-		echo
-		echo_text_style "Starting trail the systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 		function _soft_trail_clear_svr_remove() 
 		{
+			echo
+			echo_text_style "Starting trail the systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+			echo_text_style "The systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was trailed"
 		}
-		echo_text_style "The systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was trailed"
 
-		export -f _soft_trail_clear_svr_remove
-		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
+		# export -f _soft_trail_clear_svr_remove
+		# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
+		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
 			
 		echo
 		echo_text_style "Starting backup/force/cover the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
@@ -1227,13 +1259,13 @@ function docker_snap_create()
 	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME}/${3}
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
-	echo_text_style "Making snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "Starting make snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
 	# 备份容器信息
 	docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
-	docker export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
+	docker container export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
 	## 打开后不是标准json格式，先格式化！
 	### :%!python -m json.tool
 	local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
@@ -1243,17 +1275,59 @@ function docker_snap_create()
 	docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
 	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
-	# 执行信息
+	# 初始化依赖分析(取最后一天时间为起始)
+    echo_text_style "Staring update container & install dependency↓:"
+	## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
+	# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh <<EOF
+	cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh << 'EOF'
+#!/bin/bash
+
+func_backup_current_image_init_script()
+{
+	## 2022-12-14  03 -> 1670958000
+	local _LAST_DATE_HOUR_PAIR=$(cat /var/log/apt/history.log | tail -n1 | cut -d ':' -f2 | sed 's/^\s//')
+	## 2022-12-14  02
+	local _LAST_DATE_HOUR_PRE_PAIR=$(date -d "1970-01-01 UTC $(($(date +%s -d "${_LAST_DATE_HOUR_PAIR}")-$((1*60*60)))) seconds" "+%F %H")
+	local _LAST_DATE_HOUR_PRE_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f1)
+	local _LAST_DATE_HOUR_PRE_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f2)
+
+	## 查找最后记录上1小时是否存在记录，若存在，则起始行标注为上一行
+	local _LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PRE_PAIR_DAY}  ${_LAST_DATE_HOUR_PRE_PAIR_HOUR}.+" | cut -d':' -f1)
+	if [ -z "${_LAST_DATE_HOUR_START_LINE}" ]; then
+		local _LAST_DATE_HOUR_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f1)
+		local _LAST_DATE_HOUR_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f2)
+		
+		_LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PAIR_DAY}  ${_LAST_DATE_HOUR_PAIR_HOUR}.+" | cut -d':' -f1)
+	fi
+	
+	### 导出命令临时文件
+	tail -n +${_LAST_DATE_HOUR_START_LINE} /var/log/apt/history.log > history_tmp.log
+	#### 该处为隔行提取Commandline，误删保留
+	#### cat history_tmp.log | grep -oPn '^Start-Date: .+' | cut -d':' -f1 | sed 's/^/1+&/g' | bc | xargs -I {} sed -n '{}p;' /var/log/apt/history.log | cut -d':' -f2 | sed 's/^\s//'
+	#### 获取关键字所在行，再根据行号进行命令提取
+	cat history_tmp.log | grep -oPn '^Commandline: .+' | cut -d':' -f1 | xargs -I {} sed -n '{}p;' history_tmp.log | cut -d':' -f2 | sed 's/^\s//'
+	rm -rf history_tmp.log
+}
+
+func_backup_current_image_init_script
+EOF
+
+	# 更新并安装容器依赖（应用到bc命令时需要，参考上述脚本。注意安装bc操作可能会覆盖了初始化段落）
+	# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "apt-get update && apt-get -y -qq install bc"
+
+	# 拷贝执行脚本至容器
+	docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
+	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh
+		
+	# 提取操作命令，并清理二进制报错
+	docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh.tmp
+	grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh
+
+	# 提取容器启动命令
 	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | cut -d' ' -f7 | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 
-	# 停止容器
-	docker stop ${_TMP_DOCKER_SNAP_CREATE_PS_ID}
-
-	# 将容器打包成镜像
-	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} restore/${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}
-
 	# 创建完执行
-	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}"
+	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
 
 	return $?
 }
