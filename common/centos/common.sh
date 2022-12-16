@@ -1182,6 +1182,7 @@ function soft_trail_clear()
 		fi
 	done
 	echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
+	echo
 
 	# 备份 && 删除文件
 	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
@@ -1216,7 +1217,7 @@ function soft_trail_clear()
 		{
 			echo
 			echo_text_style "Starting trail the systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
-			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1} && rm -rf /run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.sock
 			echo_text_style "The systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was trailed"
 		}
 
@@ -1259,6 +1260,7 @@ function docker_snap_create()
 	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME}/${3}
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
+	
 	echo_text_style "Starting make snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
@@ -1276,10 +1278,11 @@ function docker_snap_create()
 	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
 	# 初始化依赖分析(取最后一天时间为起始)
-    echo_text_style "Staring update container & install dependency↓:"
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting gen 'update container & install dependency' script"
 	## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
-	# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh <<EOF
-	cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh << 'EOF'
+	# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh <<EOF
+	cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh << 'EOF'
 #!/bin/bash
 
 func_backup_current_image_init_script()
@@ -1292,12 +1295,12 @@ func_backup_current_image_init_script()
 	local _LAST_DATE_HOUR_PRE_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f2)
 
 	## 查找最后记录上1小时是否存在记录，若存在，则起始行标注为上一行
-	local _LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PRE_PAIR_DAY}  ${_LAST_DATE_HOUR_PRE_PAIR_HOUR}.+" | cut -d':' -f1)
+	local _LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PRE_PAIR_DAY}  ${_LAST_DATE_HOUR_PRE_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
 	if [ -z "${_LAST_DATE_HOUR_START_LINE}" ]; then
 		local _LAST_DATE_HOUR_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f1)
 		local _LAST_DATE_HOUR_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f2)
 		
-		_LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PAIR_DAY}  ${_LAST_DATE_HOUR_PAIR_HOUR}.+" | cut -d':' -f1)
+		_LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PAIR_DAY}  ${_LAST_DATE_HOUR_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
 	fi
 	
 	### 导出命令临时文件
@@ -1315,18 +1318,101 @@ EOF
 	# 更新并安装容器依赖（应用到bc命令时需要，参考上述脚本。注意安装bc操作可能会覆盖了初始化段落）
 	# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "apt-get update && apt-get -y -qq install bc"
 
-	# 拷贝执行脚本至容器
-	docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
-	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh
-		
-	# 提取操作命令，并清理二进制报错
-	docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.tmp.sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh.tmp
-	grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.dependency.sh
+	# 拷贝提取脚本至容器
+	docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+	
+	# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
+	echo "#!/bin/bash" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+	docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${3}.init.extract.sh && rm -rf /tmp/${3}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+	grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 
 	# 提取容器启动命令
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting make 'container boot' script"
 	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | cut -d' ' -f7 | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting pull 'dockerfile builder"
+	# 判断是否存在dockerfile操作工具
+	# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
+	# 【1】从一个docker镜像生成Dockerfile内容
+	# 【2】搜索添加的文件名以查找潜在的秘密文件
+	# 【3】提取Docker ADD/COPY指令添加的文件
+	# 【4】展示暴露的端口、环境变量信息等等。
+	local _TMP_DOCKER_SNAP_ALISA_BASE="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock"
+	if [ -z "$(docker images | grep 'alpine/dfimage')" ]; then
+		docker pull alpine/dfimage
 
+		# dfimage -sV=1.36 nginx:latest
+		echo "alias dfimage='${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage'" >> /etc/bashrc
+		echo
+	fi
+
+	if [ -z "$(docker images | grep 'cucker/image2df')" ]; then
+		docker pull cucker/image2df
+
+		echo "alias image2df='${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df'" >> /etc/bashrc
+		echo
+	fi
+
+	# 如果想要更加详细的内容，比如每一层的信息，以及每一层对应的文件增减情况，那么dive工具可以帮助我们更好的分析镜像。
+	# dive用于探索docker镜像、layer内容和发现缩小docker/OCI镜像大小的方法的工具。
+	# 左边是镜像和layer的信息，右边是当前选中镜像layer对应的文件磁盘文件信息，右边是会根据左边的选择变动的，比如我在某一层进行了文件的复制新增或者删除，右边会以不同的颜色进行展示的。
+	if [ -z "$(docker images | grep 'wagoodman/dive')" ]; then
+		docker pull wagoodman/dive
+		
+		alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
+		# dive nginx:latest
+		echo "alias dive='${_TMP_DOCKER_SNAP_ALISA_BASE} wagoodman/dive'" >> /etc/bashrc
+		echo
+	fi
+	source /etc/bashrc
+	
+	# 将容器打包成镜像
+    local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}"
+	echo "${TMP_SPLITER}"
+	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})↓':"
+	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
+	echo "${TMP_SPLITER}"
+	echo_text_style "[Source History ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}]"
+	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}
+	echo "----------------------"
+	echo_text_style "[Commit History ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}]"
+	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
+
+	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
+	echo "${TMP_SPLITER}"
+	echo_text_style "View the 'build dfimage yaml ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}↓':"
+	## dfimage 部分
+	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+	
+	## imagedf 部分
+	echo "----------------------"
+	echo_text_style "View the 'build image2df yaml ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}↓':"
+	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	
 	# 创建完执行
+	echo
 	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
 
 	return $?

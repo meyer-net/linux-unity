@@ -55,27 +55,6 @@ function special_backup_docker()
     # 参数4：1670329246
     function _special_backup_docker_snap_trail()
     {
-        # 判断是否存在dockerfile操作工具
-        # alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
-        # 【1】从一个docker镜像生成Dockerfile内容
-        # 【2】搜索添加的文件名以查找潜在的秘密文件
-        # 【3】提取Docker ADD/COPY指令添加的文件
-        # 【4】展示暴露的端口、环境变量信息等等。
-        if [ -z "$(docker images | grep 'alpine/dfimage')" ]; then
-            docker pull alpine/dfimage
-            alias dfimage="docker run -v /var/run/docker.sock:/var/run/docker.sock --rm alpine/dfimage"
-            # dfimage -sV=1.36 nginx:latest
-        fi
-
-        # 如果想要更加详细的内容，比如每一层的信息，以及每一层对应的文件增减情况，那么dive工具可以帮助我们更好的分析镜像。
-        # dive用于探索docker镜像、layer内容和发现缩小docker/OCI镜像大小的方法的工具。
-        # 左边是镜像和layer的信息，右边是当前选中镜像layer对应的文件磁盘文件信息，右边是会根据左边的选择变动的，比如我在某一层进行了文件的复制新增或者删除，右边会以不同的颜色进行展示的。
-        if [ -z "$(docker images | grep 'wagoodman/dive')" ]; then
-            docker pull wagoodman/dive
-            alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
-            # dive nginx:latest
-        fi
-
         # 镜像ID
         local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 
@@ -85,25 +64,6 @@ function special_backup_docker()
         docker stop ${1}
         echo_text_style "'CONTAINER ID'                                                    'IMAGE'                'COMMAND'                   'CREATED'       'STATUS'                          'PORTS'                                         'NAMES'"
         docker ps -a --no-trunc | grep "${1}"
-
-        # 将容器打包成镜像
-        echo "${TMP_SPLITER}"
-        echo_text_style "View the 'container commit (${2}:v${4})↓':"
-        docker commit -a "unity-special_backup" -m "backup at ${4}" ${1} ${2}:v${4}
-        echo "${TMP_SPLITER}"
-        echo_text_style "[Source History ${2}]"
-        docker history ${2}
-        echo "----------------------"
-        echo_text_style "[Commit History ${2}(v${4})]"
-        docker history ${2}:v${4}
-
-        # 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
-        echo "${TMP_SPLITER}"
-        echo_text_style "View the 'build yaml ${2}(v${4})↓':"
-        dfimage ${2}:v${4} | sed "s/# buildkit//g" > ${3}.dockerfile.md
-        echo "FROM ${2}" > ${3}.dockerfile.yml
-        cat ${3}.dockerfile.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${3}.dockerfile.md >> ${3}.dockerfile.yml
-        cat ${3}.dockerfile.md
         
         # 删除容器
         echo "${TMP_SPLITER}"
@@ -126,7 +86,7 @@ function special_backup_docker()
     
     # 废弃下述两行代码，因外部函数无法调用
     # export -f docker_snap_create
-    # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} bash -c "docker_snap_create {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+    # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
     docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action 'docker_snap_create' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
     echo_text_style "The containers snapshop of soft 'docker' was done"
 
@@ -215,7 +175,11 @@ function conf_docker()
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
 	chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
 
+    # 启动服务
     systemctl start docker.service
+    
+    # 记录配置完服务时的启动状态
+    nohup systemctl status docker.service > logs/boot.log 2>&1 &
 
 	return $?
 }
@@ -243,7 +207,7 @@ function test_docker()
             local TMP_SETUP_DOCKER_SNAP_BASE_DIR="${TMP_DOCKER_SETUP_SNAP_DIR}/${1}"
             # /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
 		    local TMP_SETUP_DOCKER_SNAP_VERS=`ls ${TMP_SETUP_DOCKER_SNAP_BASE_DIR} | sort -rV | cut -d'.' -f1 | uniq`
-            local TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
+            TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
             local TMP_SETUP_DOCKER_SNAP_LNK_NAME="${1/_//}"
             local TMP_SETUP_DOCKER_SNAP_TYPES="Image,Container,Dockerfile"
             local TMP_SETUP_DOCKER_SNAP_TYPE="Image"
@@ -266,7 +230,7 @@ function test_docker()
                         zcat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.gz | docker import - ${TMP_SETUP_DOCKER_SNAP_LNK_NAME}
 
                         # 容器恢复丢失环境信息，故需要读取容器inspect信息
-                        cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} bash -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.env
+                        cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} sh -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.env
 
                         # 必须指定工作目录，否则会出现（OCI，no such file or directory）
                         local _TMP_DOCKER_SNAP_CREATE_WORKING_DIR=$(cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
@@ -313,14 +277,17 @@ function test_docker()
         function _test_docker_setup_dependency_exec()
         {
             echo_text_style "View the 'update dependency↓':"
-            docker cp ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.dependency.sh ${TMP_SETUP_DOCKER_BC_PS_ID}:/tmp
-            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update && sh /tmp/${TMP_SETUP_DOCKER_SNAP_VER}.init.dependency.sh"
+            docker cp ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh ${TMP_SETUP_DOCKER_BC_PS_ID}:/tmp
+            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
+            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "sh /tmp/${TMP_SETUP_DOCKER_SNAP_VER}.init.depend.sh"
         }
 
-        path_exists_yn_action "${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.dependency.sh" "" "_test_docker_setup_dependency_exec"
+        path_exists_yn_action "${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh" "_test_docker_setup_dependency_exec"
     }
-        
+    
+    # 容器模式启动不指定会出错（docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "./start.sh": stat ./start.sh: no such file or directory: unknown.）
     local TMP_SETUP_DOCKER_SNAP_CMD=""
+    local TMP_SETUP_DOCKER_SNAP_VER="latest"
     local TMP_SETUP_DOCKER_SNAP_ARGS="-e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
     path_not_exists_create "logs/browserless_chrome"
     path_exists_yn_action "${TMP_DOCKER_SETUP_SNAP_DIR}" "_test_docker_restore_snap" "_test_docker_pull_image"
@@ -333,8 +300,8 @@ function test_docker()
         # -p : 是容器内部端口绑定到指定的主机端口。
         echo "${TMP_SPLITER}"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
-        echo_text_style "Cannot find running container of 'browserless/chrome', start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
-        TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome ${TMP_SETUP_DOCKER_SNAP_CMD})
+        echo_text_style "Cannot find created container of 'browserless/chrome', start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
+        TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome:${TMP_SETUP_DOCKER_SNAP_VER} ${TMP_SETUP_DOCKER_SNAP_CMD})
 
         exec_check_action "TMP_DOCKER_SETUP_SNAP_AFTER_RUN_SCRIPT"
     else
@@ -345,9 +312,10 @@ function test_docker()
         TMP_DOCKER_SETUP_BC_PS_PORT=$(docker port ${TMP_SETUP_DOCKER_BC_PS_ID} | cut -d':' -f2 | awk 'NR==1')
     fi
 
-    # 等待执行完毕 产生日志
+    # 等待执行完毕 产生端口
     exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}'，waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
-
+    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/browserless_chrome/${LOCAL_TIMESTAMP}.json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${TMP_SETUP_DOCKER_BC_PS_ID}/${TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
+    
     # 查看日志（config/image）
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container time↓':"
@@ -366,29 +334,36 @@ function test_docker()
 
     # # 删除images
     # docker rmi browserless/chrome
-
+    
     # 删除容器
     # docker rm -f ${TMP_SETUP_DOCKER_BC_PS_ID}
     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} /bin/sh
-    # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "whoami"
+    # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
     # :
-    # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "whoami"
-    echo "${TMP_SPLITER}"
-    echo_text_style "View the 'container folder /usr/src/app↓':"
-    docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "ls -lia /usr/src/app/"
+    # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container folder /tmp↓':"
-    docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "ls -lia /tmp/"
+    docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /tmp/"
+
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container occupancy rate↓':"
-    docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
-    echo "${TMP_SPLITER}"
-    docker exec -u root -w /tmp -it ${TMP_SETUP_DOCKER_BC_PS_ID} bash -c "rm -rf /tmp/*"
-    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/browserless_chrome/${LOCAL_TIMESTAMP}.json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${TMP_SETUP_DOCKER_BC_PS_ID}/${TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
+    docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
 
-    # 备份当前容器，仅在第一次 
+    echo "${TMP_SPLITER}"
+    echo_text_style "View the 'container folder /usr/src/app↓':"
+    docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
+
+    # 备份当前容器，仅在第一次 	
     local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "docker_snap_create '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "echo '${TMP_SPLITER}' && docker_snap_create '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+
+    # 最后更新一次容器内包
+    echo "${TMP_SPLITER}"
+    echo_text_style "View the 'container update↓':"
+    docker exec -u root -w /tmp -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
+
+    # 结束
+    echo "${TMP_SPLITER}"
 
 	return $?
 }
