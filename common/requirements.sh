@@ -34,25 +34,12 @@ function setup_requriements()
     soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
     soft_${SYS_SETUP_COMMAND}_check_setup "rsync"
 
-    function _setup_requriements_gum()
-    {
-        local TMP_GUM_SETUP_NEWER="0.8.0"
-        set_github_soft_releases_newer_version "TMP_GUM_SETUP_NEWER" "charmbracelet/gum"
-        while_wget "--content-disposition https://github.com/charmbracelet/gum/releases/download/v${TMP_GUM_SETUP_NEWER}/gum_${TMP_GUM_SETUP_NEWER}_linux_amd64.rpm" "rpm -ivh gum_${TMP_GUM_SETUP_NEWER}_linux_amd64.rpm"
-    }
-    path_exists_confirm_action "${GUM_PATH}" "The soft of 'gum' exists, please sure u will setup the newer 'still or not'" "_setup_requriements_gum" "" "_setup_requriements_gum"
+    soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" "reinstall"
+    soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv pup /usr/bin/" "reinstall"
     
-    function _setup_requriements_pup()
-    {
-        local TMP_PUP_SETUP_NEWER="0.4.0"
-        set_github_soft_releases_newer_version "TMP_PUP_SETUP_NEWER" "ericchiang/pup"
-        while_wget "--content-disposition https://github.com/ericchiang/pup/releases/download/v${TMP_PUP_SETUP_NEWER}/pup_v${TMP_PUP_SETUP_NEWER}_linux_amd64.zip" "unzip pup_v${TMP_PUP_SETUP_NEWER}_linux_amd64.zip && mv pup /usr/bin/"
-    }
-    path_exists_confirm_action "${PUP_PATH}" "The soft of 'pup' exists, please sure u will setup the newer 'still or not'" "_setup_requriements_pup" "" "_setup_requriements_pup"
-
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。docker>miniconda>sealos）
     # source scripts/required/*.sh
-    source scripts/required/docker.sh
+    source scripts/required/miniconda.sh
 
     # 优先，后续会输出port
     # source scripts/softs/supervisor.sh

@@ -58,17 +58,31 @@ function special_backup_docker()
         # 镜像ID
         local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 
+        # # 删除容器临时文件（例如：.X99-lock）
+        # echo "${TMP_SPLITER}"
+        # echo_text_style "View the 'container tmp files clear -> /tmp↓':"
+        # echo_text_style "[before]"
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        # ## 前几行内容无效，如下 2>/dev/null
+        # #  .
+        # #  ..
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
+        # echo_text_style "[after]"
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+
         # 停止容器
         echo "${TMP_SPLITER}"
-        echo_text_style "View the 'container status now↓':"
+        echo_text_style "View the 'container status after stop command now↓':"
         docker stop ${1}
-        echo_text_style "'CONTAINER ID'                                                    'IMAGE'                'COMMAND'                   'CREATED'       'STATUS'                          'PORTS'                                         'NAMES'"
+        echo
+        echo_text_style "[CONTAINER ID][IMAGE][COMMAND][CREATED][STATUS][PORTS][NAMES]"
         docker ps -a --no-trunc | grep "${1}"
         
         # 删除容器
         echo "${TMP_SPLITER}"
         echo_text_style "Remove container '${2}(${1})':"
         docker container rm ${1}
+        echo
         echo_text_style "View the 'surplus containers↓':"
         docker ps -a
         
@@ -76,6 +90,7 @@ function special_backup_docker()
         echo "${TMP_SPLITER}"
         echo_text_style "Remove image '${2}(${1})':"
         docker rmi ${2}
+        echo
         echo_text_style "Remove image cache'${2}(image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID})':"
         rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
         echo_text_style "View the 'surplus images↓':"
@@ -177,7 +192,7 @@ function conf_docker()
 
     # 启动服务
     systemctl start docker.service
-    
+
     # 记录配置完服务时的启动状态
     nohup systemctl status docker.service > logs/boot.log 2>&1 &
 
@@ -195,6 +210,27 @@ function test_docker()
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
     local TMP_DOCKER_SETUP_SNAP_AFTER_RUN_SCRIPT=""
 
+    # 在容器内安装缺失依赖项
+    # 参数1：镜像路径名称 browserless_chrome
+    # 参数2：恢复版本号   1670392779
+    function _test_docker_setup_dependency()
+    {
+        local TMP_SETUP_DOCKER_SNAP_IMG_REL_NAME=${1}
+        local TMP_SETUP_DOCKER_SNAP_VER=${2}
+        local TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH=${TMP_DOCKER_SETUP_SNAP_DIR}/${TMP_SETUP_DOCKER_SNAP_IMG_REL_NAME}/${2}
+
+        function _test_docker_setup_dependency_exec()
+        {
+            echo
+            echo_text_style "View the 'update dependency exec↓':"
+            docker cp ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh ${TMP_SETUP_DOCKER_BC_PS_ID}:/tmp
+            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
+            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "sh /tmp/${TMP_SETUP_DOCKER_SNAP_VER}.init.depend.sh"
+        }
+
+        path_exists_yn_action "${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh" "_test_docker_setup_dependency_exec"
+    }
+
     ## 还原备份镜像
     function _test_docker_restore_snap()
     {
@@ -207,7 +243,7 @@ function test_docker()
             local TMP_SETUP_DOCKER_SNAP_BASE_DIR="${TMP_DOCKER_SETUP_SNAP_DIR}/${1}"
             # /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
 		    local TMP_SETUP_DOCKER_SNAP_VERS=`ls ${TMP_SETUP_DOCKER_SNAP_BASE_DIR} | sort -rV | cut -d'.' -f1 | uniq`
-            TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
+            local TMP_SETUP_DOCKER_SNAP_VER=`echo ${TMP_SETUP_DOCKER_SNAP_VERS} | cut -d' ' -f1`
             local TMP_SETUP_DOCKER_SNAP_LNK_NAME="${1/_//}"
             local TMP_SETUP_DOCKER_SNAP_TYPES="Image,Container,Dockerfile"
             local TMP_SETUP_DOCKER_SNAP_TYPE="Image"
@@ -224,10 +260,11 @@ function test_docker()
                 TMP_SETUP_DOCKER_SNAP_CMD=$(cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.cmd)
                 TMP_SETUP_DOCKER_SNAP_CMD=${TMP_SETUP_DOCKER_SNAP_CMD:-"/bin/sh"}
 
-                echo_text_style "Starting restore the '${TMP_SETUP_DOCKER_SNAP_TYPE}' snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}'"      
+                echo_text_style "Starting restore the '${TMP_SETUP_DOCKER_SNAP_TYPE}' snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:v${TMP_SETUP_DOCKER_SNAP_VER}' by snap"
                 case ${TMP_SETUP_DOCKER_SNAP_TYPE} in
                     "container")
-                        zcat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.gz | docker import - ${TMP_SETUP_DOCKER_SNAP_LNK_NAME}
+                        TMP_SETUP_DOCKER_SNAP_BOOT_VER="v${TMP_SETUP_DOCKER_SNAP_VER}SRC"
+                        zcat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.gz | docker import - ${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:${TMP_SETUP_DOCKER_SNAP_BOOT_VER}
 
                         # 容器恢复丢失环境信息，故需要读取容器inspect信息
                         cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} sh -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.ctn.env
@@ -240,17 +277,20 @@ function test_docker()
                         TMP_DOCKER_SETUP_SNAP_AFTER_RUN_SCRIPT="_test_docker_setup_dependency '${1}' '${TMP_SETUP_DOCKER_SNAP_VER}'"
                     ;;
                     "image")
+                        # SRI
+                        # TMP_SETUP_DOCKER_SNAP_BOOT_VER="v${TMP_SETUP_DOCKER_SNAP_VER}SRI"
                         docker load < ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.img.tar
                     ;;
                     "dockerfile")
                         # ？？？缺少有效反向构建dockefile的操作，故存在bug
-                        docker build -f ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.dockerfile.yml -t ${TMP_SETUP_DOCKER_SNAP_LNK_NAME} .
+                        TMP_SETUP_DOCKER_SNAP_BOOT_VER="v${TMP_SETUP_DOCKER_SNAP_VER}SRD"
+                        docker build -f ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.dockerfile.yml -t ${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:${TMP_SETUP_DOCKER_SNAP_BOOT_VER} .
                     ;;
                     *)
                         echo
                 esac
                 
-                echo_text_style "The ${TMP_SETUP_DOCKER_SNAP_TYPE} snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}' was done"
+                echo_text_style "The ${TMP_SETUP_DOCKER_SNAP_TYPE} snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:${TMP_SETUP_DOCKER_SNAP_BOOT_VER}' was done"
             fi
         }
 
@@ -265,33 +305,13 @@ function test_docker()
         docker inspect browserless/chrome | jq > logs/browserless_chrome/${LOCAL_TIMESTAMP}.img.inspect.json
     }
 
-    # 在容器内安装缺失依赖项
-    # 参数1：镜像路径名称 browserless_chrome
-    # 参数2：恢复版本号   1670392779
-    function _test_docker_setup_dependency()
-    {
-        local TMP_SETUP_DOCKER_SNAP_IMG_REL_NAME=${1}
-        local TMP_SETUP_DOCKER_SNAP_VER=${2}
-        local TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH=${TMP_DOCKER_SETUP_SNAP_DIR}/${TMP_SETUP_DOCKER_SNAP_IMG_REL_NAME}/${2}
-
-        function _test_docker_setup_dependency_exec()
-        {
-            echo_text_style "View the 'update dependency↓':"
-            docker cp ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh ${TMP_SETUP_DOCKER_BC_PS_ID}:/tmp
-            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
-            docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "sh /tmp/${TMP_SETUP_DOCKER_SNAP_VER}.init.depend.sh"
-        }
-
-        path_exists_yn_action "${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh" "_test_docker_setup_dependency_exec"
-    }
-    
     # 容器模式启动不指定会出错（docker: Error response from daemon: failed to create shim task: OCI runtime create failed: runc create failed: unable to start container process: exec: "./start.sh": stat ./start.sh: no such file or directory: unknown.）
     local TMP_SETUP_DOCKER_SNAP_CMD=""
-    local TMP_SETUP_DOCKER_SNAP_VER="latest"
+    local TMP_SETUP_DOCKER_SNAP_BOOT_VER="latest"
     local TMP_SETUP_DOCKER_SNAP_ARGS="-e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
     path_not_exists_create "logs/browserless_chrome"
     path_exists_yn_action "${TMP_DOCKER_SETUP_SNAP_DIR}" "_test_docker_restore_snap" "_test_docker_pull_image"
-    
+
     ## 安装测试镜像 browserless/chrome
     ### 还原的情况下，进程是被启动的（有容器启动，但并非一定存在镜像）
     local TMP_SETUP_DOCKER_BC_PS_ID=$(docker ps -a --no-trunc | grep "browserless/chrome" | cut -d' ' -f1)
@@ -301,9 +321,7 @@ function test_docker()
         echo "${TMP_SPLITER}"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
         echo_text_style "Cannot find created container of 'browserless/chrome', start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
-        TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome:${TMP_SETUP_DOCKER_SNAP_VER} ${TMP_SETUP_DOCKER_SNAP_CMD})
-
-        exec_check_action "TMP_DOCKER_SETUP_SNAP_AFTER_RUN_SCRIPT"
+        TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome:${TMP_SETUP_DOCKER_SNAP_BOOT_VER} ${TMP_SETUP_DOCKER_SNAP_CMD})
     else
         echo_text_style "Checked the container of 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' exists, start boot it"
         docker start ${TMP_SETUP_DOCKER_BC_PS_ID}
@@ -314,12 +332,17 @@ function test_docker()
 
     # 等待执行完毕 产生端口
     exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}'，waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
-    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/browserless_chrome/${LOCAL_TIMESTAMP}.json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${TMP_SETUP_DOCKER_BC_PS_ID}/${TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
-    
-    # 查看日志（config/image）
+
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container time↓':"
     docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "date"
+
+    # 必须等待启动以后才登录执行脚本
+    exec_check_action "TMP_DOCKER_SETUP_SNAP_AFTER_RUN_SCRIPT"
+
+    path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/browserless_chrome/${LOCAL_TIMESTAMP}.json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${TMP_SETUP_DOCKER_BC_PS_ID}/${TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
+    
+    # 查看日志（config/image）
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container inspect↓':"
     docker container inspect ${TMP_SETUP_DOCKER_BC_PS_ID} | jq > logs/browserless_chrome/${LOCAL_TIMESTAMP}.ctn.inspect.json
@@ -375,18 +398,19 @@ function boot_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    # 当前启动命令 && 等待启动
+	# 验证安装/启动
+    ## 当前启动命令 && 等待启动
 	echo
     echo_text_style "Starting 'docker'，waiting for a moment"
     echo "${TMP_SPLITER}"
-    # 设置系统管理，开机启动
+    ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info↓':"
     chkconfig docker on # systemctl enable docker.service
 	systemctl enable docker.socket
-	
 	systemctl list-unit-files | grep docker
-    echo "${TMP_SPLITER}"
+
 	# 启动及状态检测
+    echo "${TMP_SPLITER}"
     echo_text_style "View the 'service status↓':"
     systemctl start docker.service
 
@@ -398,7 +422,6 @@ function boot_docker()
     cat logs/boot.log
 
     echo "${TMP_SPLITER}"	
-	# 验证安装/启动
     echo_text_style "View the 'version↓':"
     docker -v
     echo "${TMP_SPLITER}"	
@@ -410,8 +433,6 @@ function boot_docker()
 
 	# 授权iptables端口访问
 	# echo_soft_port ${TMP_DOCKER_SETUP_BC_PS_PORT}
-
-read -e TTTT
 
 	return $?
 }
@@ -482,7 +503,7 @@ function check_setup_docker()
     local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data
 	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
 
-    soft_${SYS_SETUP_COMMAND}_check_upgrade_action "docker" "exec_step_docker"
+    soft_${SYS_SETUP_COMMAND}_check_upgrade_action "docker" "exec_step_docker" "yum -y update docker"
 
 	return $?
 }

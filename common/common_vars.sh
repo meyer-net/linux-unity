@@ -60,8 +60,9 @@ DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 NVM_PATH=${SETUP_DIR}/nvm/nvm.sh
 CURRENT_USER=`whoami`
 
-DOWN_DIR=/tmp/downloads
+DOWN_DIR=/home/${CURRENT_USER}/downloads
 RPMS_DIR=${DOWN_DIR}/rpms
+SH_DIR=${DOWN_DIR}/sh
 REPO_DIR=/etc/yum.repos.d
 CURL_DIR=${DOWN_DIR}/curl
 
@@ -113,4 +114,6 @@ SUPERVISOR_ATT_DIR=${ATT_DIR}/supervisor
 #---------- DIR ---------- }
 
 CHOICE_CTX="x"
-TMP_SPLITER="------------------------------------------------------------"
+TMP_SPLITER="------------------------------------------------------------------"
+TMP_SPLITER2="---------------------------------"
+TMP_SPLITER3="----------------------"

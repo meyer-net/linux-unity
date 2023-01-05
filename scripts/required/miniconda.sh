@@ -37,6 +37,7 @@
 #------------------------------------------------
 local TMP_MCD_SETUP_CPU_STRUCT=`uname -m`
 local TMP_MCD_SETUP_DOWN_SH_FILE_NAME="Miniconda3-latest-Linux-${TMP_MCD_SETUP_CPU_STRUCT}.sh"
+local TMP_MCD_SETUP_BC_PS_PORT=13000
 
 ##########################################################################################################
 
@@ -55,8 +56,45 @@ function set_env_miniconda()
 # 2-安装软件(本安装利用头部有多余的注释字符串来控制长度，避免ER)提取执行文件原始变量
 function setup_miniconda()
 {
+    # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
+
+    ## 脚本安装(文件被下载在shell目录)
+    while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && bash ${SH_DIR}/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}"
+    
+	# 轻量级安装的情况下不进行安装包还原操作
+	cd ${TMP_MCD_SETUP_DIR}
+
+	# 创建软链
+	local TMP_MCD_SETUP_LNK_ENVS_DIR=${DATA_DIR}/conda
+	local TMP_MCD_SETUP_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
+	
+    # 还原 & 迁移
+    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_ENVS_DIR}" "${TMP_MCD_SETUP_ENVS_DIR}"
+	path_not_exists_link "${TMP_MCD_SETUP_ENVS_DIR}" "" "${TMP_MCD_SETUP_LNK_ENVS_DIR}"
+
+	# 环境变量或软连接
+	echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
+	echo_etc_profile 'export PATH MINICONDA_HOME'
+
+    # 重新加载profile文件
+	source /etc/profile
+
+    # 安装初始
+
+	return $?
+}
+
+# 2-x1 修改下载文件
+function change_down_miniconda()
+{    
     # 二进制分界线（文件由脚本及二进制混合而成）
     local TMP_MCD_SETUP_SH_FILE_LINES=$(head -n 8 ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} | grep -aoE "^# LINES:.*" | cut -d' ' -f3)
+    ## 不打行号的情况下，代码找
+    if [ -z "${TMP_MCD_SETUP_SH_FILE_LINES}" ]; then
+        ## 使用strings -会行号会不一致
+        TMP_MCD_SETUP_SH_FILE_LINES=$(cat ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} | grep -naE "^@@END_HEADER@@$" | cut -d':' -f1)
+    fi
 
     # 临时修改SHELL部分{注意，修改文件必先记录脚本可修改的块，否则二进制文件会变得无法执行:行412: /opt/miniconda/conda.exe: 无法执行二进制文件}
     ## 临时修改文件，提取脚本可修改块（避免文件内容操作加大响应延迟）
@@ -71,6 +109,9 @@ function setup_miniconda()
     
     ## 修改许可阅读确认
     sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@read -r dummy@#read -r dummy@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
+
+    ## 修改阅读太多内容
+    sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@\"\$pager\" <<EOF@pager=<<EOF@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
 
     ## 修改是否同意的选择默认为yes
     sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@read -r ans@ans='yes'@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
@@ -101,33 +142,8 @@ function setup_miniconda()
     cat ${TMP_MCD_SETUP_SH_FILE_SH_NAME} > ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}
     cat ${TMP_MCD_SETUP_SH_FILE_PCKS_NAME} >> ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}
 
-    # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
-
-    ## 脚本安装
-    bash ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}
-
-	# 轻量级安装的情况下不进行安装包还原操作
-	cd ${TMP_MCD_SETUP_DIR}
-
-	# 创建软链
-	local TMP_MCD_SETUP_LNK_ENVS_DIR=${DATA_DIR}/miniconda
-	local TMP_MCD_SETUP_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
-	
-    # 还原 & 迁移
-	soft_path_restore_confirm_move "${TMP_MCD_SETUP_ENVS_DIR}" "${TMP_MCD_SETUP_LNK_ENVS_DIR}"
-	path_not_exists_link "${TMP_MCD_SETUP_ENVS_DIR}" "" "${TMP_MCD_SETUP_LNK_ENVS_DIR}"
-
-	# 环境变量或软连接 ？？？/etc/profile写进函数
-	echo "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}" >> /etc/profile
-	echo 'PATH=$MINICONDA_HOME/condabin:$PATH' >> /etc/profile
-	echo 'export PATH MINICONDA_HOME' >> /etc/profile
-
-    # 重新加载profile文件
-	source /etc/profile
-
-    # 安装初始
-
-	return $?
+    rm -rfv ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
+    rm -rfv ${TMP_MCD_SETUP_SH_FILE_PCKS_NAME}
 }
 
 ##########################################################################################################
@@ -150,19 +166,39 @@ function boot_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	# 验证安装
+    ## 当前启动命令 && 等待启动
+	echo
+    echo_text_style "Configuration 'conda packages', waiting for a moment"
+    echo "${TMP_SPLITER}"
+    echo_text_style "View the 'channels↓':"
+    # 生成 ~/.condarc配置文件
+    condabin/conda config --set auto_activate_base false
+    condabin/conda config --set show_channel_urls yes
+    condabin/conda config --get show_channel_urls
+    condabin/conda config --get channels
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'sources↓':"
+    condabin/conda config --show-sources
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'list↓':"
+	condabin/conda list
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'update↓':"
+    conda update -y conda
+    
+    echo "${TMP_SPLITER2}"	
+    echo_text_style "View the 'version↓':"
     condabin/conda --version
 
-    # 生成 ~/.condarc配置文件
-    condabin/conda config --setshow_channel_urls yes
-	
-    # 当前启动命令 && 等待启动
-	echo
-    echo "Searching conda packages，Waiting for a moment"
-    echo "--------------------------------------------"
-	condabin/conda list
-    echo "--------------------------------------------"
-
+    echo "${TMP_SPLITER2}"	
+    echo_text_style "View the 'info↓':"
     condabin/conda info -e
+
+    # 结束
+    exec_sleep 10 "Search 'miniconda' over, please checking the setup log, this will stay 10 secs to exit"
 
 	return $?
 }
@@ -175,20 +211,24 @@ function down_plugin_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
 
     # 环境预装
-    condabin/conda config --add channels conda-forge
-    condabin/conda config --add channels microsoft
+    local TMP_CMD_SETUP_CNL_ARR=($(condabin/conda config --show-sources | grep "^  -" | cut -d' ' -f4))
+    # condabin/conda run -n pyenv36 python --version | grep 'EnvironmentLocationNotFound'
+    local TMP_MCD_SETUP_ENV_ARR=($(conda info -e | cut -d' ' -f1 | grep -v "#" | grep -v "base" | grep -v "^$"))
 
-    condabin/conda create -n pyenv36 -y python=3.6
-    # source activate pyenv36
+    action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels conda-forge"
+    action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels microsoft"
 
-    condabin/conda create -n pyenv37 -y python=3.7
-    # source activate pyenv37
-
-    condabin/conda create -n pyenv38 -y python=3.8
-    # source activate pyenv38
-    
-    condabin/conda create -n pyenv39 -y python=3.9
-    # source activate pyenv39
+    action_if_item_not_exists "^pyenv36$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv36 -y python=3.6"
+    # conda activate pyenv36
+        
+    action_if_item_not_exists "^pyenv37$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv37 -y python=3.7"
+    # conda activate pyenv37
+        
+    action_if_item_not_exists "^pyenv38$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv38 -y python=3.8"
+    # conda activate pyenv38
+        
+    action_if_item_not_exists "^pyenv39$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv39 -y python=3.9"
+    # conda activate pyenv39
 
 	return $?
 }
@@ -198,14 +238,21 @@ function setup_plugin_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
     
+	echo
+    echo_text_style "Starting install plugin 'playwright'@'${PY_ENV}', waiting for a moment"
+
     # 安装playwright插件
-    su - `whoami` -c "soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'"
-    su - `whoami` -c "cd `pwd` && source activate ${PY_ENV} && pip install playwright && export DISPLAY=:0 && playwright install"
-    
-    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${TMP_MCD_SETUP_PW_PY_DIR}/get_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
+    soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
+    setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
+    echo_text_style "Plugin 'playwright'@'${PY_ENV}' installed"
+    echo ${TMP_SPLITER2}
+
+    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${TMP_MCD_SETUP_PW_PY_DIR}/pw_sync_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
+    ## 参考：https://zhuanlan.zhihu.com/p/347213089
     local TMP_MCD_SETUP_PW_PY_DIR="${TMP_MCD_SETUP_DIR}/scripts/py"
     path_not_exists_create "${TMP_MCD_SETUP_PW_PY_DIR}"
-    cat >${TMP_MCD_SETUP_PW_PY_DIR}/get_docker_hub_vers.py<<EOF
+    cat >${TMP_MCD_SETUP_PW_PY_DIR}/pw_sync_docker_hub_vers.py<<EOF
+import argparse
 from playwright.sync_api import Playwright, sync_playwright
 
 def run(playwright: Playwright) -> None:
@@ -214,7 +261,11 @@ def run(playwright: Playwright) -> None:
     page = context.new_page()
 
     try:
-        page.goto("https://hub.docker.com/r/labring/sealos/tags", wait_until='networkidle')
+        parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
+        parser.add_argument('image', help='镜像地址，例如labring/sealos')
+        args = parser.parse_args()
+        
+        page.goto("https://hub.docker.com/r/{}/tags".format(args.image), wait_until='networkidle')
 
         # 获取跳转到镜像的元素
         ver_locators = page.get_by_test_id("navToImage")
@@ -225,10 +276,53 @@ def run(playwright: Playwright) -> None:
         context.close()
         browser.close()
 
-
 with sync_playwright() as playwright:
     run(playwright)
 EOF
+
+    cat >${TMP_MCD_SETUP_PW_PY_DIR}/pw_async_docker_hub_vers.py<<EOF
+import argparse
+import asyncio
+from playwright.async_api import async_playwright
+
+async def main():
+    parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
+    parser.add_argument('image', help='镜像地址，例如labring/sealos')
+    args = parser.parse_args()
+
+    ws_endpoint = "wss://localhost:${TMP_MCD_SETUP_BC_PS_PORT}/?token={}".format("")
+    
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        # browser = await playwright.chromium.connect(ws_endpoint=ws_endpoint)
+        context = await browser.new_context() 
+
+        try:
+            page = await context.new_page()
+            
+            await page.goto("https://hub.docker.com/r/{}/tags".format(args.image), wait_until='networkidle')
+            # await page.wait_for_load_state(stat="networkidle")
+
+            # 获取跳转到镜像的元素
+            ver_locators = page.get_by_test_id("navToImage")
+            ver_arr = await ver_locators.all_inner_texts()
+            for ver in ver_arr:
+                print(ver)
+        finally:
+            await context.close()
+            await browser.close()
+
+asyncio.get_event_loop().run_until_complete(main())
+EOF
+
+    # 测试插件
+	echo ${TMP_SPLITER2}
+    echo_text_style "Testing plugin 'playwright'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    su_bash_channel_conda_exec "python scripts/py/pw_sync_docker_hub_vers.py labring/sealos"
+
+    echo ${TMP_SPLITER2}
+    echo_text_style "Testing plugin 'playwright-async'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    su_bash_channel_conda_exec "python scripts/py/pw_async_docker_hub_vers.py labring/sealos"
 
 	return $?
 }
@@ -237,11 +331,7 @@ EOF
 
 # x2-执行步骤
 function exec_step_miniconda()
-{
-	# 变量覆盖特性，其它方法均可读取
-	local TMP_MCD_SETUP_DIR=${1}
-	local TMP_MCD_CURRENT_DIR=`pwd`
-    
+{    
 	set_env_miniconda 
 
 	setup_miniconda 
@@ -260,11 +350,22 @@ function exec_step_miniconda()
 
 ##########################################################################################################
 
-# x1-下载软件
-function down_miniconda()
+function check_setup_miniconda()
 {
+	# 变量覆盖特性，其它方法均可读取
+	local TMP_MCD_SETUP_DIR=${SETUP_DIR}/conda
+	local TMP_MCD_CURRENT_DIR=`pwd`
+
     # *** miniconda本身具备了自动更新的操作，故不做重装还原操作，此处已安装的情况下，直接使用原有命令是最好的选择
-    setup_soft_wget "miniconda" "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "exec_step_miniconda" "" "conda update -y conda"
+    # function down_miniconda()
+    # {
+    #     while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && exec_step_miniconda"
+    # }
+	# command_check_action "conda" "conda update -y conda"
+    # if [ $? -eq 0 ]; then
+    #     down_miniconda
+    # fi
+    soft_cmd_check_upgrade_action "conda" "exec_step_miniconda" "conda update -y conda"
 
 	return $?
 }
@@ -272,4 +373,4 @@ function down_miniconda()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "MiniConda" "down_miniconda"
+setup_soft_basic "MiniConda" "check_setup_miniconda"

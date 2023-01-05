@@ -98,6 +98,33 @@ function bind_sysdomain() {
 	return $?
 }
 
+# 绑定交换YN项(Yy,YESyes,TRUE,true)，意图取反获得统一YN值
+# 参数1：需要设置的变量名，自带YN值
+function bind_exchange_yn_val()
+{
+	local _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL=`eval echo '$'${1}`
+	
+	typeset -u _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL
+
+	case ${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL} in
+		"Y")
+			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+		;;
+		"YES")
+			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+		;;
+		"TRUE")
+			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+		;;
+		*)
+			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="Y"
+	esac
+
+	eval ${1}='${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL}'
+
+	return $?
+}
+
 # 交换软连接(不是软连接的情况下执行)
 # 参数1：检测的路径
 # 参数2：真实的路径 
@@ -195,9 +222,14 @@ function echo_if_content_not_exists()
 #      _ARR[3]="/etc/docker"
 #      local _CHECK_ITEM="^/etc/docker$"
 #      action_if_item_not_exists "_CHECK_ITEM" "${_ARR[*]}" "echo 'not exists'" "echo 'exists'"
+#      action_if_item_not_exists "^/etc/docker$" "${_ARR[*]}" "echo 'not exists'" "echo 'exists'"
 function action_if_item_not_exists() 
 {
 	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX=`eval echo '$'${1}`
+	if [ "\$${1}" == "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX}" ]; then
+		_TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX="${1}"
+	fi
+
 	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_ARR=(${2})
 	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION=${3}
 	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION=${4}
@@ -217,8 +249,6 @@ function action_if_item_not_exists()
 	else
 		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION"
 	fi
-
-    eval ${1}='$_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM'
 
 	return $?
 }
@@ -843,30 +873,32 @@ function exec_text_style()
 	# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}'`
 	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '$'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}`
 
-	function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
-		_TMP_EXEC_TEXT_STYLE_VAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${red}"}
-
-		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}${reset}"
-
-		return $?
-	}
-	
-	function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
-		# Gum模式存在默认样式，普通模式不存在
-		_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}")
-
-		return $?
-	}
-
 	function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
 		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
 		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=${1}
 		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE='\'
+		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}"
+
+		function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
+			_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${red}"}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${reset}"
+
+			return $?
+		}
+		
+		function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
+			# Gum模式存在默认样式，普通模式不存在
+			_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}")
+
+			return $?
+		}
+
 		case ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT} in
 		'[')
 			# 加入转义符
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='['
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=']'
+			# 紫红
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"201"}
 		;;
 		# '{')
 		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='{'
@@ -876,6 +908,8 @@ function exec_text_style()
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='<'
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='>'
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
+			# 红色
+			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"202"}
 		;;
 		'"')
 			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='"'
@@ -923,16 +957,19 @@ function exec_text_style()
 	# _TMP_EXEC_TEXT_STYLE_WRAP_FUNC "{"
 
 	eval ${_TMP_EXEC_TEXT_STYLE_VAR_NAME}='${_TMP_EXEC_TEXT_STYLE_VAR_VAL}'
+
+	return $?
 }
 
 # 输出文本格式化
 # 参数1：需要格式化的变量名
+# 参数2：格式化字符串规格
 # 示例：
 #	TMP_ECHO_TEXT_STYLED_TEXT="[Hello] 'World'"
 #	echo_text_style "TMP_ECHO_TEXT_STYLED_TEXT"
 function echo_text_style() {
 	local _TMP_EXEC_TEXT_STYLE_VAL="${1}"
-	exec_text_style "_TMP_EXEC_TEXT_STYLE_VAL"
+	exec_text_style "_TMP_EXEC_TEXT_STYLE_VAL" "${2}"
 	echo ${_TMP_EXEC_TEXT_STYLE_VAL}
 	
 	return $?
@@ -1000,7 +1037,7 @@ function soft_path_restore_confirm_action()
 	fi
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH="${1}"
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Checked current soft got some backup path for '${1}', please sure u want to 'restore still or not'"}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft got some backup path for '${1}', please sure u want to 'restore still or not'"}"
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS=${3}
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
@@ -1018,12 +1055,12 @@ function soft_path_restore_confirm_action()
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
 			{
-				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to 'restore'" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
+				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to 'restore'" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER}"
 
 				echo
-				echo_text_style "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}'"
+				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}'"
 				
 				# 直接覆盖，进cover
 				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
@@ -1035,7 +1072,7 @@ function soft_path_restore_confirm_action()
 				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT"
 				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS" "${1}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}"
 				
-				echo_text_style "[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] The path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' was resotred"
+				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) The path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' was resotred"
 				echo
 			}
 
@@ -1055,7 +1092,7 @@ function soft_path_restore_confirm_action()
 
 			# 还原目标路径本身存在，移至强行删除目录中（如果是走安装程序过来，会被提前备份，不会触发此段）
 			# 走到这步，已选择还原备份（是否覆盖还原/强制还原的过程，强制还原始终执行覆盖还原的逻辑）
-			local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="[${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}] Checked current soft already got the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}', please sure u want to 'cover still or force'"
+			local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft already got the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}', please sure u want to 'cover still or force'"
 			path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "_soft_path_restore_confirm_action_restore_choice_force_exec" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "N"
 		}
 		
@@ -1172,8 +1209,7 @@ function soft_trail_clear()
 			fi
 		}
 		
-		local _TMP_SOFT_TRAIL_CLEAR_REG_REL_DIR="^${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}$"
-		action_if_item_not_exists "_TMP_SOFT_TRAIL_CLEAR_REG_REL_DIR" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_record_rel_arr"
+		action_if_item_not_exists "^${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}$" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_record_rel_arr"
 
 		# 如果是软链接，直接删除
 		if [ "${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}" != "${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}" ]; then
@@ -1181,7 +1217,11 @@ function soft_trail_clear()
 			rm -rf ${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}
 		fi
 	done
-	echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
+	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
+		echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
+	else
+		echo_text_style "None dirs found for trail in soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+	fi
 	echo
 
 	# 备份 && 删除文件
@@ -1192,7 +1232,7 @@ function soft_trail_clear()
 	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
 	function _soft_trail_clear_exec_backup()
 	{
-		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="[${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}]Checked the trail dir of '${1}', please sure u will 'backup still or not'"
+		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}])Checked the trail dir of '${1}', please sure u will 'backup still or not'"
 
 		local _TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT="${1}"
 		exec_text_printf "_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT" "${_TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT}"
@@ -1253,7 +1293,7 @@ function docker_snap_create()
 	# 完整的PSID
 	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep ${1} | cut -d' ' -f1)
 	# browserless/chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}} | cut -d':' -f1)
 	# browserless_chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
 	# browserless_chrome/1670329246
@@ -1341,7 +1381,7 @@ EOF
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	
     echo "${TMP_SPLITER}"
-    echo_text_style "Starting pull 'dockerfile builder"
+    echo_text_style "Starting pull 'dockerfile builder'"
 	# 判断是否存在dockerfile操作工具
 	# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
 	# 【1】从一个docker镜像生成Dockerfile内容
@@ -1381,6 +1421,14 @@ EOF
     local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}"
 	echo "${TMP_SPLITER}"
 	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})↓':"
+	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
+	### 第一次提交的情况下则做标记：SMI(snap commit init)，备份标记则为SMB(snap commit backup)，还原标记则为SR(Snap restore c/i/d)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_VCOUNT=$(docker images | grep "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | grep -v "latest" | wc -l)
+	if [ ${_TMP_DOCKER_SNAP_CREATE_SNAP_VCOUNT} -eq 0 ]; then
+		_TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}SMI"
+	else
+		_TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}SMB"
+	fi
 	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 	echo "${TMP_SPLITER}"
 	echo_text_style "[Source History ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}]"
@@ -1418,6 +1466,165 @@ EOF
 	return $?
 }
 
+# 命令检测后执行
+# 参数1：命令名称(列表)
+# 参数2：命令不存在时默认的 执行安装/更新脚本
+# 参数3：命令已存在时执行脚本名称
+# 示例：
+# 	 soft_cmd_check_action "vim,wget" "yum -y install %s" "echo '%s was installed'"
+function soft_cmd_check_action() 
+{
+	local _TMP_SOFT_CMD_CHECK_ACTION_CHECK_COMMANDS=${1}
+	local _TMP_SOFT_CMD_CHECK_ACTION_NE_SCRIPT=${2}
+    local _TMP_SOFT_CMD_CHECK_ACTION_E_SCRIPT=${3}
+
+	function _soft_cmd_check_action()
+	{
+		local _TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND=${1}
+		local _TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_ACTION_NE_SCRIPT}"
+
+		local _TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT" "${_TMP_SOFT_CMD_CHECK_ACTION_E_SCRIPT}"
+		
+		echo ${TMP_SPLITER}
+        echo_text_style "Checking the command of '${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}'"
+        echo ${TMP_SPLITER}
+
+		local _TMP_SOFT_CMD_CHECK_ACTION_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND})
+		# 不存在命令时执行
+		if [ "${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}:" == "${_TMP_SOFT_CMD_CHECK_ACTION_CMD_WHERE}" ]; then
+			# 用于检测是否存在安装残留，可能文件存在，实际未安装
+			soft_trail_clear "${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}" "N"
+
+			exec_check_action "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT" ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}
+		else
+			exec_check_action "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT" ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}
+		fi
+
+        echo
+	}
+	
+    exec_split_action "${_TMP_SOFT_CMD_CHECK_ACTION_CHECK_COMMANDS}" "_soft_cmd_check_action %s"
+
+	return $?
+}
+
+# 命令检测后安装，存在时覆盖安装（基于github仓库二进制安装包，无备份操作）
+# 参数1：命令名称，gum
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：命令不存在时，执行脚本，rpm -ivh gum_%s_linux_amd64.rpm
+# 参数6：命令存在时，执行脚本，例如可以定义提示是否覆盖安装类的操作
+# 示例：
+#     soft_cmd_check_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" ''
+function soft_cmd_check_git_action() 
+{
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD=${1}
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO=${2}
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN=${4}
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_VER=${4}
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT=${4}
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT=${6:-"_soft_cmd_check_git_action_echo"}
+
+	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN" "${3}"
+	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT" "${5}"
+
+	function _soft_cmd_check_git_action()
+	{
+        set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO}"
+        while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT}"
+	}
+	
+	function _soft_cmd_check_git_action_echo()
+	{
+		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
+		# print "${_SOFT_CMD_CHECK_GIT_ACTION_CMD_STD}" "${_TMP_SOFT_CMD_CHECK_SETUP}"
+		echo_text_style "'${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}' was installed"
+	}
+	
+	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}" "exec_check_action '_soft_cmd_check_git_action' '%s' && echo_text_style 'The command of <%s> installed'" "_TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT"
+
+	return $?
+}
+
+# 命令检测后安装，存在时提示覆盖安装（基于github仓库二进制安装包，无备份操作）
+# 参数1：命令名称，gum
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：安装脚本，rpm -ivh gum_%s_linux_amd64.rpm
+# 参数6：动作类型描述，action/install/reinstall
+# 示例：
+#     soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" ''
+function soft_cmd_check_confirm_git_action() 
+{
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD=${1}
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC=${6:-"action"}
+	function _soft_cmd_check_confirm_git_action()
+	{
+		local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL="N"
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists, please sure u will exec [${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "_soft_cmd_check_git_action" "echo_text_style 'Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists'"
+	}
+
+	soft_cmd_check_git_action "${1}" "${2}" "${3}" "${4}" "${5}" "_soft_cmd_check_confirm_git_action"
+}
+
+# 命令检测后安装，存在时提示覆盖安装（基于所有命令检测类型的安装，并具有备份提示操作）
+# 参数1：命令名称，用于检测
+# 参数2：选择Y时或命令不存在时默认的 执行安装/更新脚本
+# 参数3：选择N时 命令已存在时执行脚本名称
+# 参数4：执行清理备份后自定义命令，例如卸载
+# 示例：
+#     soft_cmd_check_upgrade_action "conda" "exec_step_conda" "conda update -y conda"
+function soft_cmd_check_upgrade_action() 
+{
+	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND=${1}
+	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT=${2}
+    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT=${3}
+    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT=${4}
+    
+	function _soft_cmd_check_upgrade_action_exec()
+	{
+		# 当前操作软件名称(此处实际是对应的命令，因管道运行，故不做干扰)
+		local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
+
+		# 卸载找到的关联包
+		function _soft_cmd_check_upgrade_action_exec_remove()
+		{
+			# 重装先确认备份，默认备份
+			## Please sure the soft of 'conda' u will 'backup check still or not'?
+			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
+			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft of '${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' u will 'backup check still or not'"
+
+			# 是否强制删除这里取反，soft_trail_clear参数需要
+			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N}"
+			bind_exchange_yn_val "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N"
+
+			# 卸载包前检测，备份残留或NO
+			soft_trail_clear "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
+			
+			# 执行备份后自定义命令
+			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+
+			# 执行安装			
+			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+		}
+		
+		# 提示是否重装的值，默认不重装
+		local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REMOVE_Y_N="N"
+		## 检测到软件已安装，确认重装或不重装。
+		## 例如：Checked the soft of 'conda' was installed, please sure u will 'reinstall still or not'?
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REMOVE_Y_N" "Checked the soft command of '${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was installed, please sure u will 'reinstall still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+	}
+	
+	# 检测执行，未安装则运行外部安装脚本（exec_step_conda），已安装则运行内部函数(_soft_cmd_check_upgrade_action_exec)进行安装还原操作
+	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT}" "_soft_cmd_check_upgrade_action_exec"
+
+	return $?
+}
+
 # Rpm不存在执行
 # 参数1：包名称
 # 参数2：执行函数名称
@@ -1439,10 +1646,10 @@ function soft_rpm_check_action()
 	return $?
 }
 
-# Yum不存在时执行
-# 参数1：包名称
-# 参数2：执行安装函数名称
-# 参数3：执行存在包时执行函数名称
+# Yum包检测后执行
+# 参数1：包名称（列表）
+# 参数2：包不存在时默认的 执行安装/更新脚本
+# 参数3：包已存在时执行脚本
 # 示例：
 # 	 soft_yum_check_action "vvv" "yum -y install %s" "echo '%s was installed'"
 # 	 soft_yum_check_action "sss" "test"
@@ -1450,32 +1657,33 @@ function soft_rpm_check_action()
 function soft_yum_check_action() 
 {
 	local _TMP_SOFT_YUM_CHECK_ACTION_SOFTS=${1}
-	local _TMP_SOFT_YUM_CHECK_ACTION_SETUP_SCRIPT=${2}
-    local _TMP_SOFT_YUM_CHECK_ACTION_EXISTS_SCRIPT=${3}
+	local _TMP_SOFT_YUM_CHECK_ACTION_NE_SCRIPT=${2}
+    local _TMP_SOFT_YUM_CHECK_ACTION_E_SCRIPT=${3}
 
 	function _soft_yum_check_action()
 	{
 		local _TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME=${1}
-		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_SETUP_SCRIPT}"
+		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_NE_SCRIPT}"
 
-		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_EXISTS_SCRIPT}"
+		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_E_SCRIPT}"
 		
 		echo ${TMP_SPLITER}
         echo_text_style "Checking the yum installed repos of '${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}'"
         echo ${TMP_SPLITER}
 
         local _TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS=`yum list installed | grep ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}`
+		# 不存在包时执行
         if [ -z "${_TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS}" ]; then
 			# 用于检测是否存在安装残留，可能文件存在，实际未安装
 			if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
 				soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
 			fi
 
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
+			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
         else
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_EXISTS_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
+			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
         fi
 
         echo
@@ -1486,7 +1694,7 @@ function soft_yum_check_action()
 	return $?
 }
 
-# Yum不存在时安装
+# Yum包检测后安装
 # 参数1：包名称
 # 参数2：包存在时输出信息
 # 示例：
@@ -1496,8 +1704,7 @@ function soft_yum_check_setup()
 {
 	local _TMP_SOFT_YUM_CHECK_SETUP_SOFTS=${1}
 	local _TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD=${2}
-        
-    # soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y install %s" "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD}"
+    
 	function _soft_yum_check_setup_echo()
 	{
 		local _TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME=${1}
@@ -1507,82 +1714,40 @@ function soft_yum_check_setup()
 		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"'${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}' was installed"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style \"'%s'\" installed" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of <%s> installed'" "_soft_yum_check_setup_echo"
 
 	return $?
 }
 
-# Yum不存在时安装，存在时提示覆盖安装
+# Yum包检测后安装，存在时提示覆盖安装
 # 参数1：包名称
-# 参数2：执行安装函数名称
-# 参数3：执行存在包时执行函数名称
+# 参数2：包不存在时默认的 执行安装/更新脚本
+# 参数3：包已存在时执行脚本
 # 示例：
 #     soft_yum_check_upgrade_setup "vvv" "%s was installed"
 function soft_yum_check_upgrade_action() 
 {
-	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SOFTS=${1}
-	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT=${2}
-    local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXISTS_SCRIPT=${3}
-    
-	function _soft_yum_check_upgrade_action_exec()
+	function _soft_yum_check_upgrade_action_remove()
 	{
-		# 当前操作软件名称
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
-		# 提示是否重装的值，默认不重装
-		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_REMOVE_Y_N="N"
 
-		# 卸载找到的关联包
-		function _soft_yum_check_upgrade_action_exec_remove()
-		{
-			# 重装先确认备份，默认备份
-			## Please sure the soft of 'docker' u will 'backup check still or not'?
-			local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
-			confirm_yn_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' u will 'backup check still or not'"
+		echo_text_style "Starting remove yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}'"
 
-			# 是否强制删除这里取反，soft_trail_clear参数需要
-			local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="N"
-			case ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_BACKUP_Y_N} in
-				"Y" | "y")
-					_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="N"
-				;;
-				"true")
-					_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="N"
-				;;
-				*)
-					_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="Y"
-			esac
+		# 清理安装包，删除空行（cut -d可能带来空行）
+		yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log
+		yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} yum -y remove {}
 
-			# 卸载包前检测，备份残留或NO
-			soft_trail_clear "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
-
-			echo_text_style "Starting remove yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}'"
-
-			# 清理安装包，删除空行（cut -d可能带来空行）
-			yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log
-			yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} | cut -d' ' -f1 | grep -v '^$' | xargs -I {} yum -y remove {}
-
-			echo_text_style "The yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was removed"
-			
-			# 执行安装
-			## 更新包
-			soft_yum_check_setup "yum-utils"
-			yum-complete-transaction --cleanup-only
-			yum -y update && yum makecache fast
-			
-			exec_check_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT" ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}
-		}
+		echo_text_style "The yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was removed"
 		
-		# 检测到软件已安装，确认重装或不重装。
-		## 例如：Checked the soft of 'docker' was installed, please sure u will 'reinstall still or not'?
-		confirm_yn_action "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_REMOVE_Y_N" "Checked the soft of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was installed, please sure u will 'reinstall still or not'" "_soft_yum_check_upgrade_action_exec_remove" "_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_EXISTS_SCRIPT" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+		# 执行安装
+		## 更新包
+		soft_yum_check_setup "yum-utils"
+		yum-complete-transaction --cleanup-only
+		yum -y update && yum makecache fast
 
-		# 不管是否重装，都进行更新
-		yum -y update ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}
 	}
-	
-	# 检测执行，未安装则运行外部安装脚本（exec_step_docker），已安装则运行内部函数进行安装还原操作
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SOFTS}" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_SETUP_SCRIPT}" "_soft_yum_check_upgrade_action_exec"
-
+    
+	soft_cmd_check_upgrade_action "${1}" "${2}" "${3}" "_soft_yum_check_upgrade_action_remove"
 	return $?
 }
 
@@ -1701,6 +1866,9 @@ function while_wget()
 		"repo")
 			mkdir -pv ${REPO_DIR} && cd ${REPO_DIR}
 		;;
+		"sh")
+			mkdir -pv ${SH_DIR} && cd ${SH_DIR}
+		;;
 		*)
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 	esac
@@ -1805,7 +1973,7 @@ function while_exec()
 	local _TMP_WHILE_EXEC_CHECK_SCRIPT=${2}
 	local _TMP_WHILE_EXEC_FAILURE_SCRIPT=${3}
 
-	echo "----------------------------------------------------------------"
+	echo "${TMP_SPLITER}"
 	echo "Start to exec check script '${green}${_TMP_WHILE_EXEC_CHECK_SCRIPT}${reset}'"
 	local _TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
 	if [ $I -eq 1 ] && [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" == "1" ]; then
@@ -1814,12 +1982,12 @@ function while_exec()
 	fi
 
 	echo "Start to exec script '${green}$_TMP_WHILE_EXEC_SCRIPT${reset}'"
-	echo "----------------------------------------------------------------"
+	echo "${TMP_SPLITER}"
 
 	for I in $(seq 99);
 	do
 		echo "Execute sequence：'${green}${I}${reset}'"
-		echo "----------------------"
+		echo "${TMP_SPLITER2}"
 		eval "$_TMP_WHILE_EXEC_SCRIPT"
 
 		_TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
@@ -1831,15 +1999,31 @@ function while_exec()
 
 			if [ ${#_TMP_WHILE_EXEC_FAILURE_SCRIPT} -gt 0 ]; then
 				eval "${_TMP_WHILE_EXEC_FAILURE_SCRIPT}"
-				echo "----------------------------------------------------------------"
+				echo "${TMP_SPLITER}"
 			fi
 		else
-			echo "----------------------------------------------------------------"
+			echo "${TMP_SPLITER}"
 			echo "Execute ${green}success${reset}"
-			echo "---------------"
+			echo "${TMP_SPLITER3}"
 			break
 		fi
 	done
+
+	return $?
+}
+
+# 通过指定用户，指定conda环境下，通过管道执行脚本
+# 参数1：执行脚本
+# 参数2：pyenv环境，默认${PY_ENV}
+# 参数3：执行用户，默认`whoami`
+function su_bash_channel_conda_exec()
+{
+	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS=${1:-"echo"}
+    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV=${2:-"${PY_ENV}"}
+    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-`whoami`}
+
+	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="cd `pwd` && conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
+	su - ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS}"
 
 	return $?
 }
@@ -1867,8 +2051,8 @@ function setup_soft_wget()
 
 	local TMP_SOFT_SETUP_PATH=${_TMP_SOFT_WGET_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
 
-    ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep ${_TMP_SOFT_WGET_NAME} | grep -v grep
-	if [ $? -ne 0 ]; then
+    # ls -d ${TMP_SOFT_SETUP_PATH} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_WGET_NAME} | grep -v grep
+	if [ ! -a ${TMP_SOFT_SETUP_PATH} ]; then
 		local _TMP_SOFT_WGET_FILE_NAME=
 		local _TMP_SOFT_WGET_FILE_DIR="${DOWN_DIR}"
 		while_wget "${_TMP_SOFT_WGET_URL}" '_TMP_SOFT_WGET_FILE_DIR=`pwd` && _TMP_SOFT_WGET_FILE_NAME=${_TMP_SOFT_WGET_FILE_DEST_NAME}'
@@ -1994,9 +2178,9 @@ function setup_soft_pip()
 	# pip show supervisor
 	# pip freeze | grep "supervisor=="
 	if [ -z "${TMP_SOFT_SETUP_PATH}" ]; then
-		echo "Pip start to install ${_TMP_SOFT_PIP_NAME}"
+		echo_text_style "Pip start to install '${_TMP_SOFT_PIP_NAME}'"
 		pip install ${TMP_SOFT_LOWER_NAME}
-		echo "Pip installed ${_TMP_SOFT_PIP_NAME}"
+		echo_text_style "Pip installed '${_TMP_SOFT_PIP_NAME}'"
 
 		#安装后配置函数
 		exec_check_action "_TMP_SOFT_PIP_SETUP_FUNC" "${PY_PKGS_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}"
@@ -2011,27 +2195,38 @@ function setup_soft_pip()
 
 # PIP安装软件下载模式
 # 参数1：软件安装名称
-# 参数2：软件下载后执行脚本
-# 参数3：pip版本，默认2
-function setup_soft_conda() 
+# 参数2：软件安装后，在管道中执行的脚本
+# 参数3：软件安装环境，默认取全局变量${PY_ENV}
+# 示例：
+#	   setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
+function setup_soft_conda_pip() 
 {
 	if [ $? -ne 0 ]; then
 		return $?
 	fi
 
 	local _TMP_SOFT_CONDA_PIP_NAME=${1}
-	local _TMP_SOFT_CONDA_PIP_SETUP_FUNC=${2}
-	local _TMP_SOFT_CONDA_PIP_VERS=${3:-2}
+	local _TMP_SOFT_CONDA_PIP_SETUP_SCRIPTS=${2:-"echo"}
+	local _TMP_SOFT_CONDA_PIP_ENV=${3:-"${PY_ENV}"}
 
-	function _setup_soft_conda()
-	{
-		source activate ${PY_ENV}
-		
-		exec_check_action "setup_soft_pip" "${1}" "_TMP_SOFT_CONDA_PIP_SETUP_FUNC" ${3}
-	}
+	local _TMP_SOFT_CONDA_PIP_SETUP_PATH=$(su_bash_channel_conda_exec "pip show ${_TMP_SOFT_CONDA_PIP_NAME} | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${_TMP_SOFT_CONDA_PIP_NAME}'")
+	
+	echo_text_style "Checking the pip package '${_TMP_SOFT_CONDA_PIP_NAME}' from env <${_TMP_SOFT_CONDA_PIP_ENV}>"
+	echo ${TMP_SPLITER}
+	if [ -z "${_TMP_SOFT_CONDA_PIP_SETUP_PATH}" ]; then
+		echo_text_style "Starting install the pip package '${_TMP_SOFT_CONDA_PIP_NAME}' to env <${_TMP_SOFT_CONDA_PIP_ENV}>"
+		echo ${TMP_SPLITER2}
+		su_bash_channel_conda_exec "pip install ${_TMP_SOFT_CONDA_PIP_NAME} && ${_TMP_SOFT_CONDA_PIP_SETUP_SCRIPTS}"
+		echo ${TMP_SPLITER2}
+		echo_text_style "Pip package installed '${_TMP_SOFT_CONDA_PIP_NAME}' to env <${_TMP_SOFT_CONDA_PIP_ENV}>"
+	else
+		echo_text_style "Pip package '${_TMP_SOFT_CONDA_PIP_NAME}' from env <${_TMP_SOFT_CONDA_PIP_ENV}> exists:"
+		ls -d ${_TMP_SOFT_CONDA_PIP_SETUP_PATH}
+		su_bash_channel_conda_exec "pip list | grep '${_TMP_SOFT_CONDA_PIP_NAME}'"
 
-	bash -c "_setup_soft_conda"
-
+		return 1
+	fi
+	
 	return $?
 }
 
@@ -2693,6 +2888,28 @@ function exec_check_action() {
 	return $?
 }
 
+# 命令存在时执行
+# 参数1：需要判断的命令
+# 参数2：要执行的函数/脚本名称，或变量名称
+# 参数3-N：为函数时，要附加的参数
+# 示例：
+#     command_check_action "conda" "conda update -y conda"
+#     local test_func_var="%s update -y %s"
+#     command_check_action "conda" "test_func_var" "conda"
+function command_check_action() {
+	local _TMP_CMD_CHECK_ACTION_CMD=${1}
+	local _TMP_CMD_CHECK_ACTION_FIRST_VAR_VAL=${2}
+
+	local _TMP_CMD_CHECK_ACTION_CMD_WHERE=$(whereis ${_TMP_CMD_CHECK_ACTION_CMD})
+	if [ "${_TMP_CMD_CHECK_ACTION_CMD}:" != "${_TMP_CMD_CHECK_ACTION_CMD_WHERE}" ]; then
+		shift
+		exec_check_action "${@}"
+		return 1
+	fi
+
+	return $?
+}
+
 #分割并执行动作
 # 参数1：用于分割的字符串
 # 参数2：对分割字符串执行脚本
@@ -3296,7 +3513,7 @@ EOF
 	return $?
 }
 
-#新增一个授权端口
+# 新增一个授权端口
 # 参数1：需放开端口
 # 参数2：授权IP
 # 参数3：ALL/TCP/UDP
@@ -3371,6 +3588,20 @@ EOF
 	path_exists_yn_action "${GUM_PATH}" "gum spin --spinner monkey --title \"Echoing port to cross firewall...\" -- sleep 3" "sleep 3"	
 
 	lsof -i:${_TMP_ECHO_SOFT_PORT}
+
+	return $?
+}
+
+# 输出文本至/etc/profile，避免重复项
+# 参数1：需要输出的内容
+function echo_etc_profile()
+{
+	local _TMP_ECHO_ETC_PROFILE_INPUT="${1}"
+	local _TMP_ECHO_ETC_PROFILE_GREP=$(cat /etc/profile | grep "^${_TMP_ECHO_ETC_PROFILE_INPUT}$")
+
+	if [ -z "${_TMP_ECHO_ETC_PROFILE_GREP}" ]; then
+		echo "${_TMP_ECHO_ETC_PROFILE_INPUT}" >> /etc/profile
+	fi
 
 	return $?
 }
