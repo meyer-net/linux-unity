@@ -1121,17 +1121,6 @@ function soft_path_restore_confirm_create()
 	return $?
 }
 
-# 软件安装的路径还原移动（还原不存在则移动）
-# 参数1：还原路径
-# 参数2：来源路径
-# 示例：
-#	   soft_path_restore_confirm_move "/mountdisk/data/docker_empty" "/var/lib/docker" 
-function soft_path_restore_confirm_move() 
-{
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && mv ${2} ${1} && ln -sf ${1} ${2}" "mv ${2} ${1} && ln -sf ${1} ${2}"
-	return $?
-}
-
 # 软件安装的路径还原复制（还原不存在则复制）
 # 参数1：还原路径
 # 参数2：来源路径
@@ -1143,7 +1132,18 @@ function soft_path_restore_confirm_copy()
 	return $?
 }
 
-# 软件安装的路径还原迁移（还原不存在则迁移且移动并备份原始目录）
+# 软件安装的路径还原移动（还原不存在则移动、存在则删除。适配来源路径不需要备份且来源路径一直存在的场景，自动软链）
+# 参数1：还原路径
+# 参数2：来源路径
+# 示例：
+#	   soft_path_restore_confirm_move "/mountdisk/data/docker_empty" "/var/lib/docker" 
+function soft_path_restore_confirm_move() 
+{
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && rm -rf ${2} && ln -sf ${1} ${2}" "rm -rf ${2} && ln -sf ${1} ${2}"
+	return $?
+}
+
+# 软件安装的路径还原迁移（还原不存在则迁移且移动并备份原始目录，适配来源路径需要备份且来源路径一直存在的场景，自动软链）
 # 参数1：还原路径
 # 参数2：来源路径(为空则默认取还原路径)
 # 示例：
@@ -1187,7 +1187,6 @@ function soft_trail_clear()
 	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
-	echo
 	echo_text_style "Starting resolve the dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
 	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
 	do
@@ -1232,7 +1231,7 @@ function soft_trail_clear()
 	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
 	function _soft_trail_clear_exec_backup()
 	{
-		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}])Checked the trail dir of '${1}', please sure u will 'backup still or not'"
+		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
 
 		local _TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT="${1}"
 		exec_text_printf "_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT" "${_TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT}"
@@ -1301,7 +1300,7 @@ function docker_snap_create()
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "Starting make snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create]) Starting make snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 

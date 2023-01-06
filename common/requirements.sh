@@ -20,6 +20,11 @@ function setup_requriements()
     # echo "over" 
     # read -e TTTT
 	echo "Start to init ${green}requriements libs${reset}"
+    echo "${TMP_SPLITER}"
+
+    if [ "${SYS_SETUP_COMMAND}" == "yum" ]; then
+        yum -y update && yum makecache fast
+    fi
 
     soft_${SYS_SETUP_COMMAND}_check_setup "epel-release"
     soft_${SYS_SETUP_COMMAND}_check_setup "vim-enhanced"
@@ -38,8 +43,7 @@ function setup_requriements()
     soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv pup /usr/bin/" "reinstall"
     
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。docker>miniconda>sealos）
-    # source scripts/required/*.sh
-    source scripts/required/miniconda.sh
+    source scripts/required/*.sh
 
     # 优先，后续会输出port
     # source scripts/softs/supervisor.sh

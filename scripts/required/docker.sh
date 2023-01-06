@@ -149,12 +149,12 @@ function formal_docker()
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     # soft_path_restore_confirm_action "/etc/docker"
-    soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
+    soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
 
 	# 创建链接规则
 	## 日志
     path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
-	## 数据
+	# ## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
     path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "" "/etc/docker"
@@ -175,6 +175,10 @@ function conf_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
+	echo
+    echo_text_style "Configuration 'docker', waiting for a moment"
+    echo "${TMP_SPLITER}"
+
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
     
@@ -331,7 +335,7 @@ function test_docker()
     fi
 
     # 等待执行完毕 产生端口
-    exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}'，waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
+    exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}', waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
 
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'container time↓':"
@@ -401,8 +405,9 @@ function boot_docker()
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting 'docker'，waiting for a moment"
+    echo_text_style "Starting 'docker', waiting for a moment"
     echo "${TMP_SPLITER}"
+
     ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info↓':"
     chkconfig docker on # systemctl enable docker.service
@@ -410,21 +415,21 @@ function boot_docker()
 	systemctl list-unit-files | grep docker
 
 	# 启动及状态检测
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'service status↓':"
     systemctl start docker.service
+
+    exec_sleep 3 "Initing 'docker', waiting for a moment"
 
     echo "[-]">> logs/boot.log
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
 
-    exec_sleep 3 "Initing 'docker'，waiting for a moment"
-
     cat logs/boot.log
 
-    echo "${TMP_SPLITER}"	
+    echo "${TMP_SPLITER2}"	
     echo_text_style "View the 'version↓':"
     docker -v
-    echo "${TMP_SPLITER}"	
+    echo "${TMP_SPLITER2}"	
     echo_text_style "View the 'info↓':"
     docker info
 
@@ -492,7 +497,7 @@ function check_setup_docker()
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 
-	# 统一编排到的路径（？？？需重新确定docker变化文件）
+	# 统一编排到的路径
     local TMP_DOCKER_SETUP_LNK_BIN_DIR=${TMP_DOCKER_SETUP_DIR}/bin
     local TMP_DOCKER_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/docker
     local TMP_DOCKER_SETUP_LNK_DATA_DIR=${DATA_DIR}/docker

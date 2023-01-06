@@ -63,23 +63,7 @@ function setup_miniconda()
     
 	# 轻量级安装的情况下不进行安装包还原操作
 	cd ${TMP_MCD_SETUP_DIR}
-
-	# 创建软链
-	local TMP_MCD_SETUP_LNK_ENVS_DIR=${DATA_DIR}/conda
-	local TMP_MCD_SETUP_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
 	
-    # 还原 & 迁移
-    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_ENVS_DIR}" "${TMP_MCD_SETUP_ENVS_DIR}"
-	path_not_exists_link "${TMP_MCD_SETUP_ENVS_DIR}" "" "${TMP_MCD_SETUP_LNK_ENVS_DIR}"
-
-	# 环境变量或软连接
-	echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
-	echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
-	echo_etc_profile 'export PATH MINICONDA_HOME'
-
-    # 重新加载profile文件
-	source /etc/profile
-
     # 安装初始
 
 	return $?
@@ -148,32 +132,77 @@ function change_down_miniconda()
 
 ##########################################################################################################
 
-# 3-设置软件
-function conf_miniconda()
+# 3-规格化软件目录格式
+function formal_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
-    
-    # 没有特别的配置，无需配置
+
+	# 开始标准化	    
+    # # 预先初始化一次，启动后才有文件生成
+    # systemctl start miniconda.service
+	
+    # 还原 & 创建 & 迁移
+	## 数据
+    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_ENVS_DIR}" "${TMP_MCD_SETUP_ENVS_DIR}"
+	## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+	soft_path_restore_confirm_move "${TMP_MCD_SETUP_LNK_ETC_DIR}" "${TMP_MCD_SETUP_ETC_DIR}"
+    ## 自定义-脚本
+    soft_path_restore_confirm_create "${TMP_MCD_SETUP_LNK_SCRIPTS_DIR}"
+
+	# 创建链接规则
+	## 自定义-脚本
+	path_not_exists_link "${TMP_MCD_SETUP_SCRIPTS_DIR}" "" "${TMP_MCD_SETUP_LNK_SCRIPTS_DIR}" 
 
 	return $?
 }
 
 ##########################################################################################################
 
-# 4-启动软件
+# 4-设置软件
+function conf_miniconda()
+{
+	cd ${TMP_MCD_SETUP_DIR}
+    
+	echo
+    echo_text_style "Configuration 'conda packages', waiting for a moment"
+    echo "${TMP_SPLITER}"
+
+	# 环境变量或软连接
+	echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
+	echo_etc_profile 'export PATH MINICONDA_HOME'
+
+    # 重新加载profile文件
+	source /etc/profile
+    
+    # 生成 ~/.condarc配置文件
+    condabin/conda config --set auto_activate_base false
+    condabin/conda config --set show_channel_urls yes
+
+	return $?
+}
+
+##########################################################################################################
+
+# 5-测试软件
+function test_miniconda()
+{
+	# 实验部分
+
+	return $?
+}
+
+##########################################################################################################
+
+# 6-启动软件
 function boot_miniconda()
 {    
 	cd ${TMP_MCD_SETUP_DIR}
     
 	# 验证安装
     ## 当前启动命令 && 等待启动
-	echo
-    echo_text_style "Configuration 'conda packages', waiting for a moment"
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'channels↓':"
-    # 生成 ~/.condarc配置文件
-    condabin/conda config --set auto_activate_base false
-    condabin/conda config --set show_channel_urls yes
     condabin/conda config --get show_channel_urls
     condabin/conda config --get channels
 
@@ -206,7 +235,7 @@ function boot_miniconda()
 ##########################################################################################################
 
 # 下载驱动/插件
-function down_plugin_miniconda()
+function down_ext_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
 
@@ -234,12 +263,12 @@ function down_plugin_miniconda()
 }
 
 # 安装驱动/插件
-function setup_plugin_miniconda()
+function setup_ext_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting install plugin 'playwright'@'${PY_ENV}', waiting for a moment"
+    echo_text_style "Starting install plugin-ext 'playwright'@'${PY_ENV}', waiting for a moment"
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
@@ -247,11 +276,11 @@ function setup_plugin_miniconda()
     echo_text_style "Plugin 'playwright'@'${PY_ENV}' installed"
     echo ${TMP_SPLITER2}
 
-    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${TMP_MCD_SETUP_PW_PY_DIR}/pw_sync_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
+    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
-    local TMP_MCD_SETUP_PW_PY_DIR="${TMP_MCD_SETUP_DIR}/scripts/py"
-    path_not_exists_create "${TMP_MCD_SETUP_PW_PY_DIR}"
-    cat >${TMP_MCD_SETUP_PW_PY_DIR}/pw_sync_docker_hub_vers.py<<EOF
+    local TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR=${TMP_MCD_SETUP_SCRIPTS_DIR}/playwright/py
+    path_not_exists_create "${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}"
+    cat >${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py<<EOF
 import argparse
 from playwright.sync_api import Playwright, sync_playwright
 
@@ -280,7 +309,7 @@ with sync_playwright() as playwright:
     run(playwright)
 EOF
 
-    cat >${TMP_MCD_SETUP_PW_PY_DIR}/pw_async_docker_hub_vers.py<<EOF
+    cat >${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_async_docker_hub_vers.py<<EOF
 import argparse
 import asyncio
 from playwright.async_api import async_playwright
@@ -317,12 +346,12 @@ EOF
 
     # 测试插件
 	echo ${TMP_SPLITER2}
-    echo_text_style "Testing plugin 'playwright'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
-    su_bash_channel_conda_exec "python scripts/py/pw_sync_docker_hub_vers.py labring/sealos"
+    echo_text_style "Testing ext 'playwright'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    su_bash_channel_conda_exec "python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py labring/sealos"
 
     echo ${TMP_SPLITER2}
-    echo_text_style "Testing plugin 'playwright-async'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
-    su_bash_channel_conda_exec "python scripts/py/pw_async_docker_hub_vers.py labring/sealos"
+    echo_text_style "Testing ext 'playwright-async'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    su_bash_channel_conda_exec "python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_async_docker_hub_vers.py labring/sealos"
 
 	return $?
 }
@@ -335,11 +364,15 @@ function exec_step_miniconda()
 	set_env_miniconda 
 
 	setup_miniconda 
+	
+	formal_miniconda 
 
 	conf_miniconda 
+	
+	test_miniconda 
 
-    down_plugin_miniconda 
-    setup_plugin_miniconda 
+    down_ext_miniconda 
+    setup_ext_miniconda 
 
 	boot_miniconda 
 
@@ -354,6 +387,18 @@ function check_setup_miniconda()
 {
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_MCD_SETUP_DIR=${SETUP_DIR}/conda
+    
+	# 统一编排到的路径
+	local TMP_MCD_SETUP_LNK_ENVS_DIR=${DATA_DIR}/conda
+    local TMP_MCD_SETUP_LNK_SCRIPTS_DIR=${DATA_DIR}/conda_scripts
+	local TMP_MCD_SETUP_LNK_ETC_DIR=${ATT_DIR}/conda
+    
+	# 安装后的真实路径（此处依据实际路径名称修改）
+	local TMP_MCD_SETUP_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
+	local TMP_MCD_SETUP_ETC_DIR=${TMP_MCD_SETUP_DIR}/etc
+	local TMP_MCD_SETUP_SCRIPTS_DIR=${TMP_MCD_SETUP_DIR}/scripts
+
+    # 临时
 	local TMP_MCD_CURRENT_DIR=`pwd`
 
     # *** miniconda本身具备了自动更新的操作，故不做重装还原操作，此处已安装的情况下，直接使用原有命令是最好的选择

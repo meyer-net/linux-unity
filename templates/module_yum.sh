@@ -8,10 +8,10 @@
 #		  
 #------------------------------------------------
 # 安装标题：$title_name
-# 软件名称：$soft_name
+# 软件名称：$soft_name，例如miniconda
 # 软件端口：$soft_port
 # 软件大写分组与简称：$soft_upper_short_name
-# 软件安装名称：$setup_name
+# 软件安装名称：$setup_name，例如conda
 # 软件授权用户名称&组：$setup_owner/$setup_owner_group
 #------------------------------------------------
 local TMP_$soft_upper_short_name_SETUP_PORT=1$soft_port
@@ -93,7 +93,7 @@ function formal_$soft_name()
 	# ## ETC - ①-2Y
     # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "" "/etc/$soft_name" 
     # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "/etc/$soft_name"
-	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+	# path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
 	
     ## 安装不产生规格下的bin目录，所以手动还原创建
     # path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}/$setup_name' '' '/usr/bin/$setup_name'"
@@ -110,6 +110,10 @@ function formal_$soft_name()
 # 4-设置软件
 function conf_$soft_name()
 {
+	echo
+    echo_text_style "Configuration '$soft_name', waiting for a moment"
+    echo "${TMP_SPLITER}"
+
 	# 开始配置
     # ## 修改服务运行用户
     # change_service_user $setup_owner $setup_owner_group
@@ -144,39 +148,58 @@ function boot_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 	
-	# 验证安装
-    $setup_name -v
-
+	# 验证安装/启动
     # 当前启动命令 && 等待启动
-    chkconfig $setup_name on
-	chkconfig --list | grep $setup_name
 	echo
-    echo "Starting $soft_name，Waiting for a moment"
-    echo "--------------------------------------------"
-    nohup systemctl start $setup_name.service > logs/boot.log 2>&1 &
-    exec_sleep 5 "Initing '$soft_name'，Waiting for a moment"
+    echo "Starting '$soft_name', waiting for a moment"
+    echo "${TMP_SPLITER}"
 
-    cat logs/boot.log
-    cat /var/log/$setup_name/$setup_name.log
-    # journalctl -u $setup_name --no-pager | less
-    # systemctl reload $setup_name.service
-    echo "--------------------------------------------"
-
-	# 启动状态检测
-	systemctl status $setup_name.service
-	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
-	
-	# 添加系统启动命令
+    ## 设置系统管理，开机启动
+    echo_text_style "View the 'systemctl info↓':"
+    chkconfig $setup_name on
 	systemctl enable $setup_name.service
+	systemctl list-unit-files | grep $setup_name
+	
+	# 启动及状态检测
+    systemctl start $setup_name.service
+	## 等待执行完毕 产生端口
+    echo_text_style "View the 'booting port↓':"
+    exec_sleep_until_not_empty "Booting soft of '$soft_name' to port '${TMP_$soft_upper_short_name_SETUP_PORT}', waiting for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
+	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Echo the 'port↓' to iptables:"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
+    
+    # systemctl reload $setup_name.service
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'service status↓':"
+    echo "[-]">> logs/boot.log
+	nohup systemctl status $setup_name.service >> logs/boot.log 2>&1 &
+    cat logs/boot.log
+    echo "${TMP_SPLITER3}"
+    cat /var/log/$setup_name/$setup_name.log
+	# echo "${TMP_SPLITER3}"
+	# journalctl -u $setup_name --no-pager | less
+
+    echo "${TMP_SPLITER2}"	
+    echo_text_style "View the 'version↓':"
+    $setup_name -v
+	
+    echo "${TMP_SPLITER2}"	
+    echo_text_style "View the 'info↓':"
+    $setup_name info
 
     # 生成web授权访问脚本
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Echo the 'web service init script↓':"
     #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
-    exec_sleep 5 "Boot '$soft_name' over，Stay 5 secs to exit"
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Setup '$soft_name' over"
+    exec_sleep 10 "Boot '$soft_name' over, please checking the setup log, this will stay 10 secs to exit"
 
 	return $?
 }
@@ -207,20 +230,7 @@ function reconf_$soft_name()
 
 # x2-执行步骤
 function exec_step_$soft_name()
-{
-	# 变量覆盖特性，其它方法均可读取
-	local TMP_$soft_upper_short_name_SETUP_DIR=${SETUP_DIR}/$setup_name
-
-	# 统一编排到的路径
-	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/$setup_name
-	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
-	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/$setup_name
-
-	# 安装后的真实路径（此处依据实际路径名称修改）
-	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
-	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
-	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
-    
+{    
 	set_env_$soft_name 
 
 	setup_$soft_name 
@@ -243,13 +253,27 @@ function exec_step_$soft_name()
 
 ##########################################################################################################
 
-# x1-下载软件
+# x1-检测软件安装
 function check_setup_$soft_name()
 {
+	# 变量覆盖特性，其它方法均可读取
+	local TMP_$soft_upper_short_name_SETUP_DIR=${SETUP_DIR}/$setup_name
+
+	# 统一编排到的路径
+	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/$setup_name
+	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
+	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/$setup_name
+
+	# 安装后的真实路径（此处依据实际路径名称修改）
+	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
+	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
+	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
+
 	# local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
     # path_not_exists_action "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "exec_step_$soft_name" "$title_name was installed"
 
-    soft_${SYS_SETUP_COMMAND}_check_action "$setup_name" "exec_step_$soft_name" "$title_name was installed"
+    # soft_cmd_check_upgrade_action "$setup_name" "exec_step_$soft_name" "yum -y update $setup_name"
+    soft_${SYS_SETUP_COMMAND}_check_upgrade_action "$setup_name" "exec_step_$soft_name" "yum -y update $setup_name"
 
 	return $?
 }
