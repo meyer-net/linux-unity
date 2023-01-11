@@ -322,7 +322,7 @@ function test_docker()
     if [ -z "${TMP_SETUP_DOCKER_BC_PS_ID}" ]; then
         # -P :是容器内部端口随机映射到主机的端口。
         # -p : 是容器内部端口绑定到指定的主机端口。
-        echo "${TMP_SPLITER}"
+        echo "${TMP_SPLITER2}"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
         echo_text_style "Cannot find created container of 'browserless/chrome', start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
         TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome:${TMP_SETUP_DOCKER_SNAP_BOOT_VER} ${TMP_SETUP_DOCKER_SNAP_CMD})
@@ -337,7 +337,7 @@ function test_docker()
     # 等待执行完毕 产生端口
     exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}', waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
 
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container time↓':"
     docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "date"
 
@@ -347,14 +347,14 @@ function test_docker()
     path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}/browserless_chrome/${LOCAL_TIMESTAMP}.json.log" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}/containers/${TMP_SETUP_DOCKER_BC_PS_ID}/${TMP_SETUP_DOCKER_BC_PS_ID}-json.log"
     
     # 查看日志（config/image）
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container inspect↓':"
     docker container inspect ${TMP_SETUP_DOCKER_BC_PS_ID} | jq > logs/browserless_chrome/${LOCAL_TIMESTAMP}.ctn.inspect.json
     cat logs/browserless_chrome/${LOCAL_TIMESTAMP}.ctn.inspect.json
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container logs↓':"
     docker logs ${TMP_SETUP_DOCKER_BC_PS_ID}
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container visit↓':"
     curl -s http://localhost:${TMP_DOCKER_SETUP_BC_PS_PORT}
     # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
@@ -368,29 +368,29 @@ function test_docker()
     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
     # :
     # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container folder /tmp↓':"
     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /tmp/"
 
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container occupancy rate↓':"
     docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
 
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container folder /usr/src/app↓':"
     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
 
     # 备份当前容器，仅在第一次 	
     local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "echo '${TMP_SPLITER}' && docker_snap_create '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "echo '${TMP_SPLITER2}' && docker_snap_create '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
 
     # 最后更新一次容器内包
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container update↓':"
     docker exec -u root -w /tmp -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
 
     # 结束
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
 
 	return $?
 }
@@ -517,4 +517,3 @@ function check_setup_docker()
 
 #安装主体
 setup_soft_basic "Docker" "check_setup_docker"
-

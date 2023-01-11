@@ -1,8 +1,8 @@
 #!/bin/bash
 #------------------------------------------------
 #      Centos7 Project Env InstallScript
-#      copyright https://devops.oshit.com/
-#      author: meyer.cheng
+#      Copyright https://devops.oshit.com/
+#      Author: meyer.cheng
 #------------------------------------------------
 # 相关参考：
 #		  
@@ -57,6 +57,8 @@ EOF
 
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_DIR}"
+	
+	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
 	return $?
 }
@@ -110,6 +112,8 @@ function formal_$soft_name()
 # 4-设置软件
 function conf_$soft_name()
 {
+	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+
 	echo
     echo_text_style "Configuration '$soft_name', waiting for a moment"
     echo "${TMP_SPLITER}"
@@ -280,6 +284,5 @@ function check_setup_$soft_name()
 
 ##########################################################################################################
 
-#安装主体
+# 安装主体
 setup_soft_basic "$title_name" "check_setup_$soft_name"
-

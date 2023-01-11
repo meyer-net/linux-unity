@@ -786,15 +786,15 @@ function setup_soft_basic()
 function path_not_exists_action() 
 {
 	local _TMP_PATH_NOT_EXISTS_ACTION_PATH=${1}
-	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_SCRIPT=${2}
-	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO=${3}
+	local _TMP_PATH_NOT_EXISTS_ACTION_NE_SCRIPT=${2}
+	local _TMP_PATH_NOT_EXISTS_ACTION_E_ECHO=${3}
 
-	local _TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT=""
-	if [ -n "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO}" ]; then
-		_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT="echo '${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_ECHO}'"
+	local _TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT=""
+	if [ -n "${_TMP_PATH_NOT_EXISTS_ACTION_E_ECHO}" ]; then
+		_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT="echo '${_TMP_PATH_NOT_EXISTS_ACTION_E_ECHO}'"
 	fi
 
-	path_exists_yn_action "${1}" "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_EXISTS_SCRIPT}" "${_TMP_PATH_NOT_EXISTS_ACTION_PATH_SCRIPT}"
+	path_exists_yn_action "${1}" "${_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT}" "${_TMP_PATH_NOT_EXISTS_ACTION_NE_SCRIPT}"
 
 	return $?
 }
@@ -844,6 +844,26 @@ function path_exists_confirm_action()
 
 		return 0;
 	fi
+
+	return $?
+}
+
+# 路径存在执行
+# 参数1：检测路径
+# 参数2：执行函数或脚本
+# 参数3：路径不存在时输出信息
+function path_exists_action() 
+{
+	local _TMP_PATH_EXISTS_ACTION_PATH=${1}
+	local _TMP_PATH_EXISTS_ACTION_E_SCRIPT=${2}
+	local _TMP_PATH_EXISTS_ACTION_NE_ECHO=${3}
+
+	local _TMP_PATH_EXISTS_ACTION_PATH_NOT_EXISTS_SCRIPT=""
+	if [ -n "${_TMP_PATH_EXISTS_ACTION_NE_ECHO}" ]; then
+		_TMP_PATH_EXISTS_ACTION_PATH_NOT_EXISTS_SCRIPT="echo '${_TMP_PATH_EXISTS_ACTION_NE_ECHO}'"
+	fi
+
+	path_exists_yn_action "${1}" "${_TMP_PATH_EXISTS_ACTION_E_SCRIPT}" "${_TMP_PATH_EXISTS_ACTION_PATH_NOT_EXISTS_SCRIPT}"
 
 	return $?
 }
@@ -1187,7 +1207,7 @@ function soft_trail_clear()
 	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
-	echo_text_style "Starting resolve the dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+	echo_text_style "Starting 'resolve the dirs' of soft <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
 	do
 		# 指定链接
@@ -1217,9 +1237,9 @@ function soft_trail_clear()
 		fi
 	done
 	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
-		echo_text_style "The dirs of soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was resolved"
+		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was resolved"
 	else
-		echo_text_style "None dirs found for trail in soft '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+		echo_text_style "None 'soft dirs found for trail' in <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 	fi
 	echo
 
@@ -1255,9 +1275,9 @@ function soft_trail_clear()
 		function _soft_trail_clear_svr_remove() 
 		{
 			echo
-			echo_text_style "Starting trail the systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
+			echo_text_style "Starting 'trail the systemctl' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1} && rm -rf /run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.sock
-			echo_text_style "The systemctl of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was trailed"
+			echo_text_style "The 'systemctl' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was trailed"
 		}
 
 		# export -f _soft_trail_clear_svr_remove
@@ -1265,15 +1285,14 @@ function soft_trail_clear()
 		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
 			
 		echo
-		echo_text_style "Starting backup/force/cover the soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}'"
-
+		echo_text_style "Starting 'trail the soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 		if [ ${_TMP_SOFT_TRAIL_CLEAR_FORCE} == "N" ]; then
 			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
 		else
 			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
 		fi
 
-		echo_text_style "The soft of '${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}' was executed backup/force/cover done"
+		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed trail done"
 		echo
 	fi
 
@@ -1465,7 +1484,56 @@ EOF
 	return $?
 }
 
-# 命令检测后执行
+# 循环检测后YN执行（基于命令检测执行脚本，无备份操作）
+# 参数1：循环选项（列表），例如具体的cmd命令、yum包名、npm包名等
+# 参数2：命令检测脚本，以该脚本的输出为YN指向执行脚本
+# 参数3：检测已存在时执行脚本名称，例如提示、更新
+# 参数4：检测不存在时默认的执行脚本，例如安装
+# 参数5：选项类型注释，例如command/yum/npm。默认command
+# 示例：
+# 	 item_check_yn_action "vim,wget" "yum list installed | grep %s" "echo '%s was installed'" "yum -y install %s"
+function item_check_yn_action() 
+{
+	local _TMP_SOFT_CHECK_YN_ACTION_CHECK_ITEMS="${1}"
+    local _TMP_SOFT_CHECK_YN_ACTION_CHECK_SCRIPT="${2}"
+    local _TMP_SOFT_CHECK_YN_ACTION_Y_SCRIPT="${3}"
+	local _TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT="${4}"
+    local _TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO="${5:-'command'}"
+
+	function _item_check_yn_action()
+	{
+		local _TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM=${1}
+		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_CHECK_SCRIPT}"
+
+		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_Y_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_Y_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_Y_SCRIPT}"
+
+		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT=${1}
+		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT}"
+		
+		echo ${TMP_SPLITER}
+        echo_text_style "Checking the '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}' of <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}>"
+        echo ${TMP_SPLITER}
+		
+		local _TMP_SOFT_CHECK_YN_ACTION_RES=$(exec_check_action '_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT' ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM})
+		
+		# 不存在命令时执行
+		if [ -z "${_TMP_SOFT_CHECK_YN_ACTION_RES}" ]; then
+			exec_check_action "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}
+		else
+			exec_check_action "_TMP_SOFT_CHECK_YN_ACTION_FINAL_Y_SCRIPT" ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}
+		fi
+
+        echo
+	}
+	
+    exec_split_action "${_TMP_SOFT_CHECK_YN_ACTION_CHECK_ITEMS}" "_item_check_yn_action '%s'"
+
+	return $?
+}
+
+# 命令检测后执行（基于命令检测执行脚本，无备份操作）
 # 参数1：命令名称(列表)
 # 参数2：命令不存在时默认的 执行安装/更新脚本
 # 参数3：命令已存在时执行脚本名称
@@ -1473,39 +1541,16 @@ EOF
 # 	 soft_cmd_check_action "vim,wget" "yum -y install %s" "echo '%s was installed'"
 function soft_cmd_check_action() 
 {
-	local _TMP_SOFT_CMD_CHECK_ACTION_CHECK_COMMANDS=${1}
-	local _TMP_SOFT_CMD_CHECK_ACTION_NE_SCRIPT=${2}
-    local _TMP_SOFT_CMD_CHECK_ACTION_E_SCRIPT=${3}
-
-	function _soft_cmd_check_action()
+	function _soft_cmd_check_action_echo()
 	{
-		local _TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND=${1}
-		local _TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_ACTION_NE_SCRIPT}"
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD=${1}
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE=$(type -t ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD})
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD})
 
-		local _TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT" "${_TMP_SOFT_CMD_CHECK_ACTION_E_SCRIPT}"
-		
-		echo ${TMP_SPLITER}
-        echo_text_style "Checking the command of '${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}'"
-        echo ${TMP_SPLITER}
-
-		local _TMP_SOFT_CMD_CHECK_ACTION_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND})
-		# 不存在命令时执行
-		if [ "${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}:" == "${_TMP_SOFT_CMD_CHECK_ACTION_CMD_WHERE}" ]; then
-			# 用于检测是否存在安装残留，可能文件存在，实际未安装
-			soft_trail_clear "${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}" "N"
-
-			exec_check_action "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_NE_SCRIPT" ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}
-		else
-			exec_check_action "_TMP_SOFT_CMD_CHECK_ACTION_FINAL_E_SCRIPT" ${_TMP_SOFT_CMD_CHECK_ACTION_CURRENT_COMMAND}
-		fi
-
-        echo
+		echo "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE}${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE}"
 	}
-	
-    exec_split_action "${_TMP_SOFT_CMD_CHECK_ACTION_CHECK_COMMANDS}" "_soft_cmd_check_action %s"
 
+	item_check_yn_action "${1}" "_soft_cmd_check_action_echo" "${3}" "${2}"
 	return $?
 }
 
@@ -1516,35 +1561,57 @@ function soft_cmd_check_action()
 # 参数4：默认版本，0.8.0
 # 参数5：命令不存在时，执行脚本，rpm -ivh gum_%s_linux_amd64.rpm
 # 参数6：命令存在时，执行脚本，例如可以定义提示是否覆盖安装类的操作
+# 参数7：动作类型描述，action/install/reinstall
 # 示例：
 #     soft_cmd_check_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" ''
 function soft_cmd_check_git_action() 
 {
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD=${1}
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO=${2}
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN=${4}
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_VER=${4}
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT=${4}
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT=${6:-"_soft_cmd_check_git_action_echo"}
-
-	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN" "${3}"
-	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT" "${5}"
-
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD="${1}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO="${2}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN="${3}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_VER="${4}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT="${5}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT="${6:-'_soft_cmd_check_git_action_echo'}"
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC="${7:-'install'}"
+	
 	function _soft_cmd_check_git_action()
 	{
-        set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO}"
-        while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT}"
+echo "xxxxxxxxxx"
+		exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT}"
+		echo_text_style "The command of <${1}> ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
 	}
-	
+
 	function _soft_cmd_check_git_action_echo()
 	{
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_SOFT_CMD_CHECK_GIT_ACTION_CMD_STD}" "${_TMP_SOFT_CMD_CHECK_SETUP}"
-		echo_text_style "'${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}' was installed"
+		echo_text_style "'${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}' was ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
 	}
 	
-	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}" "exec_check_action '_soft_cmd_check_git_action' '%s' && echo_text_style 'The command of <%s> installed'" "_TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT"
+	soft_cmd_check_action "${1}" "_soft_cmd_check_git_action" "${6}"
+	return $?
+}
 
+# 检测命令，并从仓库下载最新版执行
+# 参数1：命令名称，用于检测
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：下载后执行脚本
+function soft_cmd_check_git_down_action()
+{
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_CMD="${1}"
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO="${2}"
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN="${4}"
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER="${4}"
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT="${4}"
+
+	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN" "${3}"
+	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
+echo "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
+	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
+	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
+	# echo_text_style '[Command] of <${1}> installed'
 	return $?
 }
 
@@ -1554,35 +1621,76 @@ function soft_cmd_check_git_action()
 # 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
 # 参数4：默认版本，0.8.0
 # 参数5：安装脚本，rpm -ivh gum_%s_linux_amd64.rpm
-# 参数6：动作类型描述，action/install/reinstall
+# 参数6：动作类型描述，action/install
 # 示例：
 #     soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" ''
 function soft_cmd_check_confirm_git_action() 
 {
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD=${1}
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC=${6:-"action"}
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD="${1}"
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_REPO="${2}"
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_DOWN="${3}"
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_VER="${4}"
+    local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_NE_SCRIPT="${5}"
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC="${6:-'install'}"
+
 	function _soft_cmd_check_confirm_git_action()
-	{
+	{	
+		function __soft_cmd_check_confirm_git_action()
+		{
+			exec_check_action 'soft_cmd_check_git_down_action' "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_NE_SCRIPT}"
+		}
+
+echo "11111111"
 		local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists, please sure u will exec [${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "_soft_cmd_check_git_action" "echo_text_style 'Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists'"
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists, please sure u will exec [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action" "echo_text_style 'Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists'"
 	}
 
 	soft_cmd_check_git_action "${1}" "${2}" "${3}" "${4}" "${5}" "_soft_cmd_check_confirm_git_action"
+	return $?
+}
+
+# 命令检测后安装，存在时提示覆盖安装（基于github仓库二进制安装包，且调用时具有备份提示操作）
+# 参数1：命令名称，用于检测
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：重装选择Y时 或命令不存在时默认的 执行安装/更新脚本
+# 参数6：重装选择N时 或命令已存在时执行脚本名称
+# 参数7：执行清理备份后自定义命令，例如卸载
+# 示例：
+#     soft_cmd_check_git_upgrade_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" 'gum update'
+function soft_cmd_check_git_upgrade_action() 
+{
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_CMD="${1}"
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_REPO="${2}"
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_DOWN="${3}"
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_VER="${4}"
+    local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_NE_SCRIPT="${5}"
+	
+	function _soft_cmd_check_git_upgrade_action()
+	{
+echo "2222222222"
+		exec_check_action 'soft_cmd_check_git_down_action' "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_CMD}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_NE_SCRIPT}"
+	}
+
+	exec_check_action 'soft_cmd_check_upgrade_action' "${1}" "_soft_cmd_check_git_upgrade_action" "${6}" "${7}"
+	# soft_cmd_check_upgrade_action "${1}" "_soft_cmd_check_git_upgrade_action" "${6}" "${7}"
+	return $?
 }
 
 # 命令检测后安装，存在时提示覆盖安装（基于所有命令检测类型的安装，并具有备份提示操作）
 # 参数1：命令名称，用于检测
-# 参数2：选择Y时或命令不存在时默认的 执行安装/更新脚本
-# 参数3：选择N时 命令已存在时执行脚本名称
+# 参数2：重装选择Y时 或命令不存在时默认的 执行安装/更新脚本
+# 参数3：重装选择N时 或命令已存在时执行脚本名称
 # 参数4：执行清理备份后自定义命令，例如卸载
 # 示例：
 #     soft_cmd_check_upgrade_action "conda" "exec_step_conda" "conda update -y conda"
 function soft_cmd_check_upgrade_action() 
 {
-	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND=${1}
-	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT=${2}
-    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT=${3}
-    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT=${4}
+	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND="${1}"
+    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT="${2}"
+	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT="${3}"
+    local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT="${4}"
     
 	function _soft_cmd_check_upgrade_action_exec()
 	{
@@ -1655,41 +1763,11 @@ function soft_rpm_check_action()
 # 	 soft_yum_check_action "wget,vim" "echo '%s setup'"
 function soft_yum_check_action() 
 {
-	local _TMP_SOFT_YUM_CHECK_ACTION_SOFTS=${1}
-	local _TMP_SOFT_YUM_CHECK_ACTION_NE_SCRIPT=${2}
-    local _TMP_SOFT_YUM_CHECK_ACTION_E_SCRIPT=${3}
-
-	function _soft_yum_check_action()
-	{
-		local _TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME=${1}
-		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_NE_SCRIPT}"
-
-		local _TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT=${1}
-		exec_text_printf "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT" "${_TMP_SOFT_YUM_CHECK_ACTION_E_SCRIPT}"
-		
-		echo ${TMP_SPLITER}
-        echo_text_style "Checking the yum installed repos of '${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}'"
-        echo ${TMP_SPLITER}
-
-        local _TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS=`yum list installed | grep ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}`
-		# 不存在包时执行
-        if [ -z "${_TMP_SOFT_YUM_CHECK_ACTION_FIND_RESULTS}" ]; then
-			# 用于检测是否存在安装残留，可能文件存在，实际未安装
-			if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
-				soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
-			fi
-
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_NE_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
-        else
-			exec_check_action "_TMP_SOFT_YUM_CHECK_ACTION_FINAL_E_SCRIPT" ${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}
-        fi
-
-        echo
-	}
-	
-    exec_split_action "${_TMP_SOFT_YUM_CHECK_ACTION_SOFTS}" "_soft_yum_check_action %s"
-
+	# 用于检测是否存在安装残留，可能文件存在，实际未安装
+	# if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
+	# 	soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
+	# fi
+    item_check_yn_action "${1}" "yum list installed | grep %s" "${3}" "${2}" "yum installed repos"
 	return $?
 }
 
@@ -2011,20 +2089,72 @@ function while_exec()
 	return $?
 }
 
+# 通过指定用户，通过管道执行脚本
+# 参数1：执行脚本
+# 参数2：执行用户，默认`whoami`
+function su_bash_channel_exec()
+{
+	local _TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
+    local _TMP_SU_BASH_CHANNEL_EXEC_USER=${2:-`whoami`}
+
+	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd `pwd`"
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS}"
+
+	return $?
+}
+
 # 通过指定用户，指定conda环境下，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：pyenv环境，默认${PY_ENV}
 # 参数3：执行用户，默认`whoami`
+# 例：
+#	su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_docker_hub_vers.py 'labring/sealos'"
 function su_bash_channel_conda_exec()
 {
 	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS=${1:-"echo"}
     local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV=${2:-"${PY_ENV}"}
     local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-`whoami`}
 
-	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="cd `pwd` && conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
-	su - ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS}"
+	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
+	su_bash_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS}" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
 
 	return $?
+}
+
+# 获取docker-hub仓库发布版本列表
+# 参数1：获取docker-hub仓库地址
+# 例：
+#	fetch_docker_hub_release_vers 'labring/sealos'
+function fetch_docker_hub_release_vers()
+{
+	local _TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO="${1}"
+
+	function _fetch_docker_hub_release_vers_by_pw()
+	{
+		su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
+	}
+	
+	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
+}
+
+# 获取指定URL选择器部分属性
+# 参数1：获取URL的地址
+# 参数2：内容选择器
+# 参数3：获取属性，默认inner_text
+# 例：
+#	fetch_url_selector_attr 'https://nodejs.org/en/' 'a[class=home-downloadbutton]:has-text("Recommended For Most Users")'
+function fetch_url_selector_attr()
+{
+	local _TMP_FETCH_URL_SELECTOR_ATTR_URL="${1}"
+	local _TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR="${2}"
+	local _TMP_FETCH_URL_SELECTOR_ATTR_ATTR="${3:-'inner_text'}"
+
+	function _fetch_url_selector_attr_by_pw()
+	{
+		su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_url_selector_attr.py '${_TMP_FETCH_URL_SELECTOR_ATTR_URL}' '${_TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR}' '${_TMP_FETCH_URL_SELECTOR_ATTR_ATTR}'"
+	}
+	
+	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_url_selector_attr.py" "_fetch_url_selector_attr_by_pw" "not implement"
 }
 
 #安装软件下载模式
@@ -2837,10 +2967,10 @@ function exec_channel_action()
 #     exec_check_action "test_func_var" "1" "2" "3"
 #     exec_check_action "echo 'hello test_func'"
 function exec_check_action() {
-	local _TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=${1}
+	local _TMP_EXEC_CHECK_ACTION_SCRIPT=${1}
 
 	# 为空则不执行
-	if [ ${#_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} -eq 0 ]; then
+	if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
 		return $?
 	fi
 	
@@ -2848,20 +2978,20 @@ function exec_check_action() {
 	# local _TMP_EXEC_CHECK_ACTION_SPACE_COUNT=`echo "${1}" | grep -o ' ' | wc -l`
 	# if [ ${_TMP_EXEC_CHECK_ACTION_SPACE_COUNT} -eq 0 ]; then
 	# 	# 函数名优先
-	# 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" != "function" ] ; then
-	# 		_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=`eval echo '$'${1}`
+	# 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then
+	# 		_TMP_EXEC_CHECK_ACTION_SCRIPT=`eval echo '$'${1}`
 	# 	fi
 	# fi
 	
 	# 空格数等于0的情况，可能是函数名或变量名。
 	# 循环获取到最终的值，有可能是变量名嵌套传递。
-	while [ `echo "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}" | grep -o ' ' | wc -l` -eq 0 ]; do
+	while [ `echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l` -eq 0 ]; do
 		# 函数名优先
-		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" != "function" ] ; then
-			_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL=`eval echo '$'${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}`
+		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then
+			_TMP_EXEC_CHECK_ACTION_SCRIPT=`eval echo '$'${_TMP_EXEC_CHECK_ACTION_SCRIPT}`
 			
 			# 变量解析后可能为空，为空则不执行
-			if [ ${#_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} -eq 0 ]; then
+			if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
 				return $?
 			fi
 		else
@@ -2870,18 +3000,20 @@ function exec_check_action() {
 	done
 	
 	# 变量传递脚本，有可能变量读取完以后，是执行脚本而非函数，所以此处再判断
-	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL})" = "function" ] ; then
+	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" = "function" ] ; then
 		# 移除第一位选择器
 		shift
 
 		# path_not_exists_link "/opt/docker/bin/docker" "" "/usr/bin/docker" 这种也会被判别为function
-		if [ `echo "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}" | grep -o ' ' | wc -l` -eq 0 ]; then
-			${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL} ${@}
+		if [ `echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l` -eq 0 ]; then
+			${_TMP_EXEC_CHECK_ACTION_SCRIPT} ${@}
 		else
-			eval "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}"
+			eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 		fi
 	else
-		eval "${_TMP_EXEC_CHECK_ACTION_FIRST_VAR_VAL}"
+		# local _TMP_EXEC_CHECK_ACTION_FINAL_SCRIPT=${1}
+		# exec_text_printf "_TMP_EXEC_CHECK_ACTION_FINAL_SCRIPT" "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
+		eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 	fi
 
 	return $?

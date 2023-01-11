@@ -276,18 +276,29 @@ function setup_ext_miniconda()
     echo_text_style "Plugin 'playwright'@'${PY_ENV}' installed"
     echo ${TMP_SPLITER2}
 
-    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
+    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
-    local TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR=${TMP_MCD_SETUP_SCRIPTS_DIR}/playwright/py
-    path_not_exists_create "${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}"
-    cat >${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py<<EOF
+    path_not_exists_create "${CONDA_PW_SCRIPTS_DIR}"
+    cat >${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py<<EOF
 import argparse
 from playwright.sync_api import Playwright, sync_playwright
+
+# def on_response(response):
+#     if '.png' in response.url:
+#         print(1)
+
+# def on_response(response):
+#     print('--------start---------')
+#     print(request.url)
+#     print(request.post_data)
+#     print('--------end---------')
 
 def run(playwright: Playwright) -> None:
     browser = playwright.chromium.launch(headless=True)
     context = browser.new_context()
     page = context.new_page()
+    # page.on('request', on_request)
+    # page.on('response', on_response)
 
     try:
         parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
@@ -309,7 +320,7 @@ with sync_playwright() as playwright:
     run(playwright)
 EOF
 
-    cat >${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_async_docker_hub_vers.py<<EOF
+    cat >${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_vers.py<<EOF
 import argparse
 import asyncio
 from playwright.async_api import async_playwright
@@ -319,7 +330,7 @@ async def main():
     parser.add_argument('image', help='镜像地址，例如labring/sealos')
     args = parser.parse_args()
 
-    ws_endpoint = "wss://localhost:${TMP_MCD_SETUP_BC_PS_PORT}/?token={}".format("")
+    #ws_endpoint = "wss://localhost:${TMP_MCD_SETUP_BC_PS_PORT}/?token={}".format("")
     
     async with async_playwright() as playwright:
         browser = await playwright.chromium.launch(headless=True)
@@ -344,14 +355,47 @@ async def main():
 asyncio.get_event_loop().run_until_complete(main())
 EOF
 
+    cat >${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_url_selector_attr.py<<EOF
+import argparse
+import asyncio
+from playwright.async_api import async_playwright
+
+async def main():
+    parser = argparse.ArgumentParser(description='提供指定URL的选择器内容查询')
+    parser.add_argument('url', help='访问地址，例：https://nodejs.org/en/')
+    parser.add_argument('selector', help='选择器，例：a[class=home-downloadbutton]:has-text("Recommended For Most Users")')
+    parser.add_argument('attr', default="inner_text", help='属性，例：text_content/inner_text/inner_html')
+    args = parser.parse_args()
+    
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        context = await browser.new_context() 
+
+        try:
+            page = await context.new_page()
+            
+            await page.goto(args.url, wait_until='networkidle')
+            await page.wait_for_selector(args.selector)
+            
+            # 获取跳转到镜像的元素
+            handles = await page.query_selector_all(args.selector)
+            for handle in handles:
+                print(await getattr(handle, args.attr)())
+        finally:
+            await context.close()
+            await browser.close()
+
+asyncio.get_event_loop().run_until_complete(main())
+EOF
+
     # 测试插件
 	echo ${TMP_SPLITER2}
     echo_text_style "Testing ext 'playwright'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
-    su_bash_channel_conda_exec "python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_sync_docker_hub_vers.py labring/sealos"
+    su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
     echo_text_style "Testing ext 'playwright-async'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
-    su_bash_channel_conda_exec "python ${TMP_MCD_SETUP_SCRIPTS_PW_PY_DIR}/pw_async_docker_hub_vers.py labring/sealos"
+    su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?
 }
