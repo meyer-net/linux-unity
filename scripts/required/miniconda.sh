@@ -227,7 +227,7 @@ function boot_miniconda()
     condabin/conda info -e
 
     # 结束
-    exec_sleep 10 "Search 'miniconda' over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Search <miniconda> over, please checking the setup log, this will stay 10 secs to exit"
 
 	return $?
 }
@@ -268,12 +268,12 @@ function setup_ext_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting install plugin-ext 'playwright'@'${PY_ENV}', waiting for a moment"
+    echo_text_style "Starting install 'plugin-ext' <playwright>@[${PY_ENV}], waiting for a moment"
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
     setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
-    echo_text_style "Plugin 'playwright'@'${PY_ENV}' installed"
+    echo_text_style "Plugin <playwright>@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}
 
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
@@ -390,11 +390,11 @@ EOF
 
     # 测试插件
 	echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    echo_text_style "Testing ext <playwright>@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright-async'@'${PY_ENV}' for 'labring/sealos' to get ver list, waiting for a moment"
+    echo_text_style "Testing ext <playwright-async>@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?

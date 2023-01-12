@@ -144,10 +144,13 @@ function setup_plugin_nvm()
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'remote list↓':"
     nvm ls-remote --lts
+    echo "${TMP_SPLITER2}"	
+    echo_text_style "View the 'local list↓':"
+	nvm ls
 
     # local TMP_NVM_SETUP_MOST_USR_VER=`curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@'`
 
-    # 安装特定的一些版本
+    # 安装特定的一些版本(已安装的nodejs版本还原后还能识别，不必再次安装，故不再判断)
     ## 稳定版
     echo "${TMP_SPLITER2}"	
 	## 如果没加载到最新版，则默认使用稳定版（防止官方展示规则变动的情况）
@@ -190,15 +193,15 @@ function setup_plugin_nvm()
     
     echo "${TMP_SPLITER2}"	
     echo_text_style "Starting install package manager tool of 'cnpm'"
-	npm install -g cnpm
+	npm install -g cnpm@latest
     
     echo "${TMP_SPLITER2}"	
     echo_text_style "Starting install package manager tool of 'yarn'"
-	npm install -g yarn
+	npm install -g yarn@latest
 
     echo "${TMP_SPLITER2}"	
     echo_text_style "Starting install the tool of 'es-checker'"
-	npm install -g es-checker
+	npm install -g es-checker@latest
     
     echo "${TMP_SPLITER2}"	
     echo_text_style "View the 'local list↓':"

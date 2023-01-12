@@ -97,7 +97,7 @@ function conf_$soft_name()
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
 	echo
-    echo_text_style "Configuration '$soft_name', waiting for a moment"
+    echo_text_style "Configuration <$soft_name>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
 	# 环境变量或软连接 /etc/profile写进函数
@@ -138,14 +138,14 @@ function boot_$soft_name()
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
 	echo
-    echo "Starting '$soft_name', waiting for a moment"
+    echo "Starting <$soft_name>, waiting for a moment"
     echo "${TMP_SPLITER}"
 	
 	# 启动及状态检测
     bin/$setup_name start
 	## 等待执行完毕 产生端口
     echo_text_style "View the 'booting port↓':"
-    exec_sleep_until_not_empty "Booting soft of '$soft_name' to port '${TMP_$soft_upper_short_name_SETUP_PORT}', waiting for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
+    exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', waiting for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
@@ -176,8 +176,8 @@ function boot_$soft_name()
 
     # 结束
     echo "${TMP_SPLITER2}"
-    echo_text_style "Setup '$soft_name' over"
-    exec_sleep 10 "Boot '$soft_name' over, please checking the setup log, this will stay 10 secs to exit"
+    echo_text_style "Setup <$soft_name> over"
+    exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay 10 secs to exit"
 	
 	return $?
 

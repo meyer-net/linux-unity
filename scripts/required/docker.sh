@@ -47,10 +47,11 @@ function set_env_docker()
 # *-特殊备份，会嵌入在备份时执行
 function special_backup_docker()
 {
-    echo_text_style "Starting create the containers snapshop of soft 'docker'"
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting create the 'containers snapshop' of soft <docker>"
 
     # 参数1：e75f9b427730
-    # 参数2：browserless/chrome
+    # 参数2：browserless/chrome:latest
     # 参数3：/mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
     # 参数4：1670329246
     function _special_backup_docker_snap_trail()
@@ -59,7 +60,7 @@ function special_backup_docker()
         local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 
         # # 删除容器临时文件（例如：.X99-lock）
-        # echo "${TMP_SPLITER}"
+        # echo "${TMP_SPLITER3}"
         # echo_text_style "View the 'container tmp files clear -> /tmp↓':"
         # echo_text_style "[before]"
         # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
@@ -71,15 +72,15 @@ function special_backup_docker()
         # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
 
         # 停止容器
-        echo "${TMP_SPLITER}"
+        echo "${TMP_SPLITER3}"
         echo_text_style "View the 'container status after stop command now↓':"
         docker stop ${1}
         echo
-        echo_text_style "[CONTAINER ID][IMAGE][COMMAND][CREATED][STATUS][PORTS][NAMES]"
+        echo_text_style "[CONTAINER ID][IMAGE][COMMAND][CREATED][STATUS][PORTS][NAMES]"
         docker ps -a --no-trunc | grep "${1}"
         
         # 删除容器
-        echo "${TMP_SPLITER}"
+        echo "${TMP_SPLITER3}"
         echo_text_style "Remove container '${2}(${1})':"
         docker container rm ${1}
         echo
@@ -87,8 +88,8 @@ function special_backup_docker()
         docker ps -a
         
         # 删除镜像
-        echo "${TMP_SPLITER}"
-        echo_text_style "Remove image '${2}(${1})':"
+        echo "${TMP_SPLITER3}"
+        echo_text_style "Remove image '${2}':"
         docker rmi ${2}
         echo
         echo_text_style "Remove image cache'${2}(image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID})':"
@@ -97,13 +98,20 @@ function special_backup_docker()
         docker images
     }
     
-    systemctl list-unit-files | grep docker | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting boot 'services' of soft <docker>"
+    ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
+    local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
+    echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
+    echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
     
     # 废弃下述两行代码，因外部函数无法调用
     # export -f docker_snap_create
     # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting exec 'special backup' of soft <docker>"
     docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action 'docker_snap_create' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-    echo_text_style "The containers snapshop of soft 'docker' was done"
+    echo_text_style "The 'containers snapshop' of soft <docker> was done"
 
 	return $?
 }
@@ -176,7 +184,7 @@ function conf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	echo
-    echo_text_style "Configuration 'docker', waiting for a moment"
+    echo_text_style "Configuration <docker>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
 	# 开始配置
@@ -253,8 +261,10 @@ function test_docker()
             local TMP_SETUP_DOCKER_SNAP_TYPE="Image"
             
             if [ -n "${TMP_SETUP_DOCKER_SNAP_VER}" ]; then
-                set_if_choice "TMP_SETUP_DOCKER_SNAP_VER" "[special_restore_docker] Please sure 'which version' u want to 'restore' of the snapshop '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}'" "${TMP_SETUP_DOCKER_SNAP_VERS}"
-                set_if_choice "TMP_SETUP_DOCKER_SNAP_TYPE" "[special_restore_docker] Please sure 'which type' u want to 'restore' of the snapshop '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}(${TMP_SETUP_DOCKER_SNAP_VER})'" ${TMP_SETUP_DOCKER_SNAP_TYPES}
+                set_if_choice "TMP_SETUP_DOCKER_SNAP_VER" "([special_restore_docker]) Please sure 'which version' u want to [restore] of the snapshop <${TMP_SETUP_DOCKER_SNAP_LNK_NAME}>" "${TMP_SETUP_DOCKER_SNAP_VERS}"
+
+                ## ？？？需要增加判断，有容器未必有镜像，有镜像未必有容器
+                set_if_choice "TMP_SETUP_DOCKER_SNAP_TYPE" "([special_restore_docker]) Please sure 'which type' u want to [restore] of the snapshop <${TMP_SETUP_DOCKER_SNAP_LNK_NAME}>([${TMP_SETUP_DOCKER_SNAP_VER}])" ${TMP_SETUP_DOCKER_SNAP_TYPES}
                 
                 local TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH="${TMP_SETUP_DOCKER_SNAP_BASE_DIR}/${TMP_SETUP_DOCKER_SNAP_VER}"
                 typeset -l TMP_SETUP_DOCKER_SNAP_TYPE
@@ -264,7 +274,7 @@ function test_docker()
                 TMP_SETUP_DOCKER_SNAP_CMD=$(cat ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.cmd)
                 TMP_SETUP_DOCKER_SNAP_CMD=${TMP_SETUP_DOCKER_SNAP_CMD:-"/bin/sh"}
 
-                echo_text_style "Starting restore the '${TMP_SETUP_DOCKER_SNAP_TYPE}' snapshop of '${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:v${TMP_SETUP_DOCKER_SNAP_VER}' by snap"
+                echo_text_style "Starting restore the '${TMP_SETUP_DOCKER_SNAP_TYPE}' snapshop of <${TMP_SETUP_DOCKER_SNAP_LNK_NAME}:v${TMP_SETUP_DOCKER_SNAP_VER}> by snap"
                 case ${TMP_SETUP_DOCKER_SNAP_TYPE} in
                     "container")
                         TMP_SETUP_DOCKER_SNAP_BOOT_VER="v${TMP_SETUP_DOCKER_SNAP_VER}SRC"
@@ -324,10 +334,10 @@ function test_docker()
         # -p : 是容器内部端口绑定到指定的主机端口。
         echo "${TMP_SPLITER2}"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
-        echo_text_style "Cannot find created container of 'browserless/chrome', start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
+        echo_text_style "Cannot find created container of <browserless/chrome>, start use args(${TMP_SETUP_DOCKER_SNAP_ARGS}) && cmd(${TMP_SETUP_DOCKER_SNAP_CMD:-"None"}) to build it"
         TMP_SETUP_DOCKER_BC_PS_ID=$(docker run -d -p ${TMP_DOCKER_SETUP_BC_PS_PORT}:3000 --restart always ${TMP_SETUP_DOCKER_SNAP_ARGS} browserless/chrome:${TMP_SETUP_DOCKER_SNAP_BOOT_VER} ${TMP_SETUP_DOCKER_SNAP_CMD})
     else
-        echo_text_style "Checked the container of 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' exists, start boot it"
+        echo_text_style "Checked the container of <browserless/chrome>('${TMP_SETUP_DOCKER_BC_PS_ID}') exists, start boot it"
         docker start ${TMP_SETUP_DOCKER_BC_PS_ID}
 
         # 复原后，端口可能改变
@@ -405,12 +415,13 @@ function boot_docker()
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting 'docker', waiting for a moment"
+    echo_text_style "Starting <docker>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
     ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info↓':"
     chkconfig docker on # systemctl enable docker.service
+	systemctl enable containerd.service
 	systemctl enable docker.socket
 	systemctl list-unit-files | grep docker
 
@@ -419,7 +430,7 @@ function boot_docker()
     echo_text_style "View the 'service status↓':"
     systemctl start docker.service
 
-    exec_sleep 3 "Initing 'docker', waiting for a moment"
+    exec_sleep 3 "Initing <docker>, waiting for a moment"
 
     echo "[-]">> logs/boot.log
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
@@ -434,7 +445,7 @@ function boot_docker()
     docker info
 
     # 结束
-    exec_sleep 10 "Boot 'docker' over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <docker> over, please checking the setup log, this will stay 10 secs to exit"
 
 	# 授权iptables端口访问
 	# echo_soft_port ${TMP_DOCKER_SETUP_BC_PS_PORT}
@@ -468,7 +479,7 @@ function reconf_docker()
 
 # x2-执行步骤
 function exec_step_docker()
-{    
+{
 	set_env_docker 
 
 	setup_docker 

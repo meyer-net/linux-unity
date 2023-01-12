@@ -1057,7 +1057,7 @@ function soft_path_restore_confirm_action()
 	fi
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH="${1}"
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft got some backup path for '${1}', please sure u want to 'restore still or not'"}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft got some backup path for <${1}>, please sure u want to 'restore still or not'"}"
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS=${3}
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
@@ -1075,12 +1075,12 @@ function soft_path_restore_confirm_action()
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
 			{
-				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to 'restore'" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
+				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER}"
 
 				echo
-				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}'"
+				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to <${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}>"
 				
 				# 直接覆盖，进cover
 				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
@@ -1107,7 +1107,7 @@ function soft_path_restore_confirm_action()
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
 
 				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT"
-				_soft_path_restore_confirm_action_restore_choice_cover_exec ${@}
+				_soft_path_restore_confirm_action_restore_choice_cover_exec "${@}"
 			}
 
 			# 还原目标路径本身存在，移至强行删除目录中（如果是走安装程序过来，会被提前备份，不会触发此段）
@@ -1207,6 +1207,7 @@ function soft_trail_clear()
 	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
+	echo "${TMP_SPLITER3}"
 	echo_text_style "Starting 'resolve the dirs' of soft <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
 	do
@@ -1218,12 +1219,17 @@ function soft_trail_clear()
 		symlink_link_path "_TMP_SOFT_TRAIL_CLEAR_LNK_DIR"
 
 		# 如果数组中不存在指定链接，则添加
+		local _TMP_SOFT_TRAIL_CLEAR_PREFIX=""
 		function _soft_trail_clear_record_rel_arr()
 		{
 			if [ -a ${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} ]; then
 				# 绝对链接
-				local _TMP_SOFT_TRAIL_CLEAR_ABS_DIR=`cd ${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} && pwd -P`
-				echo_text_style "Record really dir of <${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}> from source link <${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} -> ${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}>"
+				local _TMP_SOFT_TRAIL_CLEAR_ABS_DIR=$(su -c "cd ${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} && pwd -P")
+				if [ "${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}" != "${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}" ]; then
+					_TMP_SOFT_TRAIL_CLEAR_PREFIX="|"
+				fi
+
+				echo_text_style "Record really dir of <${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}>, marked [${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}] - '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}'"
 				_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]}]="${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}"
 			fi
 		}
@@ -1232,10 +1238,12 @@ function soft_trail_clear()
 
 		# 如果是软链接，直接删除
 		if [ "${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}" != "${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}" ]; then
-			echo_text_style "Checked dir of <${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}> is a symlink for really dir <${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}>, sys deleted."
+			echo_text_style "${_TMP_SOFT_TRAIL_CLEAR_PREFIX}Checked dir of '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}' is a symlink for really dir <${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}>, sys [deleted]."
+			echo 
 			rm -rf ${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}
 		fi
 	done
+	
 	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
 		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was resolved"
 	else
@@ -1246,9 +1254,9 @@ function soft_trail_clear()
 	# 备份 && 删除文件
 	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
 	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
-	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> backuped to <${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
+	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> [backuped] to <${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
 	# local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_SOFT_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
-	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
+	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
 	function _soft_trail_clear_exec_backup()
 	{
 		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
@@ -1265,30 +1273,39 @@ function soft_trail_clear()
 	
 	# 有记录的情况下才执行
 	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
-		## 具备特殊性质的备份，优先执行
-		local _TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-		if [ "$(type -t ${_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
-			exec_check_action "_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-		fi
-
-		## 清理服务残留（备份前执行，否则会有资源占用的问题）
-		function _soft_trail_clear_svr_remove() 
+		# 已经进入清理流程，不管选择是否备份。都要执行删除服务
+		function _soft_trail_clear_svr_remove_all()
 		{
-			echo
-			echo_text_style "Starting 'trail the systemctl' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1} && rm -rf /run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.sock
-			echo_text_style "The 'systemctl' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was trailed"
-		}
+			## 清理服务残留（备份前执行，否则会有资源占用的问题）
+			function _soft_trail_clear_svr_remove() 
+			{
+				echo "${TMP_SPLITER3}"
+				echo_text_style "Starting 'remove the systemctl' of <${1}>"
+				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+				echo_text_style "The 'systemctl' of <${1}> was removed"
+			}
 
-		# export -f _soft_trail_clear_svr_remove
-		# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
-		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
-			
-		echo
+			# export -f _soft_trail_clear_svr_remove
+			# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
+			systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
+			echo "${TMP_SPLITER3}"
+		}
+		
+		echo "${TMP_SPLITER3}"
 		echo_text_style "Starting 'trail the soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-		if [ ${_TMP_SOFT_TRAIL_CLEAR_FORCE} == "N" ]; then
+		if [ "${_TMP_SOFT_TRAIL_CLEAR_FORCE}" == "N" ]; then
+			## 具备特殊性质的备份，优先执行
+			local _TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+			if [ "$(type -t ${_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
+				exec_check_action "_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+			fi
+
+			_soft_trail_clear_svr_remove_all
+
 			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
 		else
+			_soft_trail_clear_svr_remove_all
+
 			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
 		fi
 
@@ -1311,7 +1328,9 @@ function docker_snap_create()
 	# 完整的PSID
 	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep ${1} | cut -d' ' -f1)
 	# browserless/chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}} | cut -d':' -f1)
+	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	# browserless/chrome
+	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
 	# browserless_chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
 	# browserless_chrome/1670329246
@@ -1319,7 +1338,7 @@ function docker_snap_create()
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "([docker_snap_create]) Starting make snapshop '${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}(${_TMP_DOCKER_SNAP_CREATE_PS_ID})' to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create]) Starting make snapshop <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
@@ -1332,11 +1351,11 @@ function docker_snap_create()
 	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/config.v2.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json
 
 	# 备份镜像信息
-	docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
-	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
+	docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
+	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
 	# 初始化依赖分析(取最后一天时间为起始)
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "Starting gen 'update container & install dependency' script"
 	## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
 	# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh <<EOF
@@ -1391,14 +1410,14 @@ EOF
 	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 
 	# 提取容器启动命令
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "Starting make 'container boot' script"
 	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | cut -d' ' -f7 | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	
-    echo "${TMP_SPLITER}"
+    echo "${TMP_SPLITER2}"
     echo_text_style "Starting pull 'dockerfile builder'"
 	# 判断是否存在dockerfile操作工具
 	# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
@@ -1437,7 +1456,7 @@ EOF
 	
 	# 将容器打包成镜像
     local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}"
-	echo "${TMP_SPLITER}"
+	echo "${TMP_SPLITER2}"
 	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})↓':"
 	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 	### 第一次提交的情况下则做标记：SMI(snap commit init)，备份标记则为SMB(snap commit backup)，还原标记则为SR(Snap restore c/i/d)
@@ -1448,19 +1467,22 @@ EOF
 		_TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}SMB"
 	fi
 	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
-	echo "${TMP_SPLITER}"
-	echo_text_style "[Source History ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}]"
-	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}
-	echo "----------------------"
-	echo_text_style "[Commit History ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}]"
+
+	## （？？？有容器未必有镜像，故需要判断）
+	echo "${TMP_SPLITER2}"
+	echo_text_style "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>"
+	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}
+
+	echo "${TMP_SPLITER2}"
+	echo_text_style "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>"
 	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
-	echo "${TMP_SPLITER}"
-	echo_text_style "View the 'build dfimage yaml ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}↓':"
+	echo "${TMP_SPLITER2}"
+	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓':"
 	## dfimage 部分
 	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
 	echo "[-]"
@@ -1470,8 +1492,8 @@ EOF
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
 	
 	## imagedf 部分
-	echo "----------------------"
-	echo_text_style "View the 'build image2df yaml ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}↓':"
+	echo "${TMP_SPLITER2}"
+	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓':"
 	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	echo "[-]"
@@ -1479,7 +1501,7 @@ EOF
 	
 	# 创建完执行
 	echo
-	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
+	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
 
 	return $?
 }
@@ -1498,7 +1520,7 @@ function item_check_yn_action()
     local _TMP_SOFT_CHECK_YN_ACTION_CHECK_SCRIPT="${2}"
     local _TMP_SOFT_CHECK_YN_ACTION_Y_SCRIPT="${3}"
 	local _TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT="${4}"
-    local _TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO="${5:-'command'}"
+    local _TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO="${5:-command}"
 
 	function _item_check_yn_action()
 	{
@@ -1545,7 +1567,7 @@ function soft_cmd_check_action()
 	{
 		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD=${1}
 		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE=$(type -t ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD})
-		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD})
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD} | grep -v "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD}:")
 
 		echo "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE}${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE}"
 	}
@@ -1566,29 +1588,27 @@ function soft_cmd_check_action()
 #     soft_cmd_check_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" ''
 function soft_cmd_check_git_action() 
 {
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD="${1}"
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO="${2}"
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN="${3}"
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_VER="${4}"
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT="${5}"
 	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT="${6:-'_soft_cmd_check_git_action_echo'}"
-	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC="${7:-'install'}"
-	
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC="${7:-install}"
+
+	# 命令不存在时，执行函数
+	local _TMP_SOFT_CMD_CHECK_GIT_ACTION_PARAMS=("${@:2:5}")
 	function _soft_cmd_check_git_action()
 	{
-echo "xxxxxxxxxx"
-		exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_NE_SCRIPT}"
-		echo_text_style "The command of <${1}> ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
+		exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_PARAMS[@]}"
+		echo "${TMP_SPLITER2}"
+		echo_text_style "The soft command of <${1}> from [git] has ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
 	}
 
+	# 命令不存在时，执行的默认函数
 	function _soft_cmd_check_git_action_echo()
 	{
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_SOFT_CMD_CHECK_GIT_ACTION_CMD_STD}" "${_TMP_SOFT_CMD_CHECK_SETUP}"
-		echo_text_style "'${_TMP_SOFT_CMD_CHECK_GIT_ACTION_CMD}' was ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
+		echo_text_style "The soft command of <${1}> from [git] was ${_TMP_SOFT_CMD_CHECK_GIT_ACTION_TYPE_DESC}ed"
 	}
 	
-	soft_cmd_check_action "${1}" "_soft_cmd_check_git_action" "${6}"
+	soft_cmd_check_action "${1}" "_soft_cmd_check_git_action" "${_TMP_SOFT_CMD_CHECK_GIT_ACTION_E_SCRIPT}"
 	return $?
 }
 
@@ -1608,7 +1628,7 @@ function soft_cmd_check_git_down_action()
 
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN" "${3}"
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
-echo "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
+
 	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 	# echo_text_style '[Command] of <${1}> installed'
@@ -1627,22 +1647,21 @@ echo "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 function soft_cmd_check_confirm_git_action() 
 {
 	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD="${1}"
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_REPO="${2}"
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_DOWN="${3}"
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_VER="${4}"
-    local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_NE_SCRIPT="${5}"
-	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC="${6:-'install'}"
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC="${6:-install}"
 
+	local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_PARAMS=("${@:2:5}")
 	function _soft_cmd_check_confirm_git_action()
-	{	
+	{
 		function __soft_cmd_check_confirm_git_action()
 		{
-			exec_check_action 'soft_cmd_check_git_down_action' "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_NE_SCRIPT}"
+			exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_PARAMS[@]}"
+
+			echo "${TMP_SPLITER2}"
+			echo_text_style "The command of <${1}> from [git] was re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed"
 		}
 
-echo "11111111"
 		local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists, please sure u will exec [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action" "echo_text_style 'Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> exists'"
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> from [git] was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed, please sure u will exec [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo_text_style 'Checked the command of <${1}> from [git] was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed'"
 	}
 
 	soft_cmd_check_git_action "${1}" "${2}" "${3}" "${4}" "${5}" "_soft_cmd_check_confirm_git_action"
@@ -1657,24 +1676,23 @@ echo "11111111"
 # 参数5：重装选择Y时 或命令不存在时默认的 执行安装/更新脚本
 # 参数6：重装选择N时 或命令已存在时执行脚本名称
 # 参数7：执行清理备份后自定义命令，例如卸载
+# 参数8：动作类型描述，action/install
 # 示例：
 #     soft_cmd_check_git_upgrade_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" 'gum update'
 function soft_cmd_check_git_upgrade_action() 
 {
 	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_CMD="${1}"
-	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_REPO="${2}"
-	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_DOWN="${3}"
-	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_VER="${4}"
-    local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_NE_SCRIPT="${5}"
-	
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_PARAMS=("${@:2:5}")
+	local _TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_TYPE_DESC="${8:-install}"
+
 	function _soft_cmd_check_git_upgrade_action()
 	{
-echo "2222222222"
-		exec_check_action 'soft_cmd_check_git_down_action' "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_CMD}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_REPO}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_VER}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_NE_SCRIPT}"
+		exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_PARAMS[@]}"
+
+		echo_text_style "The command of <${1}> from [git] by upgrade was re${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_TYPE_DESC}ed"
 	}
 
 	exec_check_action 'soft_cmd_check_upgrade_action' "${1}" "_soft_cmd_check_git_upgrade_action" "${6}" "${7}"
-	# soft_cmd_check_upgrade_action "${1}" "_soft_cmd_check_git_upgrade_action" "${6}" "${7}"
 	return $?
 }
 
@@ -1683,6 +1701,7 @@ echo "2222222222"
 # 参数2：重装选择Y时 或命令不存在时默认的 执行安装/更新脚本
 # 参数3：重装选择N时 或命令已存在时执行脚本名称
 # 参数4：执行清理备份后自定义命令，例如卸载
+# 参数5：动作类型描述，action/install
 # 示例：
 #     soft_cmd_check_upgrade_action "conda" "exec_step_conda" "conda update -y conda"
 function soft_cmd_check_upgrade_action() 
@@ -1691,6 +1710,7 @@ function soft_cmd_check_upgrade_action()
     local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT="${2}"
 	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT="${3}"
     local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT="${4}"
+	local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC="${5:-install}"
     
 	function _soft_cmd_check_upgrade_action_exec()
 	{
@@ -1703,7 +1723,7 @@ function soft_cmd_check_upgrade_action()
 			# 重装先确认备份，默认备份
 			## Please sure the soft of 'conda' u will 'backup check still or not'?
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
-			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft of '${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' u will 'backup check still or not'"
+			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> u will 'backup check still or not'"
 
 			# 是否强制删除这里取反，soft_trail_clear参数需要
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N}"
@@ -1716,18 +1736,18 @@ function soft_cmd_check_upgrade_action()
 			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 
 			# 执行安装			
-			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 		}
 		
 		# 提示是否重装的值，默认不重装
-		local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REMOVE_Y_N="N"
+		local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N="N"
 		## 检测到软件已安装，确认重装或不重装。
 		## 例如：Checked the soft of 'conda' was installed, please sure u will 'reinstall still or not'?
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REMOVE_Y_N" "Checked the soft command of '${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}' was installed, please sure u will 'reinstall still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N" "Checked the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> was ${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC}ed, please sure u will 're${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC} still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_NTMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 	}
 	
 	# 检测执行，未安装则运行外部安装脚本（exec_step_conda），已安装则运行内部函数(_soft_cmd_check_upgrade_action_exec)进行安装还原操作
-	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT}" "_soft_cmd_check_upgrade_action_exec"
+	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT}" "_soft_cmd_check_upgrade_action_exec"
 
 	return $?
 }
@@ -1755,19 +1775,21 @@ function soft_rpm_check_action()
 
 # Yum包检测后执行
 # 参数1：包名称（列表）
-# 参数2：包不存在时默认的 执行安装/更新脚本
-# 参数3：包已存在时执行脚本
+# 参数2：重装选择Y时 或包不存在时默认的 执行安装/更新脚本
+# 参数3：重装选择N时 或包已存在时执行脚本名称
+# 参数4：动作类型描述，action/install
 # 示例：
 # 	 soft_yum_check_action "vvv" "yum -y install %s" "echo '%s was installed'"
 # 	 soft_yum_check_action "sss" "test"
 # 	 soft_yum_check_action "wget,vim" "echo '%s setup'"
 function soft_yum_check_action() 
 {
+	local _TMP_SOFT_YUM_CHECK_ACTION_TYPE_DESC="${4:-install}"
 	# 用于检测是否存在安装残留，可能文件存在，实际未安装
 	# if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
 	# 	soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
 	# fi
-    item_check_yn_action "${1}" "yum list installed | grep %s" "${3}" "${2}" "yum installed repos"
+    item_check_yn_action "${1}" "yum list installed | grep %s" "${3}" "${2}" "yum ${_TMP_SOFT_YUM_CHECK_ACTION_TYPE_DESC}ed repos"
 	return $?
 }
 
@@ -1788,22 +1810,25 @@ function soft_yum_check_setup()
 
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD}" "${_TMP_SOFT_YUM_CHECK_SETUP}"
-		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"'${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}' was installed"}"
+		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"The yum repo of <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> was installed"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of <%s> installed'" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of has <%s> installed'" "_soft_yum_check_setup_echo"
 
 	return $?
 }
 
 # Yum包检测后安装，存在时提示覆盖安装
 # 参数1：包名称
-# 参数2：包不存在时默认的 执行安装/更新脚本
-# 参数3：包已存在时执行脚本
+# 参数2：重装选择Y时 或包不存在时默认的 执行安装/更新脚本
+# 参数3：重装选择N时 或包已存在时执行脚本名称
+# 参数4：动作类型描述，action/install
 # 示例：
-#     soft_yum_check_upgrade_setup "vvv" "%s was installed"
+#     soft_yum_check_upgrade_action "docker" "exec_step_docker" "yum -y update docker"
 function soft_yum_check_upgrade_action() 
 {
+	local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_TYPE_DESC="${4:-install}"
+
 	function _soft_yum_check_upgrade_action_remove()
 	{
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
@@ -1824,7 +1849,7 @@ function soft_yum_check_upgrade_action()
 
 	}
     
-	soft_cmd_check_upgrade_action "${1}" "${2}" "${3}" "_soft_yum_check_upgrade_action_remove"
+	soft_cmd_check_upgrade_action "${1}" "${2}" "${3}" "_soft_yum_check_upgrade_action_remove" "${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_TYPE_DESC}"
 	return $?
 }
 
@@ -3006,7 +3031,7 @@ function exec_check_action() {
 
 		# path_not_exists_link "/opt/docker/bin/docker" "" "/usr/bin/docker" 这种也会被判别为function
 		if [ `echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l` -eq 0 ]; then
-			${_TMP_EXEC_CHECK_ACTION_SCRIPT} ${@}
+			${_TMP_EXEC_CHECK_ACTION_SCRIPT} "${@}"
 		else
 			eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 		fi
@@ -3141,12 +3166,12 @@ function confirm_yn_action()
 	case "${_TMP_CONFIRM_YN_ACTION_Y_N}" in
 	"y" | "Y")
 		if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" ]; then
-			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" ${@}
+			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" "${@}"
 		fi
 	;;
 	*)
 		if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" ]; then
-			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" ${@}
+			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" "${@}"
 		fi
 
 		# 修复错误，否则选择N时，值无法赋上
@@ -3155,8 +3180,10 @@ function confirm_yn_action()
 	esac
 
 	if [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_NAME}" ]; then
-		eval ${_TMP_CONFIRM_YN_ACTION_VAR_NAME}=`echo "${_TMP_CONFIRM_YN_ACTION_Y_N:-'N'}"`
+		eval ${_TMP_CONFIRM_YN_ACTION_VAR_NAME}=`echo "${_TMP_CONFIRM_YN_ACTION_Y_N:-N}"`
 	fi
+	
+	# exec_text_style "Checked [${_TMP_CONFIRM_YN_ACTION_Y_N:-'N'}]"
 
 	return ${_TMP_CONFIRM_YN_ACTION_RET}
 }

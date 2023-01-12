@@ -39,10 +39,9 @@ function setup_requriements()
     soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
     soft_${SYS_SETUP_COMMAND}_check_setup "rsync"
 
-    soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm" "reinstall"
-    soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv pup /usr/bin/" "reinstall"
+    soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "rpm -ivh gum_%s_linux_amd64.rpm"
+    soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv pup /usr/bin/"
     
-read -e TTTT
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。docker>miniconda>sealos）
     for _TMP_SETUP_REQURIEMENTS_SH_FILE in $(ls scripts/required/*.sh); do
         source ${_TMP_SETUP_REQURIEMENTS_SH_FILE}
