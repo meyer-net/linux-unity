@@ -81,7 +81,7 @@ function conf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	# echo
-    # echo_text_style "Configuration 'nvm', waiting for a moment"
+    # echo_text_style "Configuration <nvm>, waiting for a moment"
     # echo "${TMP_SPLITER}"
 
 	return $?
@@ -107,22 +107,22 @@ function boot_nvm()
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
 	echo
-    echo "Starting 'nvm', waiting for a moment"
+    echo_text_style "Starting <nvm>, waiting for a moment"
     echo "${TMP_SPLITER}"
 	
 	# 启动及状态检测
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version↓':"
+    echo_text_style "View the 'version'↓:"
     nvm --version
 	
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current↓':"
+    echo_text_style "View the 'current'↓:"
     nvm current
 
     # 结束
     echo "${TMP_SPLITER2}"
-    echo_text_style "Setup 'nvm' over"
-    exec_sleep 10 "Boot 'nvm' over, please checking the setup log, this will stay 10 secs to exit"
+    echo_text_style "Setup <nvm> over"
+    exec_sleep 10 "Boot <nvm> over, please checking the setup log, this will stay 10 secs to exit"
 	
 	return $?
 }
@@ -142,10 +142,10 @@ function setup_plugin_nvm()
 	echo
     echo_text_style "Starting install the popular 'nodejs vers' for most users, waiting for a moment"
     echo "${TMP_SPLITER}"
-    echo_text_style "View the 'remote list↓':"
+    echo_text_style "View the 'remote list'↓:"
     nvm ls-remote --lts
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'local list↓':"
+    echo_text_style "View the 'local list'↓:"
 	nvm ls
 
     # local TMP_NVM_SETUP_MOST_USR_VER=`curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@'`
@@ -204,23 +204,23 @@ function setup_plugin_nvm()
 	npm install -g es-checker@latest
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'local list↓':"
+    echo_text_style "View the 'local list'↓:"
 	nvm ls
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current nodejs version↓':"
+    echo_text_style "View the 'current nodejs version'↓:"
 	node --version
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current nodejs v8-options/harmony↓':"
+    echo_text_style "View the 'current nodejs v8-options/harmony'↓:"
 	node --v8-options | grep harmony
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current npm version↓':"
+    echo_text_style "View the 'current npm version'↓:"
 	npm --version
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'es-checker↓':"
+    echo_text_style "View the 'es-checker'↓:"
 	es-checker
 
 	return $?
@@ -234,14 +234,14 @@ function reconf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	echo
-    echo_text_style "[Re configuration] 'nvm', waiting for a moment"
+    echo_text_style "[Re configuration] <nvm>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
     # 安装nrm
     echo_text_style "Starting install the tool of 'nrm'"
     npm install -g nrm
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'nrm list↓':"
+    echo_text_style "View the 'nrm list'↓:"
 	nrm ls
     
 	#* npm -------- https://registry.npmjs.org/
@@ -260,15 +260,15 @@ function reconf_nvm()
 	local TMP_NVM_SETUP_SOFT_NPM_NRM_REPO=`echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep "${TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN}" | sed "s@-@@g" | grep -oP "(?<=\s).*(?=\s\d)" | awk '{sub("^ *","");sub(" *$","");print}' | awk 'NR==1'`
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'nrm test↓':"
+    echo_text_style "View the 'nrm test'↓:"
 	echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}"
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'quickly registry↓':"
+    echo_text_style "View the 'quickly registry'↓:"
     echo_text_style "[${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}]"
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "Use the 'quickly registry↓':"
+    echo_text_style "Use the 'quickly registry'↓:"
 	nrm use ${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}
 
 	# npm config set registry https://registry.npm.taobao.org
@@ -320,9 +320,7 @@ function check_setup_nvm()
 	# 安装后的真实路径（此处依据实际路径名称修改）
 	local TMP_NVM_SETUP_DATA_DIR=${TMP_NVM_SETUP_DIR}/versions
 
-    # 需提前引用出环境，才能调出命令
-    path_exists_action "${NVM_PATH}" "source ${NVM_PATH}"
-	soft_cmd_check_git_upgrade_action "nvm" "nvm-sh/nvm" "https://raw.githubusercontent.com/creationix/nvm/v%s/install.sh" "0.39.3" "exec_step_nvm" "nvm --version"
+	soft_cmd_check_git_upgrade_action "nvm" "nvm-sh/nvm" "https://raw.githubusercontent.com/creationix/nvm/v%s/install.sh" "0.39.3" "exec_step_nvm" "su_bash_nvm_channel_exec 'nvm --version'"
 
 	source ${NVM_PATH}
 read -e TTTT

@@ -539,7 +539,7 @@ function exec_sleep()
 	}
 	
 	function _TMP_EXEC_SLEEP_GUM_FUNC() {
-		
+		exec_text_style "_TMP_EXEC_SLEEP_ECHO"
 		gum spin --spinner monkey --title "${_TMP_EXEC_SLEEP_ECHO}" -- sleep ${_TMP_EXEC_SLEEP_TIMES}
 
 		return $?
@@ -791,7 +791,7 @@ function path_not_exists_action()
 
 	local _TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT=""
 	if [ -n "${_TMP_PATH_NOT_EXISTS_ACTION_E_ECHO}" ]; then
-		_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT="echo '${_TMP_PATH_NOT_EXISTS_ACTION_E_ECHO}'"
+		_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT="echo_text_style '${_TMP_PATH_NOT_EXISTS_ACTION_E_ECHO}'"
 	fi
 
 	path_exists_yn_action "${1}" "${_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT}" "${_TMP_PATH_NOT_EXISTS_ACTION_NE_SCRIPT}"
@@ -900,6 +900,10 @@ function exec_text_style()
 		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}"
 
 		function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
+			if [ -z "$(echo ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE} | grep -vE '[0-9]+')" ]; then
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=""
+			fi
+
 			_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${red}"}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${reset}"
 
 			return $?
@@ -1033,7 +1037,7 @@ function path_not_exists_link()
 	{
 		exec_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
-	# ？？？缺乏/etc的链接改写操作，该场景下，配置目录或文件会被复原
+	
     path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv `dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}` && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
@@ -1229,7 +1233,7 @@ function soft_trail_clear()
 					_TMP_SOFT_TRAIL_CLEAR_PREFIX="|"
 				fi
 
-				echo_text_style "Record really dir of <${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}>, marked [${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}] - '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}'"
+				echo_text_style "Record really dir of [${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}], marked '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}' -> '${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}'"
 				_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]}]="${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}"
 			fi
 		}
@@ -1297,7 +1301,10 @@ function soft_trail_clear()
 			## 具备特殊性质的备份，优先执行
 			local _TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 			if [ "$(type -t ${_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
+				echo "${TMP_SPLITER3}"
+				echo_text_style "Starting exec the 'soft special func' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
 				exec_check_action "_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+				echo_text_style "The 'soft special func' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed"
 			fi
 
 			_soft_trail_clear_svr_remove_all
@@ -1309,7 +1316,7 @@ function soft_trail_clear()
 			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
 		fi
 
-		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed trail done"
+		echo_text_style "The 'soft dirs trail' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed"
 		echo
 	fi
 
@@ -1323,7 +1330,9 @@ function soft_trail_clear()
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
 # 参数3：快照存储的时间戳，例 1670329246
 # 参数4：创建完执行
-function docker_snap_create()
+# 例：
+#    docker_snap_create_action 'e75f9b427730' '/mountdisk/repo/migrate/snapshot' '1670329246'
+function docker_snap_create_action()
 {
 	# 完整的PSID
 	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep ${1} | cut -d' ' -f1)
@@ -1338,7 +1347,7 @@ function docker_snap_create()
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "([docker_snap_create]) Starting make snapshop <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create_action]) Starting make snapshop <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
@@ -1457,7 +1466,7 @@ EOF
 	# 将容器打包成镜像
     local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}"
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})↓':"
+	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})'↓:"
 	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 	### 第一次提交的情况下则做标记：SMI(snap commit init)，备份标记则为SMB(snap commit backup)，还原标记则为SR(Snap restore c/i/d)
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_VCOUNT=$(docker images | grep "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | grep -v "latest" | wc -l)
@@ -1468,7 +1477,6 @@ EOF
 	fi
 	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 
-	## （？？？有容器未必有镜像，故需要判断）
 	echo "${TMP_SPLITER2}"
 	echo_text_style "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>"
 	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}
@@ -1479,7 +1487,7 @@ EOF
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓':"
+	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>'↓:"
 	## dfimage 部分
 	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
 	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
@@ -1493,7 +1501,7 @@ EOF
 	
 	## imagedf 部分
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓':"
+	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>'↓:"
 	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	echo "[-]"
@@ -1538,6 +1546,7 @@ function item_check_yn_action()
         echo_text_style "Checking the '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}' of <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}>"
         echo ${TMP_SPLITER}
 		
+		# 获取判断响应
 		local _TMP_SOFT_CHECK_YN_ACTION_RES=$(exec_check_action '_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT' ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM})
 		
 		# 不存在命令时执行
@@ -1565,11 +1574,10 @@ function soft_cmd_check_action()
 {
 	function _soft_cmd_check_action_echo()
 	{
-		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD=${1}
-		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE=$(type -t ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD})
-		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE=$(whereis ${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD} | grep -v "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CURRENT_CMD}:")
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE=$(su_bash_env_channel_exec "type -t ${1}")
+		local _TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE=$(su_bash_env_channel_exec "whereis ${1}")
 
-		echo "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE}${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE}"
+		echo "${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_TYPE}${_TMP_SOFT_CMD_CHECK_ACTION_ECHO_CMD_WHERE/${1}:/}"
 	}
 
 	item_check_yn_action "${1}" "_soft_cmd_check_action_echo" "${3}" "${2}"
@@ -1630,6 +1638,8 @@ function soft_cmd_check_git_down_action()
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
 
 	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
+	echo_text_style "Starting execute script <${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}>"
+
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 	# echo_text_style '[Command] of <${1}> installed'
 	return $?
@@ -1689,7 +1699,7 @@ function soft_cmd_check_git_upgrade_action()
 	{
 		exec_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_PARAMS[@]}"
 
-		echo_text_style "The command of <${1}> from [git] by upgrade was re${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_TYPE_DESC}ed"
+		echo_text_style "The command of <${1}> from [git] by upgrade ${2:-"has "}${_TMP_SOFT_CMD_CHECK_GIT_UPGRADE_ACTION_TYPE_DESC}ed"
 	}
 
 	exec_check_action 'soft_cmd_check_upgrade_action' "${1}" "_soft_cmd_check_git_upgrade_action" "${6}" "${7}"
@@ -1736,7 +1746,7 @@ function soft_cmd_check_upgrade_action()
 			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 
 			# 执行安装			
-			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+			exec_check_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}" "was re"
 		}
 		
 		# 提示是否重装的值，默认不重装
@@ -1745,7 +1755,7 @@ function soft_cmd_check_upgrade_action()
 		## 例如：Checked the soft of 'conda' was installed, please sure u will 'reinstall still or not'?
 		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N" "Checked the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> was ${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC}ed, please sure u will 're${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC} still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_NTMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 	}
-	
+
 	# 检测执行，未安装则运行外部安装脚本（exec_step_conda），已安装则运行内部函数(_soft_cmd_check_upgrade_action_exec)进行安装还原操作
 	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT}" "_soft_cmd_check_upgrade_action_exec"
 
@@ -1813,7 +1823,7 @@ function soft_yum_check_setup()
 		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"The yum repo of <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> was installed"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of has <%s> installed'" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of <%s> has installed'" "_soft_yum_check_setup_echo"
 
 	return $?
 }
@@ -2117,6 +2127,8 @@ function while_exec()
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：执行用户，默认`whoami`
+# 例：
+#   su_bash_channel_exec "source /etc/profile && source ~/.bashrc && conda update -y conda"
 function su_bash_channel_exec()
 {
 	local _TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
@@ -2124,6 +2136,32 @@ function su_bash_channel_exec()
 
 	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd `pwd`"
 	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS}"
+
+	return $?
+}
+
+# 通过指定用户，通过管道执行脚本
+# 参数1：执行脚本
+# 参数2：执行用户，默认`whoami`
+# 例：
+#   su_bash_env_channel_exec "conda update conda"
+function su_bash_env_channel_exec()
+{
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source ~/.bashrc"
+	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${2}"
+
+	return $?
+}
+
+# 通过指定用户，通过管道执行脚本
+# 参数1：执行脚本
+# 参数2：执行用户，默认`whoami`
+# 例：
+#   su_bash_nvm_channel_exec "conda update conda"
+function su_bash_nvm_channel_exec()
+{
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="[[ -a '${NVM_PATH}' ]] && source ${NVM_PATH}"
+	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${2}"
 
 	return $?
 }
@@ -2141,7 +2179,7 @@ function su_bash_channel_conda_exec()
     local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-`whoami`}
 
 	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
-	su_bash_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS}" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
+	su_bash_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS})" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
 
 	return $?
 }

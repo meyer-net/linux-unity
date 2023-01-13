@@ -61,7 +61,7 @@ function special_backup_docker()
 
         # # 删除容器临时文件（例如：.X99-lock）
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "View the 'container tmp files clear -> /tmp↓':"
+        # echo_text_style "View the 'container tmp files clear -> /tmp'↓:"
         # echo_text_style "[before]"
         # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
         # ## 前几行内容无效，如下 2>/dev/null
@@ -73,7 +73,7 @@ function special_backup_docker()
 
         # 停止容器
         echo "${TMP_SPLITER3}"
-        echo_text_style "View the 'container status after stop command now↓':"
+        echo_text_style "View the 'container status after stop command now'↓:"
         docker stop ${1}
         echo
         echo_text_style "[CONTAINER ID][IMAGE][COMMAND][CREATED][STATUS][PORTS][NAMES]"
@@ -81,20 +81,20 @@ function special_backup_docker()
         
         # 删除容器
         echo "${TMP_SPLITER3}"
-        echo_text_style "Remove container '${2}(${1})':"
+        echo_text_style "Remove 'container' <${2}>([${1}])↓:"
         docker container rm ${1}
         echo
-        echo_text_style "View the 'surplus containers↓':"
+        echo_text_style "View the 'surplus containers'↓:"
         docker ps -a
         
         # 删除镜像
         echo "${TMP_SPLITER3}"
-        echo_text_style "Remove image '${2}':"
+        echo_text_style "Remove 'image' <${2}>:↓"
         docker rmi ${2}
         echo
-        echo_text_style "Remove image cache'${2}(image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID})':"
+        echo_text_style "Remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
         rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
-        echo_text_style "View the 'surplus images↓':"
+        echo_text_style "View the 'surplus images'↓:"
         docker images
     }
     
@@ -106,12 +106,12 @@ function special_backup_docker()
     echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
     
     # 废弃下述两行代码，因外部函数无法调用
-    # export -f docker_snap_create
-    # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+    # export -f docker_snap_create_action
+    # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting exec 'special backup' of soft <docker>"
-    docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action 'docker_snap_create' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-    echo_text_style "The 'containers snapshop' of soft <docker> was done"
+    echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
+    docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+    echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
 
 	return $?
 }
@@ -165,7 +165,6 @@ function formal_docker()
 	# ## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
-    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "" "/etc/docker"
     path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "/etc/docker"
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
@@ -234,7 +233,7 @@ function test_docker()
         function _test_docker_setup_dependency_exec()
         {
             echo
-            echo_text_style "View the 'update dependency exec↓':"
+            echo_text_style "View the 'update dependency exec'↓:"
             docker cp ${TMP_SETUP_DOCKER_SNAP_FILE_NONE_PATH}.init.depend.sh ${TMP_SETUP_DOCKER_BC_PS_ID}:/tmp
             docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
             docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "sh /tmp/${TMP_SETUP_DOCKER_SNAP_VER}.init.depend.sh"
@@ -314,6 +313,10 @@ function test_docker()
     ## 还原备份镜像
     function _test_docker_pull_image()
     {
+        # ??? 1检测没有快照时，本地备份情况
+        # ??? 2需要新增没有快照时，纯净版的检测
+echo "debug"
+read -e TTTT
         # 获取一个测试的app，初始状态不产生日志(不主动pull也会拉取)
         docker pull browserless/chrome
         docker inspect browserless/chrome | jq > logs/browserless_chrome/${LOCAL_TIMESTAMP}.img.inspect.json
@@ -324,6 +327,10 @@ function test_docker()
     local TMP_SETUP_DOCKER_SNAP_BOOT_VER="latest"
     local TMP_SETUP_DOCKER_SNAP_ARGS="-e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
     path_not_exists_create "logs/browserless_chrome"
+    ## 没有创建快照的情况下，默认去找纯净备份的快照
+    
+    path_not_exists_action "${TMP_DOCKER_SETUP_SNAP_DIR}" "echo_text_style \"Cannot found 'snapshot dir' of [${TMP_DOCKER_SETUP_SNAP_DIR}], set val to <${MIGRATE_DIR}/clean>\" && TMP_DOCKER_SETUP_SNAP_DIR=${MIGRATE_DIR}/clean"
+    echo "${TMP_DOCKER_SETUP_SNAP_DIR}"
     path_exists_yn_action "${TMP_DOCKER_SETUP_SNAP_DIR}" "_test_docker_restore_snap" "_test_docker_pull_image"
 
     ## 安装测试镜像 browserless/chrome
@@ -348,7 +355,7 @@ function test_docker()
     exec_sleep_until_not_empty "Booting the test container 'browserless/chrome(${TMP_SETUP_DOCKER_BC_PS_ID})' to port '${TMP_DOCKER_SETUP_BC_PS_PORT}', waiting for a moment" "lsof -i:${TMP_DOCKER_SETUP_BC_PS_PORT}" 180 3
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container time↓':"
+    echo_text_style "View the 'container time'↓:"
     docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "date"
 
     # 必须等待启动以后才登录执行脚本
@@ -358,14 +365,14 @@ function test_docker()
     
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container inspect↓':"
+    echo_text_style "View the 'container inspect'↓:"
     docker container inspect ${TMP_SETUP_DOCKER_BC_PS_ID} | jq > logs/browserless_chrome/${LOCAL_TIMESTAMP}.ctn.inspect.json
     cat logs/browserless_chrome/${LOCAL_TIMESTAMP}.ctn.inspect.json
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container logs↓':"
+    echo_text_style "View the 'container logs'↓:"
     docker logs ${TMP_SETUP_DOCKER_BC_PS_ID}
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container visit↓':"
+    echo_text_style "View the 'container visit'↓:"
     curl -s http://localhost:${TMP_DOCKER_SETUP_BC_PS_PORT}
     # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
 
@@ -379,24 +386,24 @@ function test_docker()
     # :
     # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container folder /tmp↓':"
+    echo_text_style "View the 'container folder /tmp'↓:"
     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /tmp/"
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container occupancy rate↓':"
+    echo_text_style "View the 'container occupancy rate'↓:"
     docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container folder /usr/src/app↓':"
+    echo_text_style "View the 'container folder /usr/src/app'↓:"
     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
 
     # 备份当前容器，仅在第一次 	
     local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "echo '${TMP_SPLITER2}' && docker_snap_create '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/browserless_chrome" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${TMP_SETUP_DOCKER_BC_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
 
     # 最后更新一次容器内包
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container update↓':"
+    echo_text_style "View the 'container update'↓:"
     docker exec -u root -w /tmp -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "apt-get update"
 
     # 结束
@@ -419,7 +426,7 @@ function boot_docker()
     echo "${TMP_SPLITER}"
 
     ## 设置系统管理，开机启动
-    echo_text_style "View the 'systemctl info↓':"
+    echo_text_style "View the 'systemctl info'↓:"
     chkconfig docker on # systemctl enable docker.service
 	systemctl enable containerd.service
 	systemctl enable docker.socket
@@ -427,7 +434,7 @@ function boot_docker()
 
 	# 启动及状态检测
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'service status↓':"
+    echo_text_style "View the 'service status'↓:"
     systemctl start docker.service
 
     exec_sleep 3 "Initing <docker>, waiting for a moment"
@@ -438,10 +445,10 @@ function boot_docker()
     cat logs/boot.log
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version↓':"
+    echo_text_style "View the 'version'↓:"
     docker -v
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'info↓':"
+    echo_text_style "View the 'info'↓:"
     docker info
 
     # 结束

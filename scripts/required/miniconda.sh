@@ -59,7 +59,7 @@ function setup_miniconda()
     # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
 
     ## 脚本安装(文件被下载在shell目录)
-    while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && bash ${SH_DIR}/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}"
+    while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && bash ${SH_DIR}/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} && source ~/.bashrc"
     
 	# 轻量级安装的情况下不进行安装包还原操作
 	cd ${TMP_MCD_SETUP_DIR}
@@ -167,13 +167,14 @@ function conf_miniconda()
     echo_text_style "Configuration 'conda packages', waiting for a moment"
     echo "${TMP_SPLITER}"
 
-	# 环境变量或软连接
-	echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
-	echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
-	echo_etc_profile 'export PATH MINICONDA_HOME'
+    # ~/.bashrc 中存在，故不启用
+	# # 环境变量或软连接
+	# echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	# echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
+	# echo_etc_profile 'export PATH MINICONDA_HOME'
 
-    # 重新加载profile文件
-	source /etc/profile
+    # # 重新加载profile文件
+	# source /etc/profile
     
     # 生成 ~/.condarc配置文件
     condabin/conda config --set auto_activate_base false
@@ -202,28 +203,28 @@ function boot_miniconda()
 	# 验证安装
     ## 当前启动命令 && 等待启动
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'channels↓':"
+    echo_text_style "View the 'channels'↓:"
     condabin/conda config --get show_channel_urls
     condabin/conda config --get channels
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'sources↓':"
+    echo_text_style "View the 'sources'↓:"
     condabin/conda config --show-sources
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'list↓':"
+    echo_text_style "View the 'list'↓:"
 	condabin/conda list
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'update↓':"
-    conda update -y conda
+    echo_text_style "View the 'update'↓:"
+    condabin/conda update -y conda
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version↓':"
+    echo_text_style "View the 'version'↓:"
     condabin/conda --version
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'info↓':"
+    echo_text_style "View the 'info'↓:"
     condabin/conda info -e
 
     # 结束
@@ -242,7 +243,7 @@ function down_ext_miniconda()
     # 环境预装
     local TMP_CMD_SETUP_CNL_ARR=($(condabin/conda config --show-sources | grep "^  -" | cut -d' ' -f4))
     # condabin/conda run -n pyenv36 python --version | grep 'EnvironmentLocationNotFound'
-    local TMP_MCD_SETUP_ENV_ARR=($(conda info -e | cut -d' ' -f1 | grep -v "#" | grep -v "base" | grep -v "^$"))
+    local TMP_MCD_SETUP_ENV_ARR=($(condabin/conda info -e | cut -d' ' -f1 | grep -v "#" | grep -v "base" | grep -v "^$"))
 
     action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels conda-forge"
     action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels microsoft"
@@ -268,12 +269,12 @@ function setup_ext_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting install 'plugin-ext' <playwright>@[${PY_ENV}], waiting for a moment"
+    echo_text_style "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], waiting for a moment"
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
     setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
-    echo_text_style "Plugin <playwright>@[${PY_ENV}] installed"
+    echo_text_style "Plugin 'playwright'@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}
 
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
@@ -390,11 +391,11 @@ EOF
 
     # 测试插件
 	echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext <playwright>@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
+    echo_text_style "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext <playwright-async>@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
+    echo_text_style "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?
@@ -454,7 +455,7 @@ function check_setup_miniconda()
     # if [ $? -eq 0 ]; then
     #     down_miniconda
     # fi
-    soft_cmd_check_upgrade_action "conda" "exec_step_miniconda" "conda update -y conda"
+    soft_cmd_check_upgrade_action "conda" "exec_step_miniconda" "su_bash_env_channel_exec 'conda update -y conda'"
 
 	return $?
 }
