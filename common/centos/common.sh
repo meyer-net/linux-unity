@@ -1568,7 +1568,7 @@ function docker_snap_restore_if_choice_action()
 		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}" ]; then
 			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR} | cut -d'.' -f1 | uniq)
 		fi
-        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | awk '$1=$1' | sort -rV)
+        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV)
     fi
     
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
@@ -1578,17 +1578,25 @@ function docker_snap_restore_if_choice_action()
 		## 有运行版本存在时
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}" ]; then
 			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}/d")
+			echo_text_style "Checked the image of <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}] exists, version list removed"
 		fi
-
+		
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
 			# 默认版本 /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER=$(echo ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS} | cut -d' ' -f1)
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES="Image,Container,Dockerfile"
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS_COUNT=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | wc -w)
+
+			# 有多个版本时，才提供选择操作
+			if [ ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS_COUNT} -gt 1 ]; then
+				echo "${TMP_SPLITER2}"
+				set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER" "Please sure 'which version' u want to [restore] of the snapshot <${1}>" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
+			else
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER="${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
+			fi
+
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE="Image"
-		
-			# 有版本时，才提供操作
-			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER" "Please sure 'which version' u want to [restore] of the snapshot <${1}>" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
-			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}])" ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES}
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES="Image,Container,Dockerfile"
+			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES}"
 			typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE
 
 			# 快照存储类型已被重新加载
@@ -1622,59 +1630,63 @@ function docker_snap_restore_if_choice_action()
 #   docker_snap_restore_action "browserless/chrome" "1673604625" "container" "clean"
 function docker_snap_restore_action()
 {
-    # browserless/chrome
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME="${1}"
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_VER="${2}"
-
 	typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE
     local _TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE="${3:-"image"}"
-    # browserless_chrome
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME="${1/\//_}"
     # /mountdisk/repo/migrate/snapshot/browserless_chrome/
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR="${MIGRATE_DIR}/${4:-"snapshot"}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}"
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR="${MIGRATE_DIR}/${4:-"snapshot"}/${1/\//_}"
     # local TMP_DOCKER_SNAP_RESTORE_ACTION_LNK_NAME="${1/_//}"
     # /mountdisk/repo/migrate/snapshot/browserless_chrome/1673604625
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}"
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${2}"
     
     # 还原版本
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="latest"
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER=""
 
 	# 检测 镜像是否存在，存在则不开启还原行为
-    echo_text_style "Checking the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from docker images"
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS=$(docker images | grep "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}")
+    echo_text_style "Checking the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from docker images"
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS=$(docker images | grep "${1}")
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" ]; then
-		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" | grep "v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}")
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" | grep "v${2}")
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG}" ]; then
-			echo_text_style "Checked the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from docker images exists, restore stoped"
+			echo_text_style "Checked the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from docker images exists, restore stoped"
 			return $?
 		fi
 	fi
 	    
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from snapshot restore"
+    echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from snapshot restore"
     case ${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} in
         "container")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRC"
-            zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.gz | docker import - ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRC"
+            zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.gz | docker import - ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
 
             # 容器恢复丢失环境信息，故需要读取容器inspect信息
             cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} sh -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.env
         ;;
         "image")
-            # SRI
-            # _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRI"
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRI"
             docker load < ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.img.tar
+			
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].Id" | xargs echo | cut -d':' -f2)
+			docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+			
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | xargs echo | grep -oP "(?<=^\[).*(?=\]$)")
+			if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" ]; then
+				exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" "docker rmi %s"
+			fi
+			
+			# local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags[0]" | xargs echo)
+			# docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
         ;;
         "dockerfile")
             # ？？？缺少有效反向构建dockefile的操作，故存在bug
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRD"
-            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.dockerfile.yml -t ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRD"
+            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.dockerfile.yml -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
         ;;
         *)
             echo
     esac
     
-    echo_text_style "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' restored to <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
+    echo_text_style "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' restored to <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
 
 	exec_check_action "${5}" "${@:1:4}"
 
@@ -1737,7 +1749,7 @@ function soft_docker_boot_print()
 			exec_sleep_until_not_empty "${2}" "lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT}" 180 3
 			if [ -z "$(lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT})" ]; then
 				echo_text_style "Boot failure, please check"
-				return -1
+				return
 			fi
 		fi
 	}
@@ -1771,7 +1783,6 @@ function soft_docker_boot_print()
 		fi
 	fi
 	
-	_TMP_SOFT_DOCKER_BOOT_PRINT_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VER:="latest"}"
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a --no-trunc | grep "${1}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}")
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | cut -d' ' -f1)
 

@@ -97,22 +97,31 @@ function special_backup_docker()
         echo_text_style "View the 'surplus images'↓:"
         docker images
     }
-    
-    echo "${TMP_SPLITER2}"
-    echo_text_style "Starting boot 'services' of soft <docker>"
-    ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
-    local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
-    echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
-    echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
-    
-    # 废弃下述两行代码，因外部函数无法调用
-    # export -f docker_snap_create_action
-    # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-    echo "${TMP_SPLITER2}"
-    echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
-    docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | eval "exec_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-    echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
 
+    local TMP_DOCKER_SETUP_CTNS=$(docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$")    
+    function _special_backup_docker_backup()
+    {
+        echo "${TMP_SPLITER2}"
+        echo_text_style "Starting boot 'services' of soft <docker>"
+        ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
+        local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
+        echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
+        echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
+        
+        # 废弃下述两行代码，因外部函数无法调用
+        # export -f docker_snap_create_action
+        # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+        echo "${TMP_SPLITER2}"
+        echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
+        echo "${TMP_DOCKER_SETUP_CTNS}" | eval "exec_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+        echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
+    }
+
+    if [ $(echo "${TMP_DOCKER_SETUP_CTNS}") -gt 0 ]; then
+        local TMP_DOCKER_SETUP_BACKUP_CTN_Y_N="Y"
+        confirm_yn_action "TMP_DOCKER_SETUP_BACKUP_CTN_Y_N" "Please sure if u want to [backup] of the <containers>" "_special_backup_docker_backup"
+    fi
+  
 	return $?
 }
 
@@ -217,6 +226,10 @@ function test_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
+	echo
+    echo_text_style "Restore <docker> snapshot, waiting for a moment"
+    echo "${TMP_SPLITER}"
+
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
     local TMP_DOCKER_SETUP_SNAP_IMG_NAMES=""
@@ -233,8 +246,8 @@ function test_docker()
     
     # 还原已有的docker快照
     ## 输出容器列表（browserless_chrome）
-    local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | awk '$1=$1' | sort -rV | uniq)
-    exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES/_//}" "docker_snap_restore_if_choice_action"
+    local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
+    exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_if_choice_action"
 
 	return $?
 }
@@ -298,6 +311,12 @@ function down_ext_docker()
 # 安装与配置扩展/驱动/插件
 function setup_ext_docker()
 {
+	cd ${TMP_DOCKER_SETUP_DIR}
+
+	echo
+    echo_text_style "Setup <docker> exts, waiting for a moment"
+    echo "${TMP_SPLITER}"
+
     # 安装测试镜像
     soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
 
@@ -308,7 +327,7 @@ function setup_ext_docker()
     # 参数4：最终启动参数
     function boot_check_browserless_chrome()
     { 
-        local TMP_SETUP_DOCKER_BC_PS_ID=${2}
+        local TMP_SETUP_DOCKER_BC_PS_ID=${1}
         local TMP_SETUP_DOCKER_BC_PS_PORT=${2}
         
         echo "${TMP_SPLITER2}"
