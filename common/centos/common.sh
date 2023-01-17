@@ -1347,7 +1347,7 @@ function docker_snap_create_action()
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "([docker_snap_create_action]) Starting make snapshop <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
@@ -1510,6 +1510,378 @@ EOF
 	# 创建完执行
 	echo
 	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
+
+	return $?
+}
+
+# 还原 Docker 快照
+# 参数1：镜像名称，例 browserless/chrome
+# 参数2：还原快照后后执行脚本
+#       参数1：镜像名称，例 browserless/chrome
+#       参数2：快照版本，例 latest/1673604625
+#       参数3：快照类型，例 image/container/dockerfile
+#       参数4：快照来源，例 snapshot/clean，默认snapshot
+# 参数3：快照不存在时执行脚本
+# 参数4：快照存放类别，例 snapshot/clean，默认snapshot
+# 例：
+#   docker_snap_restore_if_choice_action "browserless/chrome" "clean"
+function docker_snap_restore_if_choice_action()
+{
+    # browserless/chrome
+    # local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME="${1}"
+    # browserless_chrome
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME="${1/\//_}"	
+    # snapshot or clean
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE="${4}"
+	# /mountdisk/repo/migrate/clean/browserless_chrome/
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
+    # 可选还原版本合集
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=""
+
+    # 指定存储类型存在判断
+    if [ -n "${4}" ]; then
+        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR="${MIGRATE_DIR}/${4}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
+        if [ ! -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR}" ]; then
+            echo "${TMP_SPLITER2}"
+            echo_text_style "Cannot found 'snapshot' <${1}> typed [${4}] based '${MIGRATE_DIR}', please check"
+            return $?
+        fi
+
+        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR} | cut -d'.' -f1 | uniq)
+        if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+            echo "${TMP_SPLITER2}"
+            echo_text_style "Cannot found 'snapshot version' <${1}> typed [${4}] based '${MIGRATE_DIR}', please check"
+            return $?
+        fi
+    fi
+
+    # 合集操作
+    if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS=""
+		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR} | cut -d'.' -f1 | uniq)
+		fi
+
+        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=""
+		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR} | cut -d'.' -f1 | uniq)
+		fi
+        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | awk '$1=$1' | sort -rV)
+    fi
+    
+	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+		# 去除已存在的容器版本 
+		## browserless/chrome:v1673604625SRC
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER=$(docker images | grep "^${1}" | cut -d' ' -f4 | grep -oP "(?<=^v)[0-9]+(?=([A-Z]+)$)")
+		## 有运行版本存在时
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}/d")
+		fi
+
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+			# 默认版本 /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER=$(echo ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS} | cut -d' ' -f1)
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES="Image,Container,Dockerfile"
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE="Image"
+		
+			# 有版本时，才提供操作
+			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER" "Please sure 'which version' u want to [restore] of the snapshot <${1}>" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
+			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}])" ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES}
+			typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE
+
+			# 快照存储类型已被重新加载
+			if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE}" ]; then
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE=$([[ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}.config.v2.json" ]] && echo "clean" || echo "snapshot")
+			fi
+			
+			docker_snap_restore_action "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE}" "${2}"
+		else
+			echo_text_style "Checked the image of <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}] exists, snapshot restore stoped"
+		fi
+	else
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Cannot found the 'snapshot' <${1}>, based '${MIGRATE_DIR}'"
+
+		if [ -n "${3}" ]; then
+			exec_check_action "${3}" "${1}"
+		fi
+	fi
+
+    return $?
+}
+
+# 还原 Docker 快照
+# 参数1：镜像名称，例 browserless/chrome
+# 参数2：快照版本，例 latest/1673604625
+# 参数3：快照类型，例 image/container/dockerfile
+# 参数4：快照来源，例 snapshot/clean，默认snapshot
+# 参数5：完成后执行脚本，传递参数 1-4
+# 例：
+#   docker_snap_restore_action "browserless/chrome" "1673604625" "container" "clean"
+function docker_snap_restore_action()
+{
+    # browserless/chrome
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME="${1}"
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_VER="${2}"
+
+	typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE="${3:-"image"}"
+    # browserless_chrome
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME="${1/\//_}"
+    # /mountdisk/repo/migrate/snapshot/browserless_chrome/
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR="${MIGRATE_DIR}/${4:-"snapshot"}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}"
+    # local TMP_DOCKER_SNAP_RESTORE_ACTION_LNK_NAME="${1/_//}"
+    # /mountdisk/repo/migrate/snapshot/browserless_chrome/1673604625
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}"
+    
+    # 还原版本
+    local _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="latest"
+
+	# 检测 镜像是否存在，存在则不开启还原行为
+    echo_text_style "Checking the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from docker images"
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS=$(docker images | grep "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}")
+	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" ]; then
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" | grep "v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}")
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG}" ]; then
+			echo_text_style "Checked the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from docker images exists, restore stoped"
+			return $?
+		fi
+	fi
+	    
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}] from snapshot restore"
+    case ${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} in
+        "container")
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRC"
+            zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.gz | docker import - ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+
+            # 容器恢复丢失环境信息，故需要读取容器inspect信息
+            cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} sh -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.env
+        ;;
+        "image")
+            # SRI
+            # _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRI"
+            docker load < ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.img.tar
+        ;;
+        "dockerfile")
+            # ？？？缺少有效反向构建dockefile的操作，故存在bug
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${_TMP_DOCKER_SNAP_RESTORE_ACTION_VER}SRD"
+            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.dockerfile.yml -t ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
+        ;;
+        *)
+            echo
+    esac
+    
+    echo_text_style "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' restored to <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
+
+	exec_check_action "${5}" "${@:1:4}"
+
+    return $?
+}
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像名称，用于检测
+# 参数2：镜像安装/还原后后执行脚本
+# 参数3：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
+# 示例：
+#     soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
+function soft_docker_check_upgrade_setup() 
+{
+	docker_snap_restore_if_choice_action "${1}" "${2}" "docker pull ${1}" "${3}" 
+
+    return $?
+}
+
+# Docker启动执行脚本
+# 参数1：镜像名称，例 browserless/chrome
+# 参数2：启动版本，例 latest/1673604625
+# 参数3：初始启动命令
+# 参数4：初始启动参数
+# 参数5：启动前运行脚本
+#	    参数1：镜像名称
+# 参数6：成功启动后运行脚本
+#	    参数1：启动后的进程ID
+#       参数2：最终启动端口
+#	    参数3：最终启动命令
+#	    参数4：最终启动参数
+function soft_docker_boot_print() 
+{
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME="${1/\//_}"
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_VER="${2}"
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_CMD="${3}"
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${4}"
+	
+	# -P :是容器内部端口随机映射到主机的端口。
+	# -p : 是容器内部端口绑定到指定的主机端口。
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oE '\-p [0-9]+:[0-9]+')
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG}" | cut -d' ' -f2 | cut -d':' -f1)
+    
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS="${5}"
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS="${6}"
+
+    # 启动前执行
+    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS}" "${1}"
+
+	# 启动等待
+	# 参数1：等待端口
+	# 参数2：等待输出
+	function _soft_docker_boot_print_wait()
+	{
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT="${1}"
+		
+		# 指定端口，则等待
+		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT}" ]; then
+			# 等待执行完毕 产生端口
+			exec_sleep_until_not_empty "${2}" "lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT}" 180 3
+			if [ -z "$(lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT})" ]; then
+				echo_text_style "Boot failure, please check"
+				return -1
+			fi
+		fi
+	}
+	
+	# 确认版本: 未指定版本则通过选项来启动
+	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
+		# v1673604625SRC
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS=$(docker ps -a | grep "${1}" | cut -d' ' -f4 | cut -d':' -f2)
+
+		# 排除已启动的运行版本（同一版本限定只能启动一次）
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(docker images | grep "^${1}" | cut -d' ' -f4)
+		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS}" ]; then
+			function _soft_docker_boot_print_filter_vers()
+			{
+				_TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" | sed "/${1}/d")
+			}
+			exec_split_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS}" "_soft_docker_boot_print_filter_vers"
+		fi
+		
+		# 剩余版本提供选择
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS_COUNT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" | wc -w)
+		if [ ${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS_COUNT} -gt 1 ]; then
+			echo "${TMP_SPLITER2}"
+			set_if_choice "_TMP_SOFT_DOCKER_BOOT_PRINT_VER" "Please sure 'which version' u want to boot from snapshot <${1}>" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}"
+		else
+			if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" ]; then
+				_TMP_SOFT_DOCKER_BOOT_PRINT_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}"
+			else
+				echo_text_style "Checked the image of <${1}> no versions less to boot"
+			fi
+		fi
+	fi
+	
+	_TMP_SOFT_DOCKER_BOOT_PRINT_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VER:="latest"}"
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a --no-trunc | grep "${1}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}")
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | cut -d' ' -f1)
+
+	# 确认是否构建新容器
+	## 容器不存在
+    if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Cannot find created container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}], start to build it"
+
+		# 还原容器逻辑，参数优先从此处取
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP "(?<=^v).*(?=SRC$)")
+		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" ]; then
+			echo_text_style "Checked the image of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] typed 'container', start 'change args'(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
+
+			# 如果是容器还原的镜像，启动时需还原依赖缺失部分
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.* | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).*(?=/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}$)")
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH="${MIGRATE_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}"
+
+			# ？？？CMD 是个合并解析的数组，参数多时可能存在bug
+			# _TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.json | jq ".[0].Config.Cmd[0]")    
+			if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.cmd ]; then
+				_TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.cmd)
+			fi
+
+			# ？？？需做参数合并。
+			# 必须指定工作目录，否则会出现（OCI，no such file or directory）
+			# if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json ]; then
+			# 	local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
+			
+			# 	_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
+			# fi
+
+			# if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env ]; then
+			# 	_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} --env-file=${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env"
+			# fi
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
+			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR} --env-file=${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env"
+			echo_text_style "Changed the image of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] boot param, start use args(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"}) to boot it"
+		fi
+
+        # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
+        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run -d --restart always ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
+		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
+			# 启动等待一次
+			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
+
+			echo "${TMP_SPLITER2}"
+			echo_text_style "View the 'update dependency exec'↓:"
+			docker cp ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}:/tmp
+			docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "apt-get update"
+			docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "sh /tmp/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.init.depend.sh"
+			
+			# 停止，后续再启动，预防依赖生效问题
+			echo "${TMP_SPLITER2}"
+			echo_text_style "Starting restart the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}')"
+			docker stop ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
+			docker start ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
+		fi
+    else
+        echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') exists, ignore args&cmd, start boot it"
+        docker start ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
+
+        # 复原后，端口可能改变
+        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(docker port ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | cut -d':' -f2 | awk 'NR==1')
+    fi
+
+	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
+
+	# 端口冲突则不往下走
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_OK=$(docker inspect --format '{{.State.Running}}' ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
+	if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_OK}" == "false" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check"
+		return
+	fi
+	
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container time'↓:"
+    docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "date"
+	
+    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+
+    # 查看日志（config/image）
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container inspect'↓:"
+    docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
+    cat ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container logs'↓:"
+    docker logs ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container folder /tmp'↓:"
+    docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia /tmp/"
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container occupancy rate'↓:"
+    docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
+	
+	# 最后更新一次容器内包
+	echo "${TMP_SPLITER2}"
+	echo_text_style "View the 'container update'↓:"
+	docker exec -u root -w /tmp -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "apt-get update"
+
+    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
+    
+    # 备份当前容器，仅在第一次 	
+    local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
+    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
 
 	return $?
 }
@@ -2874,7 +3246,6 @@ function set_if_choice()
 		return $?
 	}
 
-	typeset -l _TMP_SET_IF_CHOICE_NEW_VAL
 	local _TMP_SET_IF_CHOICE_NEW_VAL=""
 	
 	path_exists_yn_action "${GUM_PATH}" "_TMP_SET_IF_CHOICE_GUM_FUNC" "_TMP_SET_IF_CHOICE_NORMAL_FUNC"	
@@ -2902,6 +3273,7 @@ function exec_if_choice_custom()
 
 	set_if_choice "${1}" "${2}" ${3} "${4}"
 
+	typeset -l _TMP_EXEC_IF_CHOICE_NEW_VAL
 	local _TMP_EXEC_IF_CHOICE_NEW_VAL=`eval echo '$'${1}`
 	if [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
 		if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" = "exit" ]; then
