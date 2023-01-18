@@ -56,27 +56,24 @@ function special_backup_docker()
     # 参数4：1670329246
     function _special_backup_docker_snap_trail()
     {
-        # 镜像ID
-        local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
-
-        # # 删除容器临时文件（例如：.X99-lock）
-        # echo "${TMP_SPLITER3}"
-        # echo_text_style "View the 'container tmp files clear -> /tmp'↓:"
-        # echo_text_style "[before]"
-        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
-        # ## 前几行内容无效，如下 2>/dev/null
-        # #  .
-        # #  ..
-        # docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
-        # echo_text_style "[after]"
-        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        # 删除容器临时文件（例如：.X99-lock）
+        echo "${TMP_SPLITER3}"
+        echo_text_style "View the 'container tmp files clear -> /tmp'↓:"
+        echo_text_style "[before]"
+        docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        ## 前几行内容无效，如下 2>/dev/null
+        #  .
+        #  ..
+        docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
+        echo_text_style "[after]"
+        docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
 
         # 停止容器
         echo "${TMP_SPLITER3}"
         echo_text_style "View the 'container status after stop command now'↓:"
         docker stop ${1}
         echo
-        echo_text_style "[CONTAINER ID][IMAGE][COMMAND][CREATED][STATUS][PORTS][NAMES]"
+		docker ps -a --no-trunc | awk 'NR==1'
         docker ps -a --no-trunc | grep "${1}"
         
         # 删除容器
@@ -88,6 +85,8 @@ function special_backup_docker()
         docker ps -a
         
         # 删除镜像
+        ## 镜像ID
+        local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
         echo "${TMP_SPLITER3}"
         echo_text_style "Remove 'image' <${2}>:↓"
         docker rmi ${2}
@@ -117,9 +116,9 @@ function special_backup_docker()
         echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
     }
 
-    if [ $(echo "${TMP_DOCKER_SETUP_CTNS}") -gt 0 ]; then
+    if [ $(echo "${TMP_DOCKER_SETUP_CTNS}" | wc -l) -gt 0 ]; then
         local TMP_DOCKER_SETUP_BACKUP_CTN_Y_N="Y"
-        confirm_yn_action "TMP_DOCKER_SETUP_BACKUP_CTN_Y_N" "Please sure if u want to [backup] of the <containers>" "_special_backup_docker_backup"
+        confirm_yn_action "TMP_DOCKER_SETUP_BACKUP_CTN_Y_N" "([special_backup_docker]) Please sure if u want to [backup] the <docker containers> to 'snapshot'" "_special_backup_docker_backup"
     fi
   
 	return $?
@@ -192,7 +191,7 @@ function conf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	echo
-    echo_text_style "Configuration <docker>, waiting for a moment"
+    echo_text_style "Starting configuration <docker>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
 	# 开始配置
@@ -227,7 +226,7 @@ function test_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
 
 	echo
-    echo_text_style "Restore <docker> snapshot, waiting for a moment"
+    echo_text_style "Starting restore <docker> snapshot, waiting for a moment"
     echo "${TMP_SPLITER}"
 
     # 普通快照目录    
@@ -247,6 +246,13 @@ function test_docker()
     # 还原已有的docker快照
     ## 输出容器列表（browserless_chrome）
     local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
+
+    # ??? 先删除由于备份产生还原的Commit版
+    echo_text_style "View & remove the 'backuped data exists images' <${1}>'↓:"
+    docker images | awk 'NR==1'
+    docker images | grep "^${1}"
+    docker images | grep "^${1}" | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs docker rmi
+
     exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_if_choice_action"
 
 	return $?
@@ -262,7 +268,7 @@ function boot_docker()
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting <docker>, waiting for a moment"
+    echo_text_style "Starting boot <docker>, waiting for a moment"
     echo "${TMP_SPLITER}"
 
     ## 设置系统管理，开机启动
@@ -314,7 +320,7 @@ function setup_ext_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
 
 	echo
-    echo_text_style "Setup <docker> exts, waiting for a moment"
+    echo_text_style "Starting install <docker> exts, waiting for a moment"
     echo "${TMP_SPLITER}"
 
     # 安装测试镜像
@@ -350,7 +356,6 @@ function setup_ext_docker()
         # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
 
         # 结束
-        echo "${TMP_SPLITER2}"
     }
 
     local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"

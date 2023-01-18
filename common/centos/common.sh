@@ -1061,7 +1061,7 @@ function soft_path_restore_confirm_action()
 	fi
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH="${1}"
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft got some backup path for <${1}>, please sure u want to 'restore still or not'"}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked a 'backup path' for <${1}>, please sure u want to 'restore still or not'"}"
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS=${3}
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
@@ -1340,6 +1340,8 @@ function docker_snap_create_action()
 	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
+	# browserless/chrome
+	local _TMP_DOCKER_SNAP_CREATE_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
 	# browserless_chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
 	# browserless_chrome/1670329246
@@ -1347,7 +1349,7 @@ function docker_snap_create_action()
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${3}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
@@ -1405,23 +1407,45 @@ EOF
 	# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "apt-get update && apt-get -y -qq install bc"
 
 	# 拷贝提取脚本至容器
-	docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
-	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
-	
-	# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
-	echo "#!/bin/bash" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-	docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${3}.init.extract.sh && rm -rf /tmp/${3}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-	grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-	echo "[-]"
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-	rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+	## 如果容器是停止状态，则手动启动容器再继续
+	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Checked the container of <${1}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') is not running, please check by follow state info↓:"
+		docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | jq ".[0].State"
+
+		echo_text_style "Running 'containers'↓:"
+		docker pa -a | awk 'NR==1'
+		docker ps -a | grep "${1}" | cut -d' ' -f1
+
+		echo_text_style "Please <boot the container> then 'press any keys' to go on..."
+		read -e _TMP_DOCKER_SNAP_CREATE
+
+		# 重新加载状态
+		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+	fi
+
+	# 运行时才能拷贝并提取依赖文件
+	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
+		# 拷贝依赖提取脚本至容器
+		docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+		rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+		
+		# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
+		echo "#!/bin/bash" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+		docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${3}.init.extract.sh && rm -rf /tmp/${3}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+		grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+		echo "[-]"
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+		rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+	fi
 
 	# 提取容器启动命令
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting make 'container boot' script"
-	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | cut -d' ' -f7 | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | awk -F' ' '{print $3}' | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
@@ -1461,35 +1485,32 @@ EOF
 		echo "alias dive='${_TMP_DOCKER_SNAP_ALISA_BASE} wagoodman/dive'" >> /etc/bashrc
 		echo
 	fi
+
 	source /etc/bashrc
 	
-	# 将容器打包成镜像
-    local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}"
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'container commit (${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME})'↓:"
-	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
-	### 第一次提交的情况下则做标记：SMI(snap commit init)，备份标记则为SMB(snap commit backup)，还原标记则为SR(Snap restore c/i/d)
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_VCOUNT=$(docker images | grep "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | grep -v "latest" | wc -l)
-	if [ ${_TMP_DOCKER_SNAP_CREATE_SNAP_VCOUNT} -eq 0 ]; then
-		_TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}SMI"
-	else
-		_TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}SMB"
-	fi
-	docker commit -a "unity-special_backup" -m "backup at ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
-
-	echo "${TMP_SPLITER2}"
-	echo_text_style "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>"
+	echo_text_style "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
 	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}
+	
+	# 将容器打包成镜像
+	echo "${TMP_SPLITER2}"
+	echo_text_style "View the 'container commit' <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>([${_TMP_DOCKER_SNAP_CREATE_IMG_VER}] → [${3}])↓:"
+	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
+	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
+	### 还原标记则为SR(Snap restore c/i/d)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COUNT=$(docker images | grep "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^v)[0-9]+(?=SC\w+$)" | wc -l)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COUNT}"
+	docker commit -a "unity-special_backup ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" -m "backup version ${_TMP_DOCKER_SNAP_CREATE_IMG_VER} to ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 
 	echo "${TMP_SPLITER2}"
-	echo_text_style "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>"
+	echo_text_style "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓:"
 	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>'↓:"
+	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
 	## dfimage 部分
-	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
 	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
@@ -1501,8 +1522,8 @@ EOF
 	
 	## imagedf 部分
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>'↓:"
-	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
@@ -1568,17 +1589,25 @@ function docker_snap_restore_if_choice_action()
 		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}" ]; then
 			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR} | cut -d'.' -f1 | uniq)
 		fi
-        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV)
+        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
     fi
     
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
-		# 去除已存在的容器版本 
+		# 去除已存在的容器版本
 		## browserless/chrome:v1673604625SRC
-		local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER=$(docker images | grep "^${1}" | cut -d' ' -f4 | grep -oP "(?<=^v)[0-9]+(?=([A-Z]+)$)")
+		## browserless/chrome:v1673955750SCB 还原备份后本地将初始的latest版本还原至该版
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}' | grep -oP "(?<=^v)[0-9]+(?=\w+$)")
 		## 有运行版本存在时
-		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}" ]; then
-			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}/d")
-			echo_text_style "Checked the image of <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}] exists, version list removed"
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}" ]; then
+			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME="${1}"
+			function _docker_snap_restore_if_choice_action_remove_exists_vers() 
+			{
+				local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER="${1}"
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER}/d")
+				echo_text_style "Checked the image of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER}] exists, version list removed"
+			}
+
+			exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}" "_docker_snap_restore_if_choice_action_remove_exists_vers"
 		fi
 		
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
@@ -1596,6 +1625,8 @@ function docker_snap_restore_if_choice_action()
 
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE="Image"
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES="Image,Container,Dockerfile"
+
+			echo "${TMP_SPLITER2}"
 			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES}"
 			typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE
 
@@ -1606,13 +1637,51 @@ function docker_snap_restore_if_choice_action()
 			
 			docker_snap_restore_action "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE}" "${2}"
 		else
-			echo_text_style "Checked the image of <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_PS_VER}] exists, snapshot restore stoped"
+			echo_text_style "Checked the image of <${1}>, got exists vers ([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}]), snapshot restore stoped"
 		fi
+
+		# ？？？Commit的版本备份再还原data目录后，启动报错。
+		# Checked the image of browserless/chrome:1674055518 exists, version list removed
+		# Checked the image of browserless/chrome:1674054906 exists, version list removed
+		# Checked the image of browserless/chrome, got exists vers (1674055518 1674054906), snapshot restore stoped
+		# ---------------------------------
+		# None image of browserless/chrome version assign, this will set it automatic
+		# Please sure which version u want to boot from snapshot browserless/chrome, by follow keys, then enter it
+		# Choice of 'v1674054906SC0' checked
+		# The image of browserless/chrome boot version set to v1674054906SC0
+		# ---------------------------------
+		# Cannot found created container of browserless/chrome:v1674054906SC0, start to build it
+		# Boot failure, please check
+		# ---------------------------------
+		# Checked the container of browserless/chrome:v1674054906SC0(4cc7f85e5667c00464990d277830a40e62b6724cd80a4d299da7242235ec471b) boot failure, please check by follow state info↓:
+		# {
+		# "Status": "restarting",
+		# "Running": true,
+		# "Paused": false,
+		# "Restarting": true,
+		# "OOMKilled": false,
+		# "Dead": false,
+		# "Pid": 0,
+		# "ExitCode": 1,
+		# "Error": "",
+		# "StartedAt": "2023-01-18T15:34:53.505554276Z",
+		# "FinishedAt": "2023-01-18T15:34:53.551342995Z"
+		# }
+		# [root@cuckoo ~]# docker logs 4cc
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+		# rm: cannot remove '/tmp/.X99-lock': Operation not permitted
+
+
 	else
-		echo "${TMP_SPLITER2}"
 		echo_text_style "Cannot found the 'snapshot' <${1}>, based '${MIGRATE_DIR}'"
 
 		if [ -n "${3}" ]; then
+			echo_text_style "Starting execute scripts '${3}'"
 			exec_check_action "${3}" "${1}"
 		fi
 	fi
@@ -1642,18 +1711,20 @@ function docker_snap_restore_action()
     local _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER=""
 
 	# 检测 镜像是否存在，存在则不开启还原行为
-    echo_text_style "Checking the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from docker images"
+    echo_text_style "Checking the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[${2}] from docker images"
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS=$(docker images | grep "${1}")
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" ]; then
 		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMGS}" | grep "v${2}")
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_IMG}" ]; then
-			echo_text_style "Checked the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from docker images exists, restore stoped"
+			echo_text_style "Checked the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[${2}] from docker images exists, restore stoped"
 			return $?
 		fi
 	fi
-	    
+	
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | xargs echo | grep -oP "(?<=^\[).*(?=\]$)" | awk '$1=$1')  
+
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' of <${1}>:[v${2}] from snapshot restore"
+    echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' from <${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS:-"snapshot restore"}> to <${1}>:[${2}]"
     case ${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} in
         "container")
             _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRC"
@@ -1669,7 +1740,6 @@ function docker_snap_restore_action()
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].Id" | xargs echo | cut -d':' -f2)
 			docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
 			
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | xargs echo | grep -oP "(?<=^\[).*(?=\]$)")
 			if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" ]; then
 				exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" "docker rmi %s"
 			fi
@@ -1756,11 +1826,14 @@ function soft_docker_boot_print()
 	
 	# 确认版本: 未指定版本则通过选项来启动
 	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "None image of <${1}> version assign, this will set it automatic"
+
 		# v1673604625SRC
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS=$(docker ps -a | grep "${1}" | cut -d' ' -f4 | cut -d':' -f2)
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS=$(docker ps -a | grep "${1}" | awk -F' ' '{print $2}' | cut -d':' -f2)
 
 		# 排除已启动的运行版本（同一版本限定只能启动一次）
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(docker images | grep "^${1}" | cut -d' ' -f4)
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}')
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS}" ]; then
 			function _soft_docker_boot_print_filter_vers()
 			{
@@ -1772,7 +1845,6 @@ function soft_docker_boot_print()
 		# 剩余版本提供选择
 		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS_COUNT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" | wc -w)
 		if [ ${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS_COUNT} -gt 1 ]; then
-			echo "${TMP_SPLITER2}"
 			set_if_choice "_TMP_SOFT_DOCKER_BOOT_PRINT_VER" "Please sure 'which version' u want to boot from snapshot <${1}>" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}"
 		else
 			if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" ]; then
@@ -1781,16 +1853,26 @@ function soft_docker_boot_print()
 				echo_text_style "Checked the image of <${1}> no versions less to boot"
 			fi
 		fi
+		
+		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
+			echo_text_style "The image of <${1}> boot version set to [${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]"
+		fi
+	fi
+
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a | grep "${1}")
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'exists containers' <${1}>'↓:"
+		docker ps -a | awk 'NR==1'
+		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}"
 	fi
 	
-    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a --no-trunc | grep "${1}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}")
-    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | cut -d' ' -f1)
-
 	# 确认是否构建新容器
 	## 容器不存在
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | cut -d' ' -f1)
     if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Cannot find created container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}], start to build it"
+		echo_text_style "Cannot found created container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}], start to build it"
 
 		# 还原容器逻辑，参数优先从此处取
 		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP "(?<=^v).*(?=SRC$)")
@@ -1851,19 +1933,33 @@ function soft_docker_boot_print()
 
 	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
 
-	# 端口冲突则不往下走
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_OK=$(docker inspect --format '{{.State.Running}}' ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
-	if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_OK}" == "false" ]; then
+	# 启动状态异常则不往下走
+	# "State": {
+	# 	"Status": "restarting",
+	# 	"Running": true,
+	# 	"Paused": false,
+	# 	"Restarting": true,
+	# 	"OOMKilled": false,
+	# 	"Dead": false,
+	# 	"Pid": 0,
+	# 	"ExitCode": 1,
+	# 	"Error": "",
+	# 	"StartedAt": "2023-01-18T06:56:26.225732513Z",
+	# 	"FinishedAt": "2023-01-18T06:56:26.266309017Z"
+	# }
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
+	if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_STATUS}" != "running" ]; then
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check"
+		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check by follow state info↓:"
+		docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | jq ".[0].State"
 		return
 	fi
-	
+
+	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container time'↓:"
     docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "date"
-	
-    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
 
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
@@ -2021,7 +2117,7 @@ function soft_cmd_check_git_down_action()
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
 
 	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
-	echo_text_style "Starting execute script <${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}>"
+	echo_text_style "Starting execute script (<${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}>)"
 
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 	# echo_text_style '[Command] of <${1}> installed'
@@ -2226,6 +2322,7 @@ function soft_yum_check_upgrade_action()
 	{
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
 
+		echo "${TMP_SPLITER2}"
 		echo_text_style "Starting remove yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}'"
 
 		# 清理安装包，删除空行（cut -d可能带来空行）
@@ -2530,7 +2627,7 @@ function su_bash_channel_exec()
 #   su_bash_env_channel_exec "conda update conda"
 function su_bash_env_channel_exec()
 {
-	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source ~/.bashrc"
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source /etc/bashrc && source ~/.bashrc"
 	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${2}"
 
 	return $?
@@ -3001,7 +3098,7 @@ function set_newer_by_url_list_link_date()
 
 		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT'
 	else
-		echo "Can't check the soft version by link date in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}${reset}'，Some part info"
+		echo "Cannot check the soft version by link date in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}${reset}'，Some part info"
 		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}"
 	fi
 
@@ -3045,7 +3142,7 @@ function set_newer_by_url_list_link_text()
 
 		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS'
 	else
-		echo "Can't check the soft version by link text in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}${reset}'，Some part info"
+		echo "Cannot check the soft version by link text in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}${reset}'，Some part info"
 		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}"
 	fi
 
@@ -3086,7 +3183,7 @@ function set_github_soft_releases_newer_version()
 
 		eval ${1}='$_TMP_GITHUB_SOFT_NEWER_VERS'
 	else
-		echo "Can't check the soft in github repos of '${red}${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}${reset}'，Some part info"
+		echo "Cannot check the soft in github repos of '${red}${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}${reset}'，Some part info"
 		echo "${_TMP_GITHUB_SOFT_NEWER_VERS}"
 	fi
     echo ${TMP_SPLITER}
@@ -3565,7 +3662,7 @@ function confirm_yn_action()
 		echo ""
 
 		if [ -z "${_TMP_CONFIRM_YN_ACTION_Y_N}" ] && [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_VAL}" ]; then
-			echo_text_style "Can't find sure val, set confirm val to '${_TMP_CONFIRM_YN_ACTION_VAR_VAL}'"
+			echo_text_style "Cannot find sure val, set confirm val to '${_TMP_CONFIRM_YN_ACTION_VAR_VAL}'"
 			_TMP_CONFIRM_YN_ACTION_Y_N="${_TMP_CONFIRM_YN_ACTION_VAR_VAL}"
 		fi
 
@@ -4004,13 +4101,13 @@ TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip a | grep inet | grep -v inet6 | grep -v 127
 
 # 本机未有kong_api直接退出执行
 if [ ! -f "/usr/bin/kong_api" ]; then
-	echo "Can't find 'kong_api' command in '/usr/bin/kong_api'，please sure u exec at 'kong host'"
+	echo "Cannot find 'kong_api' command in '/usr/bin/kong_api'，please sure u exec at 'kong host'"
 	return
 fi
 
 # 未定义caddy-host	
 if [ -z "\${TMP_INIT_WEB_SERVICE_CDY_HOST}" ]; then	
-	echo "Can't find 'caddy host' in var defined，please sure which your caddy host"
+	echo "Cannot find 'caddy host' in var defined，please sure which your caddy host"
 	return
 fi
 
@@ -4063,7 +4160,7 @@ TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip a | grep inet | grep -v inet6 | grep -v 127
 
 # 本机未有kong_api直接退出执行
 if [ ! -f "/usr/bin/kong_api" ]; then
-	echo "Can't find 'kong_api' command in '/usr/bin/kong_api'，please sure u exec at 'kong host'"
+	echo "Cannot find 'kong_api' command in '/usr/bin/kong_api'，please sure u exec at 'kong host'"
 	return
 fi
 
