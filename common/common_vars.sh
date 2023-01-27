@@ -56,6 +56,7 @@ LOCAL_TIMESTAMP=`date -d "${LOCAL_TIME}" +%s`
 #---------- DIR ---------- {    
 SETUP_DIR=/opt
 DOCKER_SETUP_DIR=${SETUP_DIR}/docker
+DOCKER_APP_SETUP_DIR=${SETUP_DIR}/docker_apps
 # NVM_PATH=~/.nvm/nvm.sh
 NVM_PATH=${SETUP_DIR}/nvm/nvm.sh
 CURRENT_USER=`whoami`
@@ -83,6 +84,8 @@ DEFAULT_DIR=/home/${CURRENT_USER}/default
 ATT_DIR=${MOUNT_DIR}/etc
 DATA_DIR=${MOUNT_DIR}/data
 LOGS_DIR=${MOUNT_DIR}/logs
+DOCKER_APP_DATA_DIR=${DATA_DIR}/docker_apps
+DOCKER_APP_LOGS_DIR=${LOGS_DIR}/docker_apps
 
 BACKUP_DIR=${MOUNT_DIR}/repo/backup
 COVER_DIR=${MOUNT_DIR}/repo/cover

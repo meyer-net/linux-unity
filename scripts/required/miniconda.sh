@@ -276,7 +276,10 @@ function setup_ext_miniconda()
     setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
     echo_text_style "Plugin 'playwright'@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}
-
+    setup_soft_conda_pip "runlike" "whereis runlike"
+    echo ${TMP_SPLITER2}
+    setup_soft_conda_pip "whaler" "whereis whaler"
+ 
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
     path_not_exists_create "${CONDA_PW_SCRIPTS_DIR}"

@@ -133,14 +133,12 @@ function exchange_softlink()
 {
 	local _TMP_EXCHANGE_SOFT_LINK_CHECK_PATH=${1}
 	local _TMP_EXCHANGE_SOFT_LINK_TRUE_PATH=${2}
-	local _TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE=${3:-}
+	local _TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE=${3}
 
 	if [ -f ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} ]; then
 		local _TMP_EXCHANGE_SOFT_LINK_CHECK_IS_LINK=`ls -il ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} | grep '\->'`
 		if [ -z "${_TMP_EXCHANGE_SOFT_LINK_CHECK_IS_LINK}" ]; then
-			if [ -n "${_TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE}" ]; then
-				eval "${_TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE}"
-			fi
+			exec_check_action "_TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE"
 
 			cp ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} ${_TMP_EXCHANGE_SOFT_LINK_TRUE_PATH} -Rp
 			rm -rf ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH}
@@ -162,8 +160,8 @@ function exchange_softlink()
 # 参数1：需要免密登录的机器
 # 参数2：需要免密登录的用户
 function nopwd_login () {
-    local _TMP_NOPWD_LOGIN_REMOTE_HOST=${1}
-    local _TMP_NOPWD_LOGIN_REMOTE_USER=${2:-"root"}
+    local _TMP_NOPWD_LOGIN_REMOTE_HOST="${1}"
+    local _TMP_NOPWD_LOGIN_REMOTE_USER="${2:-"root"}"
     local _TMP_NOPWD_LOGIN_REMOTE_HOST_PORT=${1:-22}
 
 	if [ -n "${_TMP_NOPWD_LOGIN_REMOTE_HOST}" ]; then
@@ -183,16 +181,16 @@ function nopwd_login () {
 # 参数3：执行脚本
 function action_if_content_not_exists() 
 {
-	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_REGEX=${1}
-	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_PATH=${2}
-	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_ACTION=${3}
+	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_REGEX="${1}"
+	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_PATH="${2}"
 
 	#create group if not exists
 	egrep "${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_REGEX}" ${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_PATH} >& /dev/null
 	if [ $? -ne 0 ]; then
-		if [ -n "${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_ACTION}" ]; then
-			eval "${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_ACTION}"
-		fi
+		# if [ -n "${3}" ]; then
+		# 	eval "${3}"
+		# fi
+		exec_check_action "${3}"
 	fi
 
 	return $?
@@ -245,7 +243,7 @@ function action_if_item_not_exists()
 	done
 	
 	if [ -n "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}" ]; then
-		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION" ${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}
+		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}"
 	else
 		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION"
 	fi
@@ -259,9 +257,9 @@ function action_if_item_not_exists()
 # 参数3：默认目录
 function create_user_if_not_exists() 
 {
-	local _TMP_CREATE_USER_IF_NOT_EXISTS_GROUP=${1}
-	local _TMP_CREATE_USER_IF_NOT_EXISTS_USER=${2}
-	local _TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR=${3}
+	local _TMP_CREATE_USER_IF_NOT_EXISTS_GROUP="${1}"
+	local _TMP_CREATE_USER_IF_NOT_EXISTS_USER="${2}"
+	local _TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR="${3}"
 
 	# local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_DATA=$(id ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 
@@ -360,7 +358,7 @@ function rand_val() {
 # 参数2：指定长度
 #调用：rand_str "TMP_CURR_RAND" 1000 2000
 function rand_str() {
-	local _TMP_RAND_STR_VAR_NAME=${1}
+	local _TMP_RAND_STR_VAR_NAME="${1}"
     local _TMP_RAND_STR_LEN_VAL=${2} 
 	# random-string()
 	# {
@@ -378,7 +376,7 @@ function rand_str() {
 # 参数1：需要存储清除后数据的变量名
 # 参数2：指定清除的字符串，默认空
 function trim_str() {
-	local _TMP_TRIM_STR_VAR_NAME=${1}
+	local _TMP_TRIM_STR_VAR_NAME="${1}"
 	local _TMP_TRIM_STR_VAR_VAL=`eval echo '$'${1}`
     local _TMP_TRIM_STR_CHAR=${2:-"[:space:]"}
 	
@@ -394,7 +392,8 @@ function trim_str() {
 # 参数1：原始路径
 function convert_path () {
 	local _TMP_CONVERT_PATH_SOURCE=`eval echo '$'${1}`
-	local _TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/root@g"`
+	# local _TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/root@g"`
+	local _TMP_CONVERT_PATH_CONVERT_VAL=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE} && pwd -P")
 
 	eval ${1}='$_TMP_CONVERT_PATH_CONVERT_VAL'
 
@@ -442,8 +441,8 @@ function symlink_link_path()
 #      -> 10:User=docker -> 10
 function get_line()
 {
-	local _TMP_GET_LINE_FILE_PATH=${2}
-	local _TMP_GET_LINE_KEY_WORDS=${3}
+	local _TMP_GET_LINE_FILE_PATH="${2}"
+	local _TMP_GET_LINE_KEY_WORDS="${3}"
 
 	local TMP_KEY_WORDS_LINE=`cat ${_TMP_GET_LINE_FILE_PATH} | grep -nE "${_TMP_GET_LINE_KEY_WORDS}" | cut -d':' -f1 | awk NR==1`
 
@@ -461,7 +460,7 @@ function get_line()
 #      curx_line_insert "_TMP_LINE" "/etc/sudoer" "root    ALL=(ALL)       ALL" "docker    ALL=(ALL)       ALL"
 function curx_line_insert()
 {
-	get_line "${1}" "${2}" ${3}
+	get_line "${1}" "${2}" "${3}"
 
 	local _TMP_CURX_LINE_INSERT_CURX_LINE=`eval echo '$'${1}`
 
@@ -486,8 +485,8 @@ function curx_line_insert()
 #      change_service_user "docker" "docker"
 function change_service_user()
 {
-	local _TMP_CHANGE_SERVICE_USER_SNAME=${1}
-	local _TMP_CHANGE_SERVICE_USER_UNAME=${2}
+	# local _TMP_CHANGE_SERVICE_USER_SNAME="${1}"
+	# local _TMP_CHANGE_SERVICE_USER_UNAME="${2}"
 
 	local _TMP_CHANGE_SERVICE_USER_SERVICE_PATH="/usr/lib/systemd/system/${1}.service"
 	local _TMP_CHANGE_SERVICE_USER_SOCKET_PATH="/usr/lib/systemd/system/${1}.socket"
@@ -507,8 +506,8 @@ function change_service_user()
 
 	# 有socket的情况
 	if [ -f ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH} ]; then
-		local _TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP=$(groups ${_TMP_CHANGE_SERVICE_USER_UNAME} | cut -d' ' -f3)
-		sed -i "s@\(SocketUser\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_UNAME}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
+		local _TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP=$(groups ${2} | cut -d' ' -f3)
+		sed -i "s@\(SocketUser\)=.\+@\1=${2}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
 		
 		if [ -n "${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}" ]; then
 			sed -i "s@\(SocketGroup\)=.\+@\1=${_TMP_CHANGE_SERVICE_USER_SOCKET_UGROUP}@g" ${_TMP_CHANGE_SERVICE_USER_SOCKET_PATH}
@@ -516,7 +515,7 @@ function change_service_user()
 	fi
 
 	# 插入用户设置
-	sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}a User=${_TMP_CHANGE_SERVICE_USER_UNAME}" ${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}
+	sed -i "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}a User=${2}" ${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}
 
 	# 重新加载服务配置
     systemctl daemon-reload
@@ -530,7 +529,7 @@ function change_service_user()
 function exec_sleep()
 {
 	local _TMP_EXEC_SLEEP_TIMES=${1}
-	local _TMP_EXEC_SLEEP_ECHO=${2}
+	local _TMP_EXEC_SLEEP_ECHO="${2}"
 
 	function _TMP_EXEC_SLEEP_NORMAL_FUNC() {
 		echo_text_style "${_TMP_EXEC_SLEEP_ECHO}"
@@ -566,9 +565,10 @@ function exec_sleep_until_not_empty()
 	local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX=1
 	for _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX in $(seq ${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS});  
 	do
-		local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_VAL=$(eval "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CHECK_SCRIPTS}")		
-		if [ -z "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_VAL}" ]; then
-			exec_sleep 1 "${1}, take [${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX}/${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS}]s"
+		# local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURR_VAL=$(eval "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CHECK_SCRIPTS}")
+		local _TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURR_VAL=$(exec_check_action "${2}")
+		if [ -z "${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURR_VAL}" ]; then
+			exec_sleep 1 "${1}, take <${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_CURRENT_INDEX}>/[${_TMP_EXEC_SLEEP_UNTIL_NOT_EMPTY_SLEEP_SECONDS}]s"
 		else
 			break
 		fi
@@ -617,14 +617,14 @@ function resolve_unmount_disk () {
 		local _TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT=`fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l`
 
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT} -eq 0 ]; then
-			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk[$((I+1))/${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}] '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' ${red}not format${reset}"
-			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Suggest step："
-			echo "                                Type ${green}n${reset}, ${red}enter${reset}"
-			echo "                                Type ${green}p${reset}, ${red}enter${reset}"
-			echo "                                Type ${green}1${reset}, ${red}enter${reset}"
-			echo "                                Type ${red}enter${reset}"
-			echo "                                Type ${red}enter${reset}"
-			echo "                                Type ${green}w${reset}, ${red}enter${reset}"
+			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
+			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Suggest step："
+			echo_text_style "                                Type ${green}n${reset}, ${red}enter${reset}"
+			echo_text_style "                                Type ${green}p${reset}, ${red}enter${reset}"
+			echo_text_style "                                Type ${green}1${reset}, ${red}enter${reset}"
+			echo_text_style "                                Type ${red}enter${reset}"
+			echo_text_style "                                Type ${red}enter${reset}"
+			echo_text_style "                                Type ${green}w${reset}, ${red}enter${reset}"
 			echo "---------------------------------------------"
 
 			fdisk ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
@@ -635,7 +635,7 @@ function resolve_unmount_disk () {
 			mkfs.ext4 ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
 
 			fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}"
-			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' ${green}formated${reset}"
+			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of <${_TMP_RESOLVE_UNMOUNT_DISK_POINT}> 'formated'"
 	
 			echo "---------------------------------------------"
 		fi
@@ -643,7 +643,7 @@ function resolve_unmount_disk () {
 		# 判断未挂载
 		local _TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT=`df -h | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l`
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT} -eq 0 ]; then
-			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk[$((I+1))/${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}] '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' ${red}no mount${reset}"
+			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [no mount]"
 
 			# 必要判断项
 			# 1：数组为空，检测到所有项都提示
@@ -663,9 +663,9 @@ function resolve_unmount_disk () {
 				mount -a
 		
 				df -h | grep "${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}"
-				echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' ${green}mounted${reset}"
+				echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of <${_TMP_RESOLVE_UNMOUNT_DISK_POINT}> 'mounted'"
 			else
-				echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Path of '${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}' error，the disk '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' ${red}not mount${reset}"
+				echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Path of <${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}> error，the disk '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not mount]"
 			fi
 
 			echo "---------------------------------------------"
@@ -753,24 +753,23 @@ function setup_soft_basic()
 	fi
 
 	local _TMP_SETUP_SOFT_BASIC_CURRENT=`pwd`
-	local _TMP_SETUP_SOFT_BASIC_NAME=${1}
-	local _TMP_SETUP_SOFT_BASIC_FUNC=${2}
+	local _TMP_SETUP_SOFT_BASIC_NAME="${1}"
 
 	local _TMP_SETUP_SOFT_BASIC_NAME_LEN=${#_TMP_SETUP_SOFT_BASIC_NAME}
 	
-	if [ -n "$_TMP_SETUP_SOFT_BASIC_FUNC" ]; then
+	if [ -n "${2}" ]; then
 		local _TMP_SETUP_SOFT_BASIC_SPLITER=""
 
 		fill_right "_TMP_SETUP_SOFT_BASIC_SPLITER" "-" $((_TMP_SETUP_SOFT_BASIC_NAME_LEN+20))
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo "Start to install '${green}${_TMP_SETUP_SOFT_BASIC_NAME}${reset}'"
+		echo_text_style "Start to install <${_TMP_SETUP_SOFT_BASIC_NAME}>"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		$_TMP_SETUP_SOFT_BASIC_FUNC
+		exec_check_action "${2}" "${1}" "${@:3:}"
 
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo "Install '${green}${_TMP_SETUP_SOFT_BASIC_NAME}${reset}' completed"
+		echo_text_style "Install <${_TMP_SETUP_SOFT_BASIC_NAME}> completed"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
 		cd ${_TMP_SETUP_SOFT_BASIC_CURRENT}
@@ -1137,11 +1136,12 @@ function soft_path_restore_confirm_action()
 
 # 软件安装的路径还原创建（还原不存在则创建）
 # 参数1：还原路径
+# 参数2：创建后执行脚本
 # 示例：
 #	   soft_path_restore_confirm_create "/opt/docker"
 function soft_path_restore_confirm_create() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv ${1}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv ${1} && exec_check_action '${2}'" ""
 	return $?
 }
 
@@ -1766,6 +1766,10 @@ function docker_snap_restore_action()
 # Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
 # 参数1：镜像名称，用于检测
 # 参数2：镜像安装/还原后后执行脚本
+#        参数1：镜像名称，例 browserless/chrome
+#        参数2：快照版本，例 latest/1673604625
+#        参数3：快照类型，例 image/container/dockerfile
+#        参数4：快照来源，例 snapshot/clean，默认snapshot
 # 参数3：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
 # 示例：
 #     soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
@@ -1786,8 +1790,9 @@ function soft_docker_check_upgrade_setup()
 # 参数6：成功启动后运行脚本
 #	    参数1：启动后的进程ID
 #       参数2：最终启动端口
-#	    参数3：最终启动命令
-#	    参数4：最终启动参数
+#       参数3：最终启动版本
+#	    参数4：最终启动命令
+#	    参数5：最终启动参数
 function soft_docker_boot_print() 
 {
     local _TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME="${1/\//_}"
@@ -1906,7 +1911,7 @@ function soft_docker_boot_print()
 		fi
 
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
-        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run -d --restart always ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
+        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
 			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
@@ -1958,8 +1963,16 @@ function soft_docker_boot_print()
 	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
 
     echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container user'↓:"
+    docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "whoami"
+
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container time'↓:"
-    docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "date"
+    docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "date"
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'boot info'↓:"
+    su_bash_channel_conda_exec "runlike -p ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}"
 
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
@@ -1984,7 +1997,7 @@ function soft_docker_boot_print()
 	echo_text_style "View the 'container update'↓:"
 	docker exec -u root -w /tmp -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "apt-get update"
 
-    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
+    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
     
     # 备份当前容器，仅在第一次 	
     local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"

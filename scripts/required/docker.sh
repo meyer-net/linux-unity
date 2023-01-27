@@ -361,6 +361,11 @@ function setup_ext_docker()
     local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
     soft_docker_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
     
+    
+    local __TMP_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
+    echo ${__TMP_DIR}
+    # source ${__TMP_DIR}/docker/*.sh
+
 	return $?
 }
 
