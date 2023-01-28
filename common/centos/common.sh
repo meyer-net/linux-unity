@@ -392,8 +392,31 @@ function trim_str() {
 # 参数1：原始路径
 function convert_path () {
 	local _TMP_CONVERT_PATH_SOURCE=`eval echo '$'${1}`
-	# local _TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/root@g"`
-	local _TMP_CONVERT_PATH_CONVERT_VAL=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE} && pwd -P")
+	local _TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_SOURCE}"
+
+	# 文件存在的情况
+	if [ -a "${_TMP_CONVERT_PATH_SOURCE}" ]; then
+		# Linux中第一个字符代表这个文件是目录、文件或链接文件等等。
+		# 当为[ d ]则是目录
+		# 当为[ - ]则是文件；
+		# 若是[ l ]则表示为链接文档(link file)；
+		# 若是[ b ]则表示为装置文件里面的可供储存的接口设备(可随机存取装置)；
+		# 若是[ c ]则表示为装置文件里面的串行端口设备，例如键盘、鼠标(一次性读取装置)。
+		local _TMP_CONVERT_PATH_SOURCE_ATTR=$(ls -l ${_TMP_CONVERT_PATH_SOURCE} | cut -d' ' -f1)
+		case "${_TMP_CONVERT_PATH_SOURCE_ATTR:0:1}" in
+		'd')
+			_TMP_CONVERT_PATH_CONVERT_VAL=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE} && pwd -P")
+		;;
+		*)
+			local _TMP_CONVERT_PATH_SOURCE_DIR=$(dirname ${_TMP_CONVERT_PATH_SOURCE})
+			local _TMP_CONVERT_PATH_SOURCE_FILE=${_TMP_CONVERT_PATH_SOURCE:${#_TMP_CONVERT_PATH_SOURCE_DIR}}
+			local _TMP_CONVERT_PATH_REALLY_DIR=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE_DIR} && pwd -P")
+			_TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_REALLY_DIR}${_TMP_CONVERT_PATH_SOURCE_FILE}"
+		esac
+	else
+		local _TMP_CONVERT_PATH_WHOAMI=$(whoami)
+		_TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/${_TMP_CONVERT_PATH_WHOAMI}@g"`
+	fi
 
 	eval ${1}='$_TMP_CONVERT_PATH_CONVERT_VAL'
 
@@ -762,7 +785,7 @@ function setup_soft_basic()
 
 		fill_right "_TMP_SETUP_SOFT_BASIC_SPLITER" "-" $((_TMP_SETUP_SOFT_BASIC_NAME_LEN+20))
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo_text_style "Start to install <${_TMP_SETUP_SOFT_BASIC_NAME}>"
+		echo_text_style "Starting install <${_TMP_SETUP_SOFT_BASIC_NAME}>"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
@@ -1408,7 +1431,7 @@ EOF
 
 	# 拷贝提取脚本至容器
 	## 如果容器是停止状态，则手动启动容器再继续
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker container inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Checked the container of <${1}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') is not running, please check by follow state info↓:"
@@ -1422,7 +1445,7 @@ EOF
 		read -e _TMP_DOCKER_SNAP_CREATE
 
 		# 重新加载状态
-		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker container inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 	fi
 
 	# 运行时才能拷贝并提取依赖文件
@@ -1444,14 +1467,21 @@ EOF
 
 	# 提取容器启动命令
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting make 'container boot' script"
+    echo_text_style "Starting make 'container boot command' script↓:"
 	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | awk -F' ' '{print $3}' | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting make 'image boot command' script↓:"
+    su_bash_channel_conda_exec "runlike ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.runlike
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.runlike
+	echo "[-]"
+	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.runlike
 	
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting pull 'dockerfile builder'"
+    echo_text_style "Starting pull 'dockerfile builder'↓:"
 	# 判断是否存在dockerfile操作工具
 	# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
 	# 【1】从一个docker镜像生成Dockerfile内容
@@ -1507,8 +1537,21 @@ EOF
 	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+	if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
+		local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
+		if [ -n "$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
+			echo "${TMP_SPLITER2}"
+			echo_text_style "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+			docker cp -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+			echo "[-]"
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile		
+		fi
+	fi
+
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build dfimage yaml' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+	echo_text_style "View the 'build yaml from dfimage' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
 	## dfimage 部分
 	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
 	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
@@ -1522,7 +1565,7 @@ EOF
 	
 	## imagedf 部分
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build image2df yaml' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+	echo_text_style "View the 'build yaml from image2df' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
 	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
 	echo "[-]"
@@ -1750,7 +1793,7 @@ function docker_snap_restore_action()
         "dockerfile")
             # ？？？缺少有效反向构建dockefile的操作，故存在bug
             _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRD"
-            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.dockerfile.yml -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
+            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.Dockerfile -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
         ;;
         *)
             echo
@@ -1870,6 +1913,10 @@ function soft_docker_boot_print()
 		echo_text_style "View the 'exists containers' <${1}>'↓:"
 		docker ps -a | awk 'NR==1'
 		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}"
+
+		if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
+			_TMP_SOFT_DOCKER_BOOT_PRINT_VER="$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | awk -F' ' '{print $2}' | cut -d':' -f2)"
+		fi
 	fi
 	
 	# 确认是否构建新容器
@@ -1882,6 +1929,7 @@ function soft_docker_boot_print()
 		# 还原容器逻辑，参数优先从此处取
 		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP "(?<=^v).*(?=SRC$)")
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" ]; then
+			echo "${TMP_SPLITER2}"
 			echo_text_style "Checked the image of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] typed 'container', start 'change args'(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
 
 			# 如果是容器还原的镜像，启动时需还原依赖缺失部分
@@ -1911,7 +1959,7 @@ function soft_docker_boot_print()
 		fi
 
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
-        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
+        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run -d ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
 			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
@@ -1952,7 +2000,7 @@ function soft_docker_boot_print()
 	# 	"StartedAt": "2023-01-18T06:56:26.225732513Z",
 	# 	"FinishedAt": "2023-01-18T06:56:26.266309017Z"
 	# }
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_STATUS=$(docker inspect --format '{{.State.Status}}' ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_STATUS=$(docker container inspect --format '{{.State.Status}}' ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
 	if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_BOOT_STATUS}" != "running" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check by follow state info↓:"
@@ -1972,7 +2020,7 @@ function soft_docker_boot_print()
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
-    su_bash_channel_conda_exec "runlike -p ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}"
+    su_bash_channel_conda_exec "runlike ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}"
 
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
@@ -2460,7 +2508,7 @@ function while_wget()
 	# _TMP_WHILE_WGET_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_WGET_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_WGET_FILE_DEST_NAME" || echo ${_TMP_WHILE_WGET_FILE_SOUR_NAME})
 	
 	echo "-------------------------------------------------------------------------------------------------------------------"
-	echo "Start to get file from '${red}${_TMP_WHILE_WGET_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_WGET_FILE_DEST_NAME}${reset}'"
+	echo "Starting get file from '${red}${_TMP_WHILE_WGET_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_WGET_FILE_DEST_NAME}${reset}'"
 	echo "-------------------------------------------------------------------------------------------------------------------"
 	echo "${green}Current Dir${reset}：`pwd`"
 	local _TMP_WHILE_WGET_DIST_FILE_EXT=`echo ${_TMP_WHILE_WGET_FILE_DEST_NAME##*.}`	
@@ -2533,7 +2581,7 @@ function while_curl()
 	# _TMP_WHILE_CURL_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_CURL_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_CURL_FILE_DEST_NAME" || echo $_TMP_WHILE_CURL_FILE_NAME)
 	
 	echo "-------------------------------------------------------------------------------------------------------------------------"
-	echo "Start to curl file from '${red}${_TMP_WHILE_CURL_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_CURL_FILE_DEST_NAME}${reset}'"
+	echo "Starting curl file from '${red}${_TMP_WHILE_CURL_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_CURL_FILE_DEST_NAME}${reset}'"
 	echo "-------------------------------------------------------------------------------------------------------------------------"
 	echo "${green}Current Dir${reset}：`pwd`"
 
@@ -2579,14 +2627,14 @@ function while_exec()
 	local _TMP_WHILE_EXEC_FAILURE_SCRIPT=${3}
 
 	echo "${TMP_SPLITER}"
-	echo "Start to exec check script '${green}${_TMP_WHILE_EXEC_CHECK_SCRIPT}${reset}'"
+	echo "Starting exec check script '${green}${_TMP_WHILE_EXEC_CHECK_SCRIPT}${reset}'"
 	local _TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
 	if [ $I -eq 1 ] && [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" == "1" ]; then
 		echo "Script is '${green}running${reset}', exec exit"
 		break
 	fi
 
-	echo "Start to exec script '${green}$_TMP_WHILE_EXEC_SCRIPT${reset}'"
+	echo "Starting exec script '${green}$_TMP_WHILE_EXEC_SCRIPT${reset}'"
 	echo "${TMP_SPLITER}"
 
 	for I in $(seq 99);
@@ -2672,7 +2720,7 @@ function su_bash_channel_conda_exec()
     local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-`whoami`}
 
 	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
-	su_bash_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS})" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
+	su_bash_env_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS})" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
 
 	return $?
 }

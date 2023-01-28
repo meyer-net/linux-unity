@@ -216,6 +216,10 @@ function boot_miniconda()
 	condabin/conda list
 
     echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'env list'↓:"
+	condabin/conda env list
+
+    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'update'↓:"
     condabin/conda update -y conda
     
@@ -273,6 +277,7 @@ function setup_ext_miniconda()
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
+    echo ${TMP_SPLITER2}
     setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
     echo_text_style "Plugin 'playwright'@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}

@@ -26,7 +26,7 @@ function check_libs()
 
 function setup_libs()
 {
-	echo_text_style "Start to init 'public libs'"
+	echo_text_style "Starting init 'public libs'"
 
 	while_wget "--content-disposition http://www.rpmfind.net/linux/dag/redhat/el${MAJOR_VERS}/en/x86_64/dag/RPMS/rpmforge-release-0.5.3-1.el${MAJOR_VERS}.rf.x86_64.rpm" "rpm -ivh rpmforge-release-0.5.3-1.el${MAJOR_VERS}.rf.x86_64.rpm && rpm --import /etc/pki/rpm-gpg/RPM* && yum -y update"
 	

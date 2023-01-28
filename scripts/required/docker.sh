@@ -248,10 +248,10 @@ function test_docker()
     local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
 
     # ??? 先删除由于备份产生还原的Commit版
-    echo_text_style "View & remove the 'backuped data exists images' <${1}>'↓:"
-    docker images | awk 'NR==1'
-    docker images | grep "^${1}"
-    docker images | grep "^${1}" | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs docker rmi
+    # echo_text_style "View & remove the 'backuped data exists images'↓:"
+    # docker images | awk 'NR==1'
+    # docker images | grep -E "v[0-9]+SC[0-9]"
+    # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
 
     exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_if_choice_action"
 
@@ -323,48 +323,46 @@ function setup_ext_docker()
     echo_text_style "Starting install <docker> exts, waiting for a moment"
     echo "${TMP_SPLITER}"
 
-    # 安装测试镜像
-    soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
+    # # 安装测试镜像
+    # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
 
-	# 启动后执行脚本
-    # 参数1：启动后的进程ID
-    # 参数2：最终启动端口
-    # 参数3：最终启动命令
-    # 参数4：最终启动参数
-    function boot_check_browserless_chrome()
-    { 
-        local TMP_SETUP_DOCKER_BC_PS_ID=${1}
-        local TMP_SETUP_DOCKER_BC_PS_PORT=${2}
+	# # 启动后执行脚本
+    # # 参数1：启动后的进程ID
+    # # 参数2：最终启动端口
+    # # 参数3：最终启动命令
+    # # 参数4：最终启动参数
+    # function boot_check_browserless_chrome()
+    # { 
+    #     local TMP_SETUP_DOCKER_BC_PS_ID=${1}
+    #     local TMP_SETUP_DOCKER_BC_PS_PORT=${2}
         
-        echo "${TMP_SPLITER2}"
-        echo_text_style "View the 'container folder /usr/src/app'↓:"
-        docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
+    #     echo "${TMP_SPLITER2}"
+    #     echo_text_style "View the 'container folder /usr/src/app'↓:"
+    #     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
 
-        echo "${TMP_SPLITER2}"
-        echo_text_style "View the 'container visit'↓:"
-        curl -s http://localhost:${TMP_SETUP_DOCKER_BC_PS_PORT}
-        # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
+    #     echo "${TMP_SPLITER2}"
+    #     echo_text_style "View the 'container visit'↓:"
+    #     curl -s http://localhost:${TMP_SETUP_DOCKER_BC_PS_PORT}
+    #     # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
 
-        # # 删除images
-        # docker rmi browserless/chrome
+    #     # # 删除images
+    #     # docker rmi browserless/chrome
         
-        # 删除容器
-        # docker rm -f ${TMP_SETUP_DOCKER_BC_PS_ID}
-        # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} /bin/sh
-        # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
-        # :
-        # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
+    #     # 删除容器
+    #     # docker rm -f ${TMP_SETUP_DOCKER_BC_PS_ID}
+    #     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} /bin/sh
+    #     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
+    #     # :
+    #     # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
 
-        # 结束
-    }
+    #     # 结束
+    # }
 
-    local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
-    soft_docker_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
+    # local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
+    # soft_docker_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
     
-    
-    local __TMP_DIR="$(cd "$(dirname ${BASH_SOURCE[0]})" && pwd)"
-    echo ${__TMP_DIR}
-    # source ${__TMP_DIR}/docker/*.sh
+    local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
+    source ${__TMP_DIR}/docker/*.sh
 
 	return $?
 }

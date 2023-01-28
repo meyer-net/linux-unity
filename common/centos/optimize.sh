@@ -15,7 +15,7 @@ function check_sets()
 
 function optimize_system()
 {
-	echo_text_style "Start to init 'optimize system'"
+	echo_text_style "Starting init 'optimize system'"
 
 	#安装CJSON时用
 	##默认会检测不到lua.h

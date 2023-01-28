@@ -41,7 +41,7 @@ function setup_dc_browserless_chrome() {
         echo_text_style "View the 'source code copy'↓:"
 
         # 拷贝应用目录
-        docker cp ${TMP_SETUP_DOCKER_BLC_PS_ID}:/usr/src/app/* ${1}/
+        docker cp -a ${TMP_SETUP_DOCKER_BLC_PS_ID}:/usr/src/app/* ${1}/
         ls -lia
     }
 
@@ -68,26 +68,27 @@ function formal_dc_browserless_chrome() {
     # 开始标准化
     ## 还原 & 创建 & 迁移
     ### 日志
-    function _formal_dc_browserless_chrome_cp_logs() {
-        echo "${TMP_SPLITER2}"
-        echo_text_style "View the 'logs copy'↓:"
-
-        # 拷贝日志目录
-        docker cp ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp/* ${1}/
-        ls -lia
-    }
-    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
-
-    # ### 数据
-    # function _formal_dc_browserless_chrome_cp_data() {
+    # function _formal_dc_browserless_chrome_cp_logs() {
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'data copy'↓:"
+    #     echo_text_style "View the 'logs copy'↓:"
 
     #     # 拷贝日志目录
-    #     docker cp ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/var/lib/browserless_chrome/* ${1}/
+    #     docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/usr/src/app/logs ${1}/app_output
     #     ls -lia
     # }
-    # soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
+    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
+
+    ### 数据
+    function _formal_dc_browserless_chrome_cp_data() {
+        echo "${TMP_SPLITER2}"
+        echo_text_style "View the 'data copy'↓:"
+
+        # 拷贝日志目录
+        # docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/var/liowserless_chrome/* ${1}/
+        docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/usr/src/app/workspace/* ${1}/
+        ls -lia
+    }
+    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
 
     # ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
     # function _formal_dc_browserless_chrome_cp_etc() {
@@ -95,14 +96,18 @@ function formal_dc_browserless_chrome() {
     #     echo_text_style "View the 'config copy'↓:"
 
     #     # 拷贝日志目录
-    #     docker cp ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/etc/browserless_chrome/* ${1}/
+    #     docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/usr/src/app/config/* ${1}/
+    #     docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/etc/browserless_chrome/* ${1}/
     #     ls -lia
     # }
     # soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "_formal_dc_browserless_chrome_cp_etc"
 
     ## 创建链接规则
     ### 日志
-    path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
+    #### 日志1：无程序自身日志的场景
+	path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}/docker_output/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/${_TMP_DOCKER_SNAP_CREATE_PS_ID}-json.log"
+    #### 日志2：具有内部日志的场景
+    path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}/app_output" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
     ### 数据
     path_not_exists_link "${TMP_DC_BLC_SETUP_DATA_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}"
     ### ETC
@@ -164,8 +169,10 @@ function boot_rebuild_dc_browserless_chrome() {
 
     local TMP_SETUP_DOCKER_SNAP_BLC_ARG_WORKDIR="-w /usr/src/app"
     local TMP_SETUP_DOCKER_SNAP_BLC_ARG_PORTS="-p ${TMP_SETUP_DOCKER_BLC_PS_PORT}:3000"
-    local TMP_SETUP_DOCKER_SNAP_BLC_ARG_MOUNTS="-v ${TMP_DC_BLC_SETUP_DIR}:/usr/src/app -v ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}:/tmp"
-    local TMP_SETUP_DOCKER_SNAP_BLC_ARG_BASIC="-d --restart always ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_WORKDIR} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_PORTS} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_TIME} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_MOUNTS}"
+    #  -v ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/tmp
+    #  -v ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/usr/src/app/logs
+    local TMP_SETUP_DOCKER_SNAP_BLC_ARG_MOUNTS="-v ${TMP_DC_BLC_SETUP_DIR}:/usr/src/app -v ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/tmp"
+    local TMP_SETUP_DOCKER_SNAP_BLC_ARG_BASIC="--restart always ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_WORKDIR} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_PORTS} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_TIME} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_MOUNTS}"
     local TMP_SETUP_DOCKER_SNAP_BLC_ARG_ENVS="-e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7"
     local TMP_SETUP_DOCKER_SNAP_BLC_ARGS="${TMP_SETUP_DOCKER_SNAP_BLC_ARG_BASIC} ${TMP_SETUP_DOCKER_SNAP_BLC_ARG_ENVS}"
 

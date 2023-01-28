@@ -19,7 +19,7 @@ function setup_requriements()
     # change_service_user "docker" "docker"
     # echo "over" 
     # read -e TTTT
-	echo "Start to init ${green}requriements libs${reset}"
+	echo "Starting init ${green}requriements libs${reset}"
     echo "${TMP_SPLITER}"
 
     if [ "${SYS_SETUP_COMMAND}" == "yum" ]; then
