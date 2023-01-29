@@ -81,7 +81,7 @@ function conf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	# echo
-    # echo_text_style "Configuration <nvm>, waiting for a moment"
+    # echo_text_style "Configuration <nvm>, wait for a moment"
     # echo "${TMP_SPLITER}"
 
 	return $?
@@ -107,7 +107,7 @@ function boot_nvm()
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting <nvm>, waiting for a moment"
+    echo_text_style "Starting <nvm>, wait for a moment"
     echo "${TMP_SPLITER}"
 	
 	# 启动及状态检测
@@ -140,7 +140,7 @@ function down_plugin_nvm()
 function setup_plugin_nvm()
 {
 	echo
-    echo_text_style "Starting install the popular 'nodejs vers' for most users, waiting for a moment"
+    echo_text_style "Starting install the popular 'nodejs vers' for most users, wait for a moment"
     echo "${TMP_SPLITER}"
     echo_text_style "View the 'remote list'↓:"
     nvm ls-remote --lts
@@ -234,7 +234,7 @@ function reconf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	echo
-    echo_text_style "[Re configuration] <nvm>, waiting for a moment"
+    echo_text_style "[Re configuration] <nvm>, wait for a moment"
     echo "${TMP_SPLITER}"
 
     # 安装nrm

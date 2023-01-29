@@ -191,7 +191,7 @@ function conf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting configuration <docker>, waiting for a moment"
+    echo_text_style "Starting configuration <docker>, wait for a moment"
     echo "${TMP_SPLITER}"
 
 	# 开始配置
@@ -226,7 +226,7 @@ function test_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
 
 	echo
-    echo_text_style "Starting restore <docker> snapshot, waiting for a moment"
+    echo_text_style "Starting restore <docker> snapshot, wait for a moment"
     echo "${TMP_SPLITER}"
 
     # 普通快照目录    
@@ -268,7 +268,7 @@ function boot_docker()
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting boot <docker>, waiting for a moment"
+    echo_text_style "Starting boot <docker>, wait for a moment"
     echo "${TMP_SPLITER}"
 
     ## 设置系统管理，开机启动
@@ -283,7 +283,7 @@ function boot_docker()
     echo_text_style "View the 'service status'↓:"
     systemctl start docker.service
 
-    exec_sleep 3 "Initing <docker>, waiting for a moment"
+    exec_sleep 3 "Initing <docker>, wait for a moment"
 
     echo "[-]">> logs/boot.log
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
@@ -320,7 +320,7 @@ function setup_ext_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
 
 	echo
-    echo_text_style "Starting install <docker> exts, waiting for a moment"
+    echo_text_style "Starting install <docker> exts, wait for a moment"
     echo "${TMP_SPLITER}"
 
     # # 安装测试镜像

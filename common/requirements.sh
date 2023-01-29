@@ -15,7 +15,7 @@ function check_requriements()
 
 function setup_requriements()
 {
-    # exec_sleep_until_not_empty "Waiting for a moment" "lsof -i:13000" 180 3
+    # exec_sleep_until_not_empty "wait for a moment" "lsof -i:13000" 180 3
     # change_service_user "docker" "docker"
     # echo "over" 
     # read -e TTTT

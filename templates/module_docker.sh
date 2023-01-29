@@ -112,7 +112,7 @@ function boot_dc_$soft_name()
     chkconfig $setup_name on
 	chkconfig --list | grep $setup_name
 	echo
-    echo "Starting $soft_name，Waiting for a moment"
+    echo "Starting $soft_name，wait for a moment"
     echo "--------------------------------------------"
     nohup docker start $setup_name.service > logs/boot.log 2>&1 &
     exec_sleep 5

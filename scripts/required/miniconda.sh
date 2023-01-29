@@ -164,7 +164,7 @@ function conf_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Configuration 'conda packages', waiting for a moment"
+    echo_text_style "Configuration 'conda packages', wait for a moment"
     echo "${TMP_SPLITER}"
 
     # ~/.bashrc 中存在，故不启用
@@ -273,7 +273,7 @@ function setup_ext_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], waiting for a moment"
+    echo_text_style "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], wait for a moment"
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
@@ -399,11 +399,11 @@ EOF
 
     # 测试插件
 	echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
+    echo_text_style "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, waiting for a moment"
+    echo_text_style "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?

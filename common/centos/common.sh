@@ -245,7 +245,7 @@ function action_if_item_not_exists()
 	if [ -n "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}" ]; then
 		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}"
 	else
-		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION"
+		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX}"
 	fi
 
 	return $?
@@ -1157,6 +1157,17 @@ function soft_path_restore_confirm_action()
 	return $?
 }
 
+# 软件安装的路径还原自定义（还原不存在则自定义）
+# 参数1：还原路径
+# 参数2：还原不存在的自定义执行脚本
+# 示例：
+#	   soft_path_restore_confirm_custom "/opt/docker"
+function soft_path_restore_confirm_custom() 
+{
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && exec_check_action '${2}' '${1}'" ""
+	return $?
+}
+
 # 软件安装的路径还原创建（还原不存在则创建）
 # 参数1：还原路径
 # 参数2：创建后执行脚本
@@ -1164,7 +1175,7 @@ function soft_path_restore_confirm_action()
 #	   soft_path_restore_confirm_create "/opt/docker"
 function soft_path_restore_confirm_create() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv ${1} && exec_check_action '${2}'" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv ${1} && exec_check_action '${2}' '${1}'" ""
 	return $?
 }
 
@@ -1586,7 +1597,7 @@ EOF
 #       参数3：快照类型，例 image/container/dockerfile
 #       参数4：快照来源，例 snapshot/clean，默认snapshot
 # 参数3：快照不存在时执行脚本
-# 参数4：快照存放类别，例 snapshot/clean，默认snapshot
+# 参数3：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
 # 例：
 #   docker_snap_restore_if_choice_action "browserless/chrome" "clean"
 function docker_snap_restore_if_choice_action()
@@ -1810,15 +1821,92 @@ function docker_snap_restore_action()
 # 参数1：镜像名称，用于检测
 # 参数2：镜像安装/还原后后执行脚本
 #        参数1：镜像名称，例 browserless/chrome
-#        参数2：快照版本，例 latest/1673604625
-#        参数3：快照类型，例 image/container/dockerfile
-#        参数4：快照来源，例 snapshot/clean，默认snapshot
-# 参数3：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
+#        参数2：镜像版本，例 latest/1673604625
+#        参数3：快照类型（快照有效），例 image/container/dockerfile
+#        参数4：快照来源（快照有效），例 snapshot/clean，默认snapshot
+# 参数3：
 # 示例：
 #     soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
 function soft_docker_check_upgrade_setup() 
 {
-	docker_snap_restore_if_choice_action "${1}" "${2}" "docker pull ${1}" "${3}" 
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG="${1}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG_MARK_NAME="${1/\//_}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SCRIPT=${2}
+	# local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_STORE="${3}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS=$(docker images | grep "^${1}")
+
+	function _soft_docker_check_upgrade_setup_switch_vers()
+	{
+		echo_text_style "Checking the 'versions' of 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>, wait for a moment"
+
+		# /mountdisk/repo/migrate/snapshot/browserless_chrome/
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG_MARK_NAME}"
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS=""
+		if [ -a "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR}" ]; then
+			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS=$(ls ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR} | cut -d'.' -f1 | uniq)
+		fi
+
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS=""
+		# /mountdisk/repo/migrate/clean/browserless_chrome/
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG_MARK_NAME}"
+		if [ -a "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR}" ]; then
+			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS=$(ls ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR} | cut -d'.' -f1 | uniq)
+		fi
+
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_HUB_VERS=$(fetch_docker_hub_release_vers "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}")
+
+		# 打标记，已安装的版本做标注
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS=""
+		function _soft_docker_check_upgrade_setup_switch_vers_combine()
+		{
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP="${1}"
+
+			function _soft_docker_check_upgrade_setup_switch_vers_combine_mark()
+			{
+				if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}" == "${1}" ] || [ "$(echo "${1}" | grep -oP "(?<=^v)[0-9]+(?=\w+$)")" == "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}" ]; then
+					_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}√"
+				fi
+			}
+
+			exec_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" "_soft_docker_check_upgrade_setup_switch_vers_combine_mark"
+
+			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}"
+		}
+		
+		exec_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_HUB_VERS}" "_soft_docker_check_upgrade_setup_switch_vers_combine"
+		_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
+
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}" | grep -v '√' | awk 'NR==1')
+		set_if_choice "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER" "Please sure 'which ver' u want to 'install' of the 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}"
+		
+		# 去标记化版本号
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER}" | grep -oP "(?<=^)[^√]+")
+		if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}" != "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER}" ]; then
+			echo "${TMP_SPLITER2}"
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_REALLY_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" | grep "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}")
+
+			# ？？？重装及备份数据
+			function _soft_docker_check_upgrade_setup_switch_vers_reinstall()
+			{
+				docker_snap_restore_if_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SCRIPT" "docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER} && exec_check_action '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}'"
+			}
+			
+			# 已经存在版本，安装该版本可以走快照
+			confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL" "Checked the image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_REALLY_VER}] was exists, please sure u will [reinstall] 'still or not'" "_soft_docker_check_upgrade_setup_switch_vers_reinstall" "(docker images | awk 'NR==1') && (echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}' | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}')"
+		else
+			docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}
+			exec_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}"
+		fi
+	}
+
+	#  | grep -oP "(?<=^v)[0-9]+(?=\w+$)"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}" | awk -F' ' '{print $2}')
+	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" ]; then
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL="N"
+		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL" "Checked the image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}> was got vers [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS/[[:space:]]/,}], please sure u will [install] 'still or not'" "_soft_docker_check_upgrade_setup_switch_vers" "(docker images | awk 'NR==1') && echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}'"
+	else
+		_soft_docker_check_upgrade_setup_switch_vers
+	fi
 
     return $?
 }
@@ -1960,9 +2048,11 @@ function soft_docker_boot_print()
 
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
         _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run -d ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
+		echo_text_style "Container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') was booted, start to print it"
+
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
-			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
+			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
 
 			echo "${TMP_SPLITER2}"
 			echo_text_style "View the 'update dependency exec'↓:"
@@ -1977,6 +2067,7 @@ function soft_docker_boot_print()
 			docker start ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 		fi
     else
+		echo "${TMP_SPLITER2}"
         echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') exists, ignore args&cmd, start boot it"
         docker start ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 
@@ -1984,7 +2075,7 @@ function soft_docker_boot_print()
         _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(docker port ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | cut -d':' -f2 | awk 'NR==1')
     fi
 
-	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', waiting for a moment"
+	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
 
 	# 启动状态异常则不往下走
 	# "State": {
@@ -2021,11 +2112,23 @@ function soft_docker_boot_print()
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
     su_bash_channel_conda_exec "runlike ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}"
+	
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'working dir ${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}'↓:"
+		docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia ${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}/"
+	fi
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container folder /tmp'↓:"
+    docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia /tmp/"
 
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container inspect'↓:"
-    docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
+    echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
     cat ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
 
     echo "${TMP_SPLITER2}"
@@ -2033,23 +2136,22 @@ function soft_docker_boot_print()
     docker logs ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container folder /tmp'↓:"
-    docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia /tmp/"
-
-    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container occupancy rate'↓:"
     docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
-	
-	# 最后更新一次容器内包
-	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'container update'↓:"
-	docker exec -u root -w /tmp -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "apt-get update"
 
     exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
-    
-    # 备份当前容器，仅在第一次 	
-    local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-    path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+
+	# 区分是否是初始化产生的提取类型容器
+	if [ -n "$(docker ps -a | grep "^${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}")" ]; then
+		# 最后更新一次容器内包
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'container update'↓:"
+		docker exec -u root -w /tmp -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "apt-get update"
+		
+		# 备份当前容器，仅在第一次 	
+		local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
+		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+	fi
 
 	return $?
 }

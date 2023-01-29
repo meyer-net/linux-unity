@@ -149,7 +149,7 @@ function boot_sealos()
 #     chkconfig sealos on
 #     chkconfig --list | grep sealos
 	echo
-    echo "Starting sealos，Waiting for a moment"
+    echo "Starting sealos，wait for a moment"
     echo "--------------------------------------------"
 	nohup bin/sealos > logs/boot.log 2>&1 &
 #     nohup systemctl start sealos.service > logs/boot.log 2>&1 &
