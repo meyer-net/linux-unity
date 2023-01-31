@@ -84,6 +84,7 @@ DEFAULT_DIR=/home/${CURRENT_USER}/default
 ATT_DIR=${MOUNT_DIR}/etc
 DATA_DIR=${MOUNT_DIR}/data
 LOGS_DIR=${MOUNT_DIR}/logs
+DOCKER_APP_ATT_DIR=${ATT_DIR}/docker_apps
 DOCKER_APP_DATA_DIR=${DATA_DIR}/docker_apps
 DOCKER_APP_LOGS_DIR=${LOGS_DIR}/docker_apps
 

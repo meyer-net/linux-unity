@@ -73,14 +73,14 @@ function special_backup_docker()
         echo_text_style "View the 'container status after stop command now'↓:"
         docker stop ${1}
         echo
-		docker ps -a --no-trunc | awk 'NR==1'
-        docker ps -a --no-trunc | grep "${1}"
+		docker ps -a | awk 'NR==1'
+        docker ps -a | grep "^${1}"
         
         # 删除容器
         echo "${TMP_SPLITER3}"
         echo_text_style "Remove 'container' <${2}>([${1}])↓:"
         docker container rm ${1}
-        echo
+        echo "${TMP_SPLITER3}"
         echo_text_style "View the 'surplus containers'↓:"
         docker ps -a
         
@@ -90,8 +90,9 @@ function special_backup_docker()
         echo "${TMP_SPLITER3}"
         echo_text_style "Remove 'image' <${2}>:↓"
         docker rmi ${2}
-        echo
+        echo "${TMP_SPLITER3}"
         echo_text_style "Remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
+        echo "${TMP_SPLITER3}"
         rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
         echo_text_style "View the 'surplus images'↓:"
         docker images

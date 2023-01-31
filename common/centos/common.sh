@@ -234,7 +234,9 @@ function action_if_item_not_exists()
 
 	#create group if not exists
 	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM=""
-	for _TMP_ACTION_IF_ITEM_NOT_EXISTS_CURRENT in ${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ARR[@]}; do
+	local _TMP_ACTION_IF_ITEM_NOT_EXISTS_INDEX=0
+	for _TMP_ACTION_IF_ITEM_NOT_EXISTS_INDEX in ${!_TMP_ACTION_IF_ITEM_NOT_EXISTS_ARR[@]}; do
+		local _TMP_ACTION_IF_ITEM_NOT_EXISTS_CURRENT="${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ARR[${_TMP_ACTION_IF_ITEM_NOT_EXISTS_INDEX}]}"
 		echo "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_CURRENT}" | egrep "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX}" >& /dev/null
 		if [ $? -eq 0 ]; then
 			_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM=${_TMP_ACTION_IF_ITEM_NOT_EXISTS_CURRENT}
@@ -243,9 +245,9 @@ function action_if_item_not_exists()
 	done
 	
 	if [ -n "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}" ]; then
-		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}"
+		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_E_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_ITEM}" ${_TMP_ACTION_IF_ITEM_NOT_EXISTS_INDEX}
 	else
-		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION" "${_TMP_ACTION_IF_ITEM_NOT_EXISTS_VAR_REGEX}"
+		exec_check_action "_TMP_ACTION_IF_ITEM_NOT_EXISTS_CON_N_ACTION"
 	fi
 
 	return $?
@@ -544,6 +546,47 @@ function change_service_user()
     systemctl daemon-reload
 
 	return $?
+}
+
+# 修改JSON参数单项并输出
+# 参数1：JSON内容变量名
+# 参数2：修改的参数节点，例如 .Config.WorkingDir
+# 参数3：修改的参数节点内容
+function change_json_arg_item()
+{
+	local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=`eval echo '$'${1}`
+
+    _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}" | jq "${2}=${3}")
+    
+	eval ${1}='${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}'
+
+    return $?
+}
+
+# 修改JSON参数数组并输出
+# 参数1：JSON内容变量名
+# 参数2：修改的参数节点，例如 .Config.Env
+# 参数3：内容项匹配规则，例如 ^${2}=.*$
+# 参数4：内容项目最终修改值
+function change_json_arg_arr()
+{
+	local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=`eval echo '$'${1}`
+
+	local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR=($(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${2}" | grep -oP "(?<=^  \").*(?=\",*$)"))
+    local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_INDEX=${#_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[@]}
+
+    function change_json_arg_arr_change_index()
+    {
+        _TMP_CHANGE_JSON_ARG_ARR_CHANGE_INDEX=${2}
+    }
+
+    action_if_item_not_exists "${3}" "${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[*]}" "" "change_json_arg_arr_change_index"
+	
+    _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${2}[${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_INDEX}]=\"${4}\"")
+    
+	eval ${1}='${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}'
+
+    return $?
 }
 
 # 执行休眠
@@ -1235,6 +1278,12 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	# DOCKER
+	local _TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME="${1/\//_}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${DOCKER_APP_DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
 
 	# 备份文件	
 	## 获取软链接后的真实路径
@@ -1282,7 +1331,7 @@ function soft_trail_clear()
 		fi
 	done
 	
-	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
+	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]} -gt 0 ]; then
 		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was resolved"
 	else
 		echo_text_style "None 'soft dirs found for trail' in <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
@@ -1310,7 +1359,7 @@ function soft_trail_clear()
 	}
 	
 	# 有记录的情况下才执行
-	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR} -gt 0 ]; then
+	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]} -gt 0 ]; then
 		# 已经进入清理流程，不管选择是否备份。都要执行删除服务
 		function _soft_trail_clear_svr_remove_all()
 		{
@@ -1359,6 +1408,95 @@ function soft_trail_clear()
 	return $?
 }
 
+# 修改DOCKER容器信息
+# 参数1：容器ID
+# 参数2：JSON内容变量名
+# 参数3：修改的参数节点，例 .Config.WorkingDir
+# 参数4：修改的参数节点内容，例 /usr/src/app
+# 示例：
+#       change_docker_container_inspect_arg "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
+function change_docker_container_inspect_arg()
+{
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH})
+    
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2" "${3}" "${4}"
+
+    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2}" | jq > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH}
+
+    return $?
+}
+
+# 修改DOCKER容器环境信息
+# 参数1：容器ID
+# 参数2：环境变量名，例 LANG
+# 参数3：环境变量值，例 C.UTF-8
+# 示例：
+#       change_docker_container_inspect_env "e75f9b427730" "LANG" "C.UTF-8"
+function change_docker_container_inspect_env()
+{
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH})
+    
+	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "${2}=${3}"
+    
+    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH}
+
+    return $?
+}
+
+# 修改DOCKER容器挂载信息
+# 参数1：容器ID
+# 参数2：挂载路径，例 /opt/docker_apps/browserless_chrome/latest
+# 参数3：容器路径 /usr/src/app
+# 示例：
+#       change_docker_container_inspect_mount "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
+function change_docker_container_inspect_mount()
+{
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH})
+	
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH=$(find / -name hostconfig.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH})
+    
+    # {
+    #     "Source": "/etc/localtime",
+    #     "Destination": "/etc/localtime",
+    #     "RW": true,
+    #     "Name": "",
+    #     "Driver": "",
+    #     "Type": "bind",
+    #     "Propagation": "rprivate",
+    #     "Spec": {
+    #       "Type": "bind",
+    #       "Source": "/etc/localtime",
+    #       "Target": "/etc/localtime"
+    #     },
+    #     "SkipMountpointCreation": false
+    # }
+	# 修改 config.v2.json
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST=$(echo ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2} | jq ".MountPoints.\"${3}\"")
+    if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" == "null" ]; then
+        _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST='{ "RW": true, "Name": "", "Driver": "", "Type": "bind", "Propagation": "rprivate", "Spec": { "Type": "bind" }, "SkipMountpointCreation": false }'
+    fi
+
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
+
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
+    
+    # argjson相关参考：https://www.jianshu.com/p/e05a5940f833
+    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
+
+	# 修改 hostconfig.json
+	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.*=${3}$" "${2}:${3}"
+
+	echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
+    
+    return $?
+}
+
 # 创建 docker 快照
 # 参数1：容器ID，例 e75f9b427730
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
@@ -1369,34 +1507,73 @@ function soft_trail_clear()
 function docker_snap_create_action()
 {
 	# 完整的PSID
-	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep ${1} | cut -d' ' -f1)
+	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
+	# 完整的容器inspect
+	local _TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 	# browserless/chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+	# 完整的镜像inspect
+	local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME})
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
 	# browserless_chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
+	local _TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
 	# browserless_chrome/1670329246
-	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_REL_NAME}/${3}
+	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${3}
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
 	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${3}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
+	# 强制检测如果容器非运行状态，则手动启动容器再继续
+	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=""
+	function _docker_snap_create_action_status_check() {
+		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State.Status" | grep -oP "(?<=^\").*(?=\"$)")
+		if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
+			echo "${TMP_SPLITER2}"
+			echo_text_style "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') is not running, please check by follow state info↓:"
+			echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State"
+
+			echo "${TMP_SPLITER3}"
+			echo_text_style "Running 'containers'↓:"
+			docker ps -a | grep "${1}" | cut -d' ' -f1
+
+			echo "${TMP_SPLITER3}"
+			echo_text_style "Please <boot the container> then 'press any keys' to go on..."
+			read -e __TMP_DOCKER_SNAP_CREATE
+
+			# 重新加载状态
+			_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
+			if [ -z "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" ]; then
+				echo_text_style "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') not exists, snap create abord"
+				return -1
+			fi
+
+			# 非启动状态，一直循环下去
+			_docker_snap_create_action_status_check
+		fi
+	}
+
+	_docker_snap_create_action_status_check
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Initialing 'snap create dir':↓"	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
 	# 备份容器信息
-	docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
+	echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
 	docker container export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
 	## 打开后不是标准json格式，先格式化！
 	### :%!python -m json.tool
 	local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
 	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/config.v2.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json
+	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/hostconfig.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json
 
 	# 备份镜像信息
-	docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
+	echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
 	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
 	# 初始化依赖分析(取最后一天时间为起始)
@@ -1441,24 +1618,6 @@ EOF
 	# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "apt-get update && apt-get -y -qq install bc"
 
 	# 拷贝提取脚本至容器
-	## 如果容器是停止状态，则手动启动容器再继续
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker container inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
-		echo "${TMP_SPLITER2}"
-		echo_text_style "Checked the container of <${1}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') is not running, please check by follow state info↓:"
-		docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | jq ".[0].State"
-
-		echo_text_style "Running 'containers'↓:"
-		docker pa -a | awk 'NR==1'
-		docker ps -a | grep "${1}" | cut -d' ' -f1
-
-		echo_text_style "Please <boot the container> then 'press any keys' to go on..."
-		read -e _TMP_DOCKER_SNAP_CREATE
-
-		# 重新加载状态
-		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(docker container inspect --format '{{.State.Status}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-	fi
-
 	# 运行时才能拷贝并提取依赖文件
 	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
 		# 拷贝依赖提取脚本至容器
@@ -1479,7 +1638,8 @@ EOF
 	# 提取容器启动命令
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting make 'container boot command' script↓:"
-	docker ps -a --no-trunc | grep ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | awk -F' ' '{print $3}' | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	# docker ps -a --no-trunc | grep "^${_TMP_DOCKER_SNAP_CREATE_PS_ID}" | awk -F' ' '{print $3}' | grep -oP "(?<=^\").*(?=\"$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
+	echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].Config.Cmd" | grep -oP "(?<=^  \").*(?=\",*$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.cmd
@@ -1785,7 +1945,7 @@ function docker_snap_restore_action()
             zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.gz | docker import - ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
 
             # 容器恢复丢失环境信息，故需要读取容器inspect信息
-            cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | xargs -I {} sh -c 'echo {} | grep "=" | sed -E "s/,$//"' > ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.env
+            cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)" > ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.env
         ;;
         "image")
             _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRI"
@@ -1930,6 +2090,7 @@ function soft_docker_boot_print()
     local _TMP_SOFT_DOCKER_BOOT_PRINT_VER="${2}"
     local _TMP_SOFT_DOCKER_BOOT_PRINT_CMD="${3}"
     local _TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${4}"
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_IMG_GREP=$(docker images | grep "^${1}")
 	
 	# -P :是容器内部端口随机映射到主机的端口。
 	# -p : 是容器内部端口绑定到指定的主机端口。
@@ -1938,9 +2099,6 @@ function soft_docker_boot_print()
     
 	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS="${5}"
 	local _TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS="${6}"
-
-    # 启动前执行
-    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS}" "${1}"
 
 	# 启动等待
 	# 参数1：等待端口
@@ -1960,16 +2118,24 @@ function soft_docker_boot_print()
 		fi
 	}
 	
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a | grep "${1}")
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'exists containers' <${1}>'↓:"
+		docker ps -a | awk 'NR==1'
+		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}"
+	fi
+	
 	# 确认版本: 未指定版本则通过选项来启动
 	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "None image of <${1}> version assign, this will set it automatic"
 
-		# v1673604625SRC
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS=$(docker ps -a | grep "${1}" | awk -F' ' '{print $2}' | cut -d':' -f2)
+		# 返回已存在容器中的版本，例v1673604625SRC
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | awk -F' ' '{print $2}' | cut -d':' -f2)
 
-		# 排除已启动的运行版本（同一版本限定只能启动一次）
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}')
+		# 与镜像对比，排除已存在的版本（同一版本限定只能启动一次）
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VERS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_GREP}" | awk -F' ' '{print $2}')
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_VERS}" ]; then
 			function _soft_docker_boot_print_filter_vers()
 			{
@@ -1986,7 +2152,8 @@ function soft_docker_boot_print()
 			if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}" ]; then
 				_TMP_SOFT_DOCKER_BOOT_PRINT_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}"
 			else
-				echo_text_style "Checked the image of <${1}> no versions less to boot"
+				echo_text_style "Checked the image of <${1}> no versions less to switch for boot"
+				return -1
 			fi
 		fi
 		
@@ -1994,19 +2161,27 @@ function soft_docker_boot_print()
 			echo_text_style "The image of <${1}> boot version set to [${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]"
 		fi
 	fi
-
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a | grep "${1}")
-	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" ]; then
+	
+	# 未指定版本，又找不到需启动的版本，则直接退出
+	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
 		echo "${TMP_SPLITER2}"
-		echo_text_style "View the 'exists containers' <${1}>'↓:"
-		docker ps -a | awk 'NR==1'
-		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}"
+		echo_text_style "None image of <${1}> boot version found, boot exit"
+		return -1
+	fi
 
-		if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
-			_TMP_SOFT_DOCKER_BOOT_PRINT_VER="$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | awk -F' ' '{print $2}' | cut -d':' -f2)"
+	# 启动命令设置
+	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" ]; then
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_GREP}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | awk -F' ' '{print $3}')
+		_TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(docker inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_ID} -f {{".Config.Cmd"}} | grep -oP "(?<=^\[).*(?=\]$)")
+		if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" ]; then
+			echo "${TMP_SPLITER2}"
+			echo_text_style "None boot cmd assign of image <${1}>, this will set it to ('${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}')"
 		fi
 	fi
 	
+    # 启动前执行
+    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS}" "${@}"
+
 	# 确认是否构建新容器
 	## 容器不存在
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | cut -d' ' -f1)
@@ -2047,9 +2222,16 @@ function soft_docker_boot_print()
 		fi
 
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
+		echo_text_style "Booting <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] by args(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
         _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(docker run -d ${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${1}:${_TMP_SOFT_DOCKER_BOOT_PRINT_VER} ${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD})
-		echo_text_style "Container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') was booted, start to print it"
+		if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
+			echo "${TMP_SPLITER2}"
+			echo_text_style "Boot <${1}> failure, exit"
+			return -1
+		fi
 
+		echo_text_style "Booted <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}'), starting print container info"
+		
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
 			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
@@ -2076,7 +2258,7 @@ function soft_docker_boot_print()
     fi
 
 	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
-
+		
 	# 启动状态异常则不往下走
 	# "State": {
 	# 	"Status": "restarting",
@@ -2096,10 +2278,13 @@ function soft_docker_boot_print()
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check by follow state info↓:"
 		docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | jq ".[0].State"
-		return
+		return -1
 	fi
 
-	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+	# 加入到DOCKER基本汇总目录
+	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.config.v2.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/config.v2.json"
+	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.hostconfig.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/hostconfig.json"
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container user'↓:"
@@ -2108,6 +2293,12 @@ function soft_docker_boot_print()
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container time'↓:"
     docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "date"
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'container occupancy rate'↓:"
+    docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
+
+    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
@@ -2128,21 +2319,16 @@ function soft_docker_boot_print()
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container inspect'↓:"
-    echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
-    cat ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${LOCAL_TIMESTAMP}.ctn.inspect.json
+    echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.ctn.inspect.json
+    cat ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.ctn.inspect.json
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container logs'↓:"
     docker logs ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 
-    echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container occupancy rate'↓:"
-    docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
-
-    exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
-
 	# 区分是否是初始化产生的提取类型容器
-	if [ -n "$(docker ps -a | grep "^${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}")" ]; then
+	_TMP_SOFT_DOCKER_BOOT_PRINT_PS=$(docker ps -a --no-trunc | grep "^${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}")
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" ]; then
 		# 最后更新一次容器内包
 		echo "${TMP_SPLITER2}"
 		echo_text_style "View the 'container update'↓:"
