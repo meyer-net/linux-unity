@@ -1,5 +1,5 @@
 packages/*.tar.gz
-*test*
+# *test*
 plain.md
 .vscode/*
 .history/*

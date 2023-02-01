@@ -33,7 +33,7 @@ function set_env_dc_browserless_chrome() {
 # 2-安装软件
 function setup_dc_browserless_chrome() {
     echo "${TMP_SPLITER}"
-    echo_text_style "Installing <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'install', hold on please"
 
     function _setup_dc_browserless_chrome_cp_source() {
         echo "${TMP_SPLITER2}"
@@ -42,11 +42,10 @@ function setup_dc_browserless_chrome() {
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app ${1}
         ls -lia ${1}
-echo "" > ${1}/1.test
     }
 
     # 创建安装目录(纯属为了规范)
-    soft_path_restore_confirm_custom ${TMP_DC_BLC_SETUP_DIR} "_setup_dc_browserless_chrome_cp_source"
+    soft_path_restore_confirm_pcreate ${TMP_DC_BLC_SETUP_DIR} "_setup_dc_browserless_chrome_cp_source"
 
     cd ${TMP_DC_BLC_SETUP_DIR}
 
@@ -62,7 +61,7 @@ function formal_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Formal <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'formal dirs', hold on please"
 
     # 开始标准化
     ## 还原 & 创建 & 迁移
@@ -76,7 +75,7 @@ function formal_dc_browserless_chrome() {
     #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/var/logs/chrome ${1}/app_output
     #     ls -lia ${1}
     # }
-    soft_path_restore_confirm_custom "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
+    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
 
     ### 数据
     function _formal_dc_browserless_chrome_cp_data() {
@@ -90,7 +89,7 @@ function formal_dc_browserless_chrome() {
         docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/workspace ${1}
         ls -lia ${1}
     }
-    soft_path_restore_confirm_custom "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
+    soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
 
     # ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
     # function _formal_dc_browserless_chrome_cp_etc() {
@@ -102,13 +101,14 @@ function formal_dc_browserless_chrome() {
     #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/etc/browserless_chrome ${1}
     #     ls -lia ${1}
     # }
-    # soft_path_restore_confirm_custom "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "_formal_dc_browserless_chrome_cp_etc"
+    # soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "_formal_dc_browserless_chrome_cp_etc"
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_text_style "Creating symlink <browserless/chrome>, wait for a moment"
+    echo_text_style "View the 'symlink create':↓"
     ### 日志
     #### 日志1：所有场景都适用
+    path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
 	path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_PS_ID}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${TMP_DC_BLC_SETUP_PS_ID}/${TMP_DC_BLC_SETUP_PS_ID}-json.log"
     #### 日志2：具有内部日志的场景
     # path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}/app_output" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
@@ -121,20 +121,23 @@ function formal_dc_browserless_chrome() {
     ## 容器非挂载时执行???
         ## 目录调整完修改启动参数
         echo "${TMP_SPLITER2}"
-        echo_text_style "Starting inspect change <${TMP_DC_BLC_SETUP_BOOT_IMG}>:[${TMP_DC_BLC_SETUP_PS_VER}]('${TMP_DC_BLC_SETUP_PS_ID}'), wait for a moment"
+        echo_text_style "Starting 'inspect change', hold on please"
 
         # # 给该一次性容器取个别名，以后就可以直接使用whaler了
         # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
 
         ## 重新启动并构建新容器
         echo "${TMP_SPLITER2}"
-        echo_text_style "Stoping 'all running containers' & docker service, wait for a moment"
-        local TMP_DC_BLC_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1 | xargs docker container stop)
+        echo_text_style "Stoping 'all running containers' & docker service, hold on please"
+        local TMP_DC_BLC_STOP_IDS=$(docker ps -a | grep -v "^CONTAINER ID" | cut -d' ' -f1 | xargs docker container stop)
         echo "${TMP_DC_BLC_STOP_IDS}"
         systemctl stop docker.socket
         systemctl stop docker.service
 
         ## 修改启动参数
+        local TMP_DC_BLC_SETUP_CTN_TMP="/tmp/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_PS_VER}"
+        path_not_exists_create "${TMP_DC_BLC_SETUP_CTN_TMP}"
+        change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_CTN_TMP}" "/tmp"
         change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_DIR}" "/usr/src/app"
         # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/tmp"
         # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/var/logs/chrome"
@@ -143,7 +146,7 @@ function formal_dc_browserless_chrome() {
 
         ## 重启容器
         echo "${TMP_SPLITER2}"
-        echo_text_style "Starting docker service & 'stopped containers' (<${TMP_DC_BLC_STOP_IDS}>), wait for a moment"
+        echo_text_style "Starting docker service & 'stopped containers' (<${TMP_DC_BLC_STOP_IDS}>), hold on please"
         systemctl start docker.service
         echo "${TMP_DC_BLC_STOP_IDS}" | xargs docker start
 
@@ -157,7 +160,7 @@ function conf_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Configuration <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'configuration', hold on please"
 
     # 开始配置
     # ## 授权权限，否则无法写入
@@ -178,27 +181,26 @@ function test_dc_browserless_chrome() {
     # 实验部分
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Test <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'test', hold on please"
 
     return $?
 }
 
 ##########################################################################################################
 
-# 6-1 重建启动软件（此处相当于重新构建了容器）
-function boot_change_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
-
-    return $?
-}
-
-# 6-2 启动后检测脚本
+# 6-启动后检测脚本
 # 参数1：启动后的进程ID
 # 参数2：最终启动端口
 # 参数3：最终启动版本
 # 参数3：最终启动命令
 # 参数4：最终启动参数
 function boot_check_dc_browserless_chrome() {
+    cd ${TMP_DC_BLC_SETUP_DIR}
+    # 实验部分
+
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'boot check', hold on please"
+
     if [ -n "${TMP_DC_BLC_SETUP_PS_PORT}" ]; then
         echo "${TMP_SPLITER2}"
         echo_text_style "View the 'container visit'↓:"
@@ -208,33 +210,33 @@ function boot_check_dc_browserless_chrome() {
 
 ##########################################################################################################
 
-# 下载扩展/驱动/插件
+# 7-1 下载扩展/驱动/插件
 function down_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Download <browserless/chrome> ext, wait for a moment"
+    echo_text_style "Starting 'download exts', hold on please"
 
     return $?
 }
 
-# 安装与配置扩展/驱动/插件
+# 7-2 安装与配置扩展/驱动/插件
 function setup_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Install <browserless/chrome> ext, wait for a moment"
+    echo_text_style "Starting 'install exts', hold on please"
 
     return $?
 }
 
 ##########################################################################################################
 
-# 重新配置（有些软件安装完后需要重新配置）
+# 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_dc_browserless_chrome()
 {
     echo "${TMP_SPLITER}"
-    echo_text_style "Reconfing <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'reconf', hold on please"
 
     # 授权iptables端口访问
     # echo_soft_port ${2}
@@ -262,7 +264,7 @@ function exec_step_browserless_chrome() {
     local TMP_DC_BLC_SETUP_PS_ARGS="${5}"
     
     echo "${TMP_SPLITER}"
-    echo_text_style "Executing step <browserless/chrome>, wait for a moment"
+    echo_text_style "Starting 'execute step' <${TMP_DC_BLC_SETUP_BOOT_IMG}>:[${TMP_DC_BLC_SETUP_PS_VER}]('${TMP_DC_BLC_SETUP_PS_ID}'), hold on please"
 
     set_env_dc_browserless_chrome
 
@@ -294,18 +296,19 @@ function exec_step_browserless_chrome() {
 function boot_build_dc_browserless_chrome() {
     # 初始接受参数
     local TMP_DC_BLC_SETUP_BOOT_IMG="${1}"
+    local TMP_DC_BLC_SETUP_BOOT_IMG_MARK="${1/\//_}"
     local TMP_DC_BLC_SETUP_BOOT_VER="${2}"
     local TMP_DC_BLC_SETUP_BOOT_TYPE="${3}"
     local TMP_DC_BLC_SETUP_BOOT_STORE="${4}"
 
     # 变量覆盖特性，其它方法均可读取
-    local TMP_DC_BLC_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/browserless_chrome/${TMP_DC_BLC_SETUP_BOOT_VER}
+    local TMP_DC_BLC_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
     local TMP_DC_BLC_CURRENT_DIR=$(pwd)
 
     # 统一编排到的路径
-    local TMP_DC_BLC_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/browserless_chrome/${TMP_DC_BLC_SETUP_BOOT_VER}
-    local TMP_DC_BLC_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/browserless_chrome/${TMP_DC_BLC_SETUP_BOOT_VER}
-    local TMP_DC_BLC_SETUP_LNK_ETC_DIR=${ATT_DIR}/browserless_chrome/${TMP_DC_BLC_SETUP_BOOT_VER}
+    local TMP_DC_BLC_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
+    local TMP_DC_BLC_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
+    local TMP_DC_BLC_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
 
     # 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_DC_BLC_SETUP_LOGS_DIR=${TMP_DC_BLC_SETUP_DIR}/logs
@@ -313,18 +316,18 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/etc
 
     echo "${TMP_SPLITER}"
-    echo_text_style "Building container <${TMP_DC_BLC_SETUP_BOOT_IMG}>:[${TMP_DC_BLC_SETUP_BOOT_VER}], wait for a moment"
+    echo_text_style "Starting 'build container' <${TMP_DC_BLC_SETUP_BOOT_IMG}>:[${TMP_DC_BLC_SETUP_BOOT_VER}], hold on please"
     
     # 标准启动参数
-    local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume= /etc/localtime:/etc/localtime"
+    local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
     local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} --restart always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
     
-    local TMP_DC_BLC_SETUP_PRE_ARG_BOOT=""
+    local TMP_DC_BLC_SETUP_PRE_ARG_CMD=""
 
     # 开始启动
-    soft_docker_boot_print "${TMP_DC_BLC_SETUP_BOOT_IMG}" "${TMP_DC_BLC_SETUP_BOOT_VER}" "${TMP_DC_BLC_SETUP_PRE_ARG_BOOT}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
+    soft_docker_boot_print "${TMP_DC_BLC_SETUP_BOOT_IMG}" "${TMP_DC_BLC_SETUP_BOOT_VER}" "${TMP_DC_BLC_SETUP_PRE_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
 
     return $?
 }
@@ -333,9 +336,9 @@ function boot_build_dc_browserless_chrome() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_browserless_chrome() {
-    echo_text_style "Checking install <browserless/chrome>, wait for a moment"
+    echo_text_style "Checking 'install' <${1}>, hold on please"
 
-    # 更新/安装 ？？？暂未提供版本选择
+    # 更新/安装 ？？？暂未提供更新选择
     soft_docker_check_upgrade_setup "${1}" "boot_build_dc_browserless_chrome"
 
     return $?

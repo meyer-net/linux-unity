@@ -1103,7 +1103,7 @@ function path_not_exists_link()
 		exec_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
 	
-    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv `dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}` && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
+    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv $(dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}) && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
 
@@ -1206,6 +1206,17 @@ function soft_path_restore_confirm_action()
 # 示例：
 #	   soft_path_restore_confirm_custom "/opt/docker"
 function soft_path_restore_confirm_custom() 
+{
+	soft_path_restore_confirm_action "${1}" "" "exec_check_action '${2}' '${1}'" ""
+	return $?
+}
+
+# 软件安装的路径还原创建（还原不存在则创建父目录）
+# 参数1：还原路径
+# 参数2：还原不存在的自定义执行脚本
+# 示例：
+#	   soft_path_restore_confirm_custom "/opt/docker"
+function soft_path_restore_confirm_pcreate() 
 {
 	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && exec_check_action '${2}' '${1}'" ""
 	return $?
@@ -1549,7 +1560,7 @@ function docker_snap_create_action()
 			_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 			if [ -z "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" ]; then
 				echo_text_style "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') not exists, snap create abord"
-				return -1
+				return 0
 			fi
 
 			# 非启动状态，一直循环下去
@@ -2063,7 +2074,7 @@ function soft_docker_check_upgrade_setup()
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}" | awk -F' ' '{print $2}')
 	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" ]; then
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL" "Checked the image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}> was got vers [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS/[[:space:]]/,}], please sure u will [install] 'still or not'" "_soft_docker_check_upgrade_setup_switch_vers" "(docker images | awk 'NR==1') && echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}'"
+		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL" "Checked the image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}> was got vers [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS//[[:space:]]/,}], please sure u will [install] 'still or not'" "_soft_docker_check_upgrade_setup_switch_vers" "(docker images | awk 'NR==1') && echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}'"
 	else
 		_soft_docker_check_upgrade_setup_switch_vers
 	fi
@@ -2097,8 +2108,8 @@ function soft_docker_boot_print()
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oE '\-p [0-9]+:[0-9]+')
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG}" | cut -d' ' -f2 | cut -d':' -f1)
     
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS="${5}"
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS="${6}"
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS=${5}
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS=${6}
 
 	# 启动等待
 	# 参数1：等待端口
@@ -2153,7 +2164,7 @@ function soft_docker_boot_print()
 				_TMP_SOFT_DOCKER_BOOT_PRINT_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VERS}"
 			else
 				echo_text_style "Checked the image of <${1}> no versions less to switch for boot"
-				return -1
+				return 0
 			fi
 		fi
 		
@@ -2166,7 +2177,7 @@ function soft_docker_boot_print()
 	if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "None image of <${1}> boot version found, boot exit"
-		return -1
+		return 0
 	fi
 
 	# 启动命令设置
@@ -2227,7 +2238,7 @@ function soft_docker_boot_print()
 		if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
 			echo "${TMP_SPLITER2}"
 			echo_text_style "Boot <${1}> failure, exit"
-			return -1
+			return 0
 		fi
 
 		echo_text_style "Booted <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}'), starting print container info"
@@ -2278,8 +2289,22 @@ function soft_docker_boot_print()
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Checked the container of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]('${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}') boot failure, please check by follow state info↓:"
 		docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | jq ".[0].State"
-		return -1
+		return 0
 	fi
+
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View clear list 'unuse symlink'↓:"
+	# 清空无效软连接
+	function _soft_docker_boot_print_clear_unuse_link()
+	{
+		if [ ! -a ${1} ]; then
+			echo_text_style "${1}"
+			rm -rf ${1}
+		fi
+	}
+
+	find ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
+	find ${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
 
 	# 加入到DOCKER基本汇总目录
 	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
@@ -2298,28 +2323,50 @@ function soft_docker_boot_print()
     echo_text_style "View the 'container occupancy rate'↓:"
     docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
 
+	# 展开Dockerfile，用于后续提取信息
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
+
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}" ]; then
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
+		_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
+	fi
+
     exec_check_action "${_TMP_SOFT_DOCKER_BOOT_PRINT_AFTER_BOOT_SCRIPTS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
+
+	# 修改授权
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'chown conf'↓:"
+		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}"
+
+		function _soft_docker_boot_print_chown_mounts()
+		{
+			docker exec -u root -i ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "${1}"
+		}
+
+		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" | eval "exec_channel_action '_soft_docker_boot_print_chown_mounts'"
+	fi
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
     su_bash_channel_conda_exec "runlike ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}"
 	
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
-	local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
-	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}" ]; then
-		echo "${TMP_SPLITER2}"
-		echo_text_style "View the 'working dir ${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}'↓:"
-		docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia ${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKINGDIR}/"
-	fi
-
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container folder /tmp'↓:"
     docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia /tmp/"
+	
+	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'working dir ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}'↓:"
+		docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -lia ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}/"
+	fi
 
     # 查看日志（config/image）
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container inspect'↓:"
-    echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.ctn.inspect.json
+    echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.ctn.inspect.json
     cat ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.ctn.inspect.json
 
     echo "${TMP_SPLITER2}"
@@ -2336,7 +2383,7 @@ function soft_docker_boot_print()
 		
 		# 备份当前容器，仅在第一次 	
 		local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}_${LOCAL_TIMESTAMP}'"
 	fi
 
 	return $?
