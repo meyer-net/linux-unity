@@ -86,7 +86,8 @@ function formal_dc_browserless_chrome() {
         mv ${TMP_DC_BLC_SETUP_DATA_DIR} ${1}_clean_${LOCAL_TIMESTAMP}
 
         # 拷贝日志目录
-        docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/workspace ${1}
+        mkdir -pv ${1}
+        # docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/workspace ${1}
         ls -lia ${1}
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
@@ -135,9 +136,9 @@ function formal_dc_browserless_chrome() {
         systemctl stop docker.service
 
         ## 修改启动参数
-        local TMP_DC_BLC_SETUP_CTN_TMP="/tmp/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_PS_VER}"
-        path_not_exists_create "${TMP_DC_BLC_SETUP_CTN_TMP}"
-        change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_CTN_TMP}" "/tmp"
+        # local TMP_DC_BLC_SETUP_CTN_TMP="/tmp/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_PS_VER}"
+        # soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_CTN_TMP}"
+        # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_CTN_TMP}" "/tmp"
         change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_DIR}" "/usr/src/app"
         # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/tmp"
         # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/var/logs/chrome"
@@ -148,7 +149,7 @@ function formal_dc_browserless_chrome() {
         echo "${TMP_SPLITER2}"
         echo_text_style "Starting docker service & 'stopped containers' (<${TMP_DC_BLC_STOP_IDS}>), hold on please"
         systemctl start docker.service
-        echo "${TMP_DC_BLC_STOP_IDS}" | xargs docker start
+        echo "${TMP_DC_BLC_STOP_IDS}" | xargs docker container start
 
     return $?
 }
@@ -163,12 +164,7 @@ function conf_dc_browserless_chrome() {
     echo_text_style "Starting 'configuration', hold on please"
 
     # 开始配置
-    # ## 授权权限，否则无法写入
-    # create_user_if_not_exists $setup_owner $setup_owner_group
-    # chown -R $setup_owner:$setup_owner_group ${TMP_DC_BLC_SETUP_DIR}
-    # chown -R $setup_owner:$setup_owner_group ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}
-    # chown -R $setup_owner:$setup_owner_group ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}
-    # chown -R $setup_owner:$setup_owner_group ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}
+    # docker exec docker exec -u root -w /usr/src/app -it ${TMP_DC_BLC_SETUP_PS_ID} sh -c "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js"
 
     return $?
 }
