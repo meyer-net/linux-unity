@@ -41,13 +41,15 @@ function setup_dc_browserless_chrome() {
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app ${1}
+
+        # 查看列表
         ls -lia ${1}
     }
 
     # 创建安装目录(纯属为了规范)
-    soft_path_restore_confirm_pcreate ${TMP_DC_BLC_SETUP_DIR} "_setup_dc_browserless_chrome_cp_source"
+    soft_path_restore_confirm_pcreate ${TMP_DC_BLC_SETUP_WORK_DIR} "_setup_dc_browserless_chrome_cp_source"
 
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     # 开始安装
 
@@ -58,7 +60,7 @@ function setup_dc_browserless_chrome() {
 
 # 3-规格化软件目录格式
 function formal_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'formal dirs', hold on please"
@@ -73,6 +75,8 @@ function formal_dc_browserless_chrome() {
     #     # 拷贝日志目录
     #     # mkdir -pv ${1}/app_output
     #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/var/logs/chrome ${1}/app_output
+    #
+    #     # 查看列表
     #     ls -lia ${1}
     # }
     soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
@@ -82,12 +86,14 @@ function formal_dc_browserless_chrome() {
         echo "${TMP_SPLITER2}"
         echo_text_style "View the 'data copy'↓:"
 
-        # ???临时
-        mv ${TMP_DC_BLC_SETUP_DATA_DIR} ${1}_clean_${LOCAL_TIMESTAMP}
-
         # 拷贝日志目录
-        mkdir -pv ${1}
-        # docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/workspace ${1}
+        # mkdir -pv ${1}
+        docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK} ${1}
+
+        # 移除本地数据目录(挂载)
+        # rm -rf ${TMP_DC_BLC_SETUP_WORK_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
+        
+        # 查看列表
         ls -lia ${1}
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
@@ -98,9 +104,12 @@ function formal_dc_browserless_chrome() {
     #     echo_text_style "View the 'config copy'↓:"
 
     #     # 拷贝日志目录
-    #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/config ${1}
+    #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK} ${1}
     #     docker cp -a ${TMP_DC_BLC_SETUP_PS_ID}:/etc/browserless_chrome ${1}
     #     ls -lia ${1}
+    
+    #     # 移除本地配置目录(挂载)
+    #     rm -rf ${TMP_DC_BLC_SETUP_WORK_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
     # }
     # soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "_formal_dc_browserless_chrome_cp_etc"
 
@@ -118,38 +127,23 @@ function formal_dc_browserless_chrome() {
     ### ETC
     # path_not_exists_link "${TMP_DC_BLC_SETUP_ETC_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}"
 
-    # 预实验部分
-    ## 容器非挂载时执行???
-        ## 目录调整完修改启动参数
-        echo "${TMP_SPLITER2}"
-        echo_text_style "Starting 'inspect change', hold on please"
+    # 预实验部分        
+    ## 目录调整完修改启动参数
+    ## 修改启动参数
+    # local TMP_DC_BLC_SETUP_CTN_TMP="/tmp/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_PS_VER}"
+    # soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_CTN_TMP}"
+    # ${TMP_DC_BLC_SETUP_CTN_TMP:/tmp"
+    # ${TMP_DC_BLC_SETUP_WORK_DIR:/usr/src/app"
+    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/tmp"
+    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/var/logs/chrome"
+    # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
+    # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK}
+    echo "${TMP_SPLITER2}"
+    echo_text_style "Starting 'inspect change', hold on please"
+    change_docker_container_inspect_mounts "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
 
-        # # 给该一次性容器取个别名，以后就可以直接使用whaler了
-        # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
-
-        ## 重新启动并构建新容器
-        echo "${TMP_SPLITER2}"
-        echo_text_style "Stoping 'all running containers' & docker service, hold on please"
-        local TMP_DC_BLC_STOP_IDS=$(docker ps -a | grep -v "^CONTAINER ID" | cut -d' ' -f1 | xargs docker container stop)
-        echo "${TMP_DC_BLC_STOP_IDS}"
-        systemctl stop docker.socket
-        systemctl stop docker.service
-
-        ## 修改启动参数
-        # local TMP_DC_BLC_SETUP_CTN_TMP="/tmp/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_PS_VER}"
-        # soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_CTN_TMP}"
-        # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_CTN_TMP}" "/tmp"
-        change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_DIR}" "/usr/src/app"
-        # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/tmp"
-        # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output" "/var/logs/chrome"
-        change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "/usr/src/app/workspace"
-        # change_docker_container_inspect_mount "${TMP_DC_BLC_SETUP_PS_ID}" "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "/usr/src/app/config
-
-        ## 重启容器
-        echo "${TMP_SPLITER2}"
-        echo_text_style "Starting docker service & 'stopped containers' (<${TMP_DC_BLC_STOP_IDS}>), hold on please"
-        systemctl start docker.service
-        echo "${TMP_DC_BLC_STOP_IDS}" | xargs docker container start
+    # # 给该一次性容器取个别名，以后就可以直接使用whaler了
+    # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
 
     return $?
 }
@@ -158,7 +152,7 @@ function formal_dc_browserless_chrome() {
 
 # 4-设置软件
 function conf_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'configuration', hold on please"
@@ -173,7 +167,7 @@ function conf_dc_browserless_chrome() {
 
 # 5-测试软件
 function test_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
     # 实验部分
 
     echo "${TMP_SPLITER}"
@@ -191,7 +185,7 @@ function test_dc_browserless_chrome() {
 # 参数3：最终启动命令
 # 参数4：最终启动参数
 function boot_check_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
     # 实验部分
 
     echo "${TMP_SPLITER}"
@@ -208,7 +202,7 @@ function boot_check_dc_browserless_chrome() {
 
 # 7-1 下载扩展/驱动/插件
 function down_ext_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'download exts', hold on please"
@@ -218,7 +212,7 @@ function down_ext_dc_browserless_chrome() {
 
 # 7-2 安装与配置扩展/驱动/插件
 function setup_ext_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_DIR}
+    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'install exts', hold on please"
@@ -306,10 +300,18 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
     local TMP_DC_BLC_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_BLC_SETUP_BOOT_IMG_MARK}/${TMP_DC_BLC_SETUP_BOOT_VER}
 
+    # 统一标记名称(存在于安装目录的真实名称)
+    local TMP_DC_BLC_SETUP_WORK_MARK="work"
+    local TMP_DC_BLC_SETUP_LOGS_MARK="logs"
+    local TMP_DC_BLC_SETUP_DATA_MARK="workspace"
+    # local TMP_DC_BLC_SETUP_DATA_MARK="data"
+    local TMP_DC_BLC_SETUP_ETC_MARK="config"
+
     # 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_BLC_SETUP_LOGS_DIR=${TMP_DC_BLC_SETUP_DIR}/logs
-    local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/workspace
-    local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/etc
+    local TMP_DC_BLC_SETUP_WORK_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_WORK_MARK}
+    local TMP_DC_BLC_SETUP_LOGS_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_LOGS_MARK}
+    local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
+    local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'build container' <${TMP_DC_BLC_SETUP_BOOT_IMG}>:[${TMP_DC_BLC_SETUP_BOOT_VER}], hold on please"

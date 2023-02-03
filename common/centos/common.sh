@@ -1461,7 +1461,7 @@ function change_docker_container_inspect_env()
 # 参数2：挂载路径，例 /opt/docker_apps/browserless_chrome/latest
 # 参数3：容器路径 /usr/src/app
 # 示例：
-#       change_docker_container_inspect_mount "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
+#       change_docker_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/latest" "/usr/src/app"
 function change_docker_container_inspect_mount()
 {
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
@@ -1505,6 +1505,59 @@ function change_docker_container_inspect_mount()
 
 	echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
     
+    return $?
+}
+
+
+# 修改DOCKER容器挂载信息
+# 参数1：容器ID
+# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/latest:/usr/src/app 
+# 示例：
+#       change_docker_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/latest:/usr/src/app"
+function change_docker_container_inspect_mounts()
+{
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_ID="${1}"
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
+
+	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" ]; then
+		local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
+		function formal_dc_browserless_chrome_ctn_bind()
+		{
+			# 检测倒未绑定对象
+			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
+			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
+			if [ -z "$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" | grep -o ".*:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}")" ]; then
+				local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DC_STATUS=$(systemctl status docker | grep -oP "(?<=^   Active: )[^\s]+")
+				if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DC_STATUS}" != "inactive" ]; then
+					## 重新启动并构建新容器
+					echo "${TMP_SPLITER2}"
+					echo_text_style "Stoping 'all running containers' (${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}) & docker service, hold on please"
+					echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}" | xargs docker container stop
+					systemctl stop docker.socket
+					systemctl stop docker.service
+				fi
+
+				echo_text_style "Mount pair '${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}' → '${1}:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}'"
+				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+			fi
+		}
+
+		exec_split_action "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
+		
+		## 重启容器
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Starting docker service & 'stopped containers' (<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}>), hold on please"
+		systemctl start docker
+		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}" | xargs docker container start
+
+		# 挂载可能产生等待
+		local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+		if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_PORT}" ]; then
+			exec_sleep_until_not_empty "Starting wait reboot over mounts change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
+		fi
+	fi
+
     return $?
 }
 
@@ -2105,8 +2158,7 @@ function soft_docker_boot_print()
 	
 	# -P :是容器内部端口随机映射到主机的端口。
 	# -p : 是容器内部端口绑定到指定的主机端口。
-    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oE '\-p [0-9]+:[0-9]+')
-    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG}" | cut -d' ' -f2 | cut -d':' -f1)
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oP "(?<=-p )\d+(?=:\d+)")
     
 	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS=${5}
 
@@ -2123,7 +2175,7 @@ function soft_docker_boot_print()
 			exec_sleep_until_not_empty "${2}" "lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT}" 180 3
 			if [ -z "$(lsof -i:${_TMP_SOFT_DOCKER_BOOT_PRINT_WAIT_PS_PORT})" ]; then
 				echo_text_style "Boot failure, please check"
-				return
+				return 0
 			fi
 		fi
 	}
@@ -2213,21 +2265,21 @@ function soft_docker_boot_print()
 			# _TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.json | jq ".[0].Config.Cmd[0]")    
 			if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.cmd ]; then
 				_TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.cmd)
+				_TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(echo ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH})
 			fi
 
-			# ？？？需做参数合并。
 			# 必须指定工作目录，否则会出现（OCI，no such file or directory）
-			# if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json ]; then
-			# 	local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
-			
-			# 	_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
-			# fi
-
-			# if [ -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env ]; then
-			# 	_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} --env-file=${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env"
-			# fi
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.WorkingDir" | grep -oP "(?<=^\").*(?=\"$)")
-			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_ARG} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR} --env-file=${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env"
+			local _TMP_SOFT_DOCKER_ROOT_PRINT_FILE_ENVS=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.ctn.env)
+			local _TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS=$(echo "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_ENVS}" | xargs printf "--env=%s ")
+
+			function _soft_docker_boot_print_filter_args()
+			{
+				action_if_item_not_exists "^${1}$" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "" "_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=\$(echo \"\${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}\" | sed '/${1}/d')"
+			}
+			exec_split_action "${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS}" "_soft_docker_boot_print_filter_args"
+
+			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
 			echo_text_style "Changed the image of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] boot param, start use args(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"}) to boot it"
 		fi
 
@@ -2244,7 +2296,7 @@ function soft_docker_boot_print()
 		
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
-			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
+			# _soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
 
 			echo "${TMP_SPLITER2}"
 			echo_text_style "View the 'update dependency exec'↓:"
@@ -2328,40 +2380,42 @@ function soft_docker_boot_print()
 
 	local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
 	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}" ]; then
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
-		_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "test -f ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
+		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE}" ]; then
+			_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
+		else
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -la /${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_CHOWNS=()
+			function _soft_docker_boot_print_chown_workspace()
+			{
+				local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_DIR=$(echo ${1} | cut -d' ' -f2)
+				if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" != ".." ]; then
+
+					local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT=""
+					if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
+						local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
+						_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKINGDIR}"
+					else
+						_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
+					fi
+				
+					_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[${#_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[@]}]="${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT}"
+				fi
+			}
+
+			echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_PERS}" | eval "exec_channel_action '_soft_docker_boot_print_chown_workspace'"
+			_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_CHOWNS}"
+		fi
+	else
+
 	fi
 	
-	# local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_TMP_PERS=$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "ls -la /tmp | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
-
     exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
+
+	# 重新加载容器inspect
+	_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
 	
 	# 修改授权
-	# if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_TMP_PERS}" ]; then
-	# 	echo "${TMP_SPLITER2}"
-	# 	echo_text_style "View the '/tmp chowns'↓:"
-
-	# 	function _soft_docker_boot_print_chown_tmp()
-	# 	{
-	# 		local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_DIR=$(echo ${1} | cut -d' ' -f2)
-	# 		if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_DIR}" != ".." ]; then
-
-	# 			local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_SCRIPT=""
-	# 			if [ "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_DIR}" == "." ]; then
-	# 				local _TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_PER=$(echo ${1} | cut -d' ' -f1)
-	# 				_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_SCRIPT="chown ${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_PER} /tmp"
-	# 			else
-	# 				_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_SCRIPT="chown -R ${1}"
-	# 			fi
-			
-	# 			echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_SCRIPT}"
-	# 			docker exec -u root -i -w /tmp ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "${_TMP_SOFT_DOCKER_BOOT_PRINT_CHOWN_TMP_SCRIPT}"
-	# 		fi
-	# 	}
-
-	# 	echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_TMP_PERS}" | eval "exec_channel_action '_soft_docker_boot_print_chown_tmp'"
-	# fi
-	
 	if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "View the 'dockerfile chowns'↓:"
@@ -2373,15 +2427,15 @@ function soft_docker_boot_print()
 		}
 
 		echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" | eval "exec_channel_action '_soft_docker_boot_print_chown_mounts'"
+		
+		# 重启容器
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'restart'↓:"
+		docker container restart ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
+
+		# 二次等待
+		_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Rebooting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' over chown mounts, wait for a moment"
 	fi
-
-	# 重启容器
-	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'restart'↓:"
-	docker container restart ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
-
-	# 二次等待
-	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
