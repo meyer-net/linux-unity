@@ -2406,8 +2406,6 @@ function soft_docker_boot_print()
 			echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_PERS}" | eval "exec_channel_action '_soft_docker_boot_print_chown_workspace'"
 			_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_WORKSPACE_CHOWNS}"
 		fi
-	else
-
 	fi
 	
     exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}"
