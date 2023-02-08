@@ -336,8 +336,8 @@ function boot_build_dc_browserless_chrome() {
 function check_setup_dc_browserless_chrome() {
     echo_text_style "Checking 'install' <${1}>, hold on please"
 
-    # 更新/安装 ？？？暂未提供更新选择
-    soft_docker_check_upgrade_setup "${1}" "boot_build_dc_browserless_chrome"
+    # 重装/更新/安装
+    soft_docker_check_upgrade_action "${1}" "boot_build_dc_browserless_chrome"
 
     return $?
 }

@@ -48,52 +48,55 @@ function set_env_docker()
 function special_backup_docker()
 {
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting create the 'containers snapshop' of soft <docker>"
+    echo_text_style "Starting 'create' the 'containers snapshop' of soft <docker>"
 
     # 参数1：e75f9b427730
     # 参数2：browserless/chrome:latest
     # 参数3：/mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
-    # 参数4：1670329246
+    # 参数4：latest_1670329246
     function _special_backup_docker_snap_trail()
     {
+        # 镜像ID
+        local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+
         # 删除容器临时文件（例如：.X99-lock）
         echo "${TMP_SPLITER3}"
         echo_text_style "View the 'container tmp files clear -> /tmp'↓:"
-        echo_text_style "[before]"
+        echo_text_style "[before]:"
         docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
         ## 前几行内容无效，如下 2>/dev/null
         #  .
         #  ..
         docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
-        echo_text_style "[after]"
+        echo_text_style "[after]:"
         docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
 
         # 停止容器
         echo "${TMP_SPLITER3}"
         echo_text_style "View the 'container status after stop command now'↓:"
         docker stop ${1}
-        echo
+        echo "[-]"
 		docker ps -a | awk 'NR==1'
-        docker ps -a | grep "^${1}"
+        docker ps -a | grep "^${1:0:12}"
         
         # 删除容器
         echo "${TMP_SPLITER3}"
-        echo_text_style "Remove 'container' <${2}>([${1}])↓:"
+        echo_text_style "Starting remove 'container' <${2}>([${1}])↓:"
         docker container rm ${1}
         echo "${TMP_SPLITER3}"
         echo_text_style "View the 'surplus containers'↓:"
         docker ps -a
         
         # 删除镜像
-        ## 镜像ID
-        local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
         echo "${TMP_SPLITER3}"
-        echo_text_style "Remove 'image' <${2}>:↓"
+        echo_text_style "Starting remove 'image' <${2}>:↓"
         docker rmi ${2}
+
         echo "${TMP_SPLITER3}"
-        echo_text_style "Remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
-        echo "${TMP_SPLITER3}"
+        echo_text_style "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
         rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
+
+        echo "${TMP_SPLITER3}"
         echo_text_style "View the 'surplus images'↓:"
         docker images
     }
@@ -130,6 +133,9 @@ function special_backup_docker()
 # 2-安装软件
 function setup_docker()
 {
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'install', hold on please"
+
     # 预先删除运行时文件 
     rm -rf /run/containerd/containerd.sock
 
@@ -138,7 +144,11 @@ function setup_docker()
 
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_DIR}"
-    	
+
+	cd ${TMP_DOCKER_SETUP_DIR}
+    
+    # 开始安装
+
 	return $?
 }
 
@@ -149,6 +159,9 @@ function formal_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'formal dirs', hold on please"
+
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
     
@@ -165,8 +178,8 @@ function formal_docker()
 	## 数据
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
-    # soft_path_restore_confirm_action "/etc/docker"
-    soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
+    ## soft_path_restore_confirm_action "/etc/docker"
+    # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
 
 	# 创建链接规则
 	## 日志
@@ -174,7 +187,7 @@ function formal_docker()
 	# ## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
-    path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "/etc/docker"
+    # path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "/etc/docker"
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
@@ -192,8 +205,8 @@ function conf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting configuration <docker>, wait for a moment"
     echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'configuration' <docker>, wait for a moment"
 
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
@@ -208,7 +221,7 @@ function conf_docker()
 	chown -R docker:docker ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
-	chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
+	# chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
 
     # 启动服务
     systemctl start docker.service
@@ -226,9 +239,8 @@ function test_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-	echo
-    echo_text_style "Starting restore <docker> snapshot, wait for a moment"
     echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'restore' <docker> snapshot, wait for a moment"
 
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
@@ -268,9 +280,8 @@ function boot_docker()
 
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
-	echo
-    echo_text_style "Starting boot <docker>, wait for a moment"
     echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'boot' <docker>, wait for a moment"
 
     ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info'↓:"
@@ -320,9 +331,8 @@ function setup_ext_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-	echo
-    echo_text_style "Starting install <docker> exts, wait for a moment"
     echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'install' <docker> exts, wait for a moment"
 
     # # 安装测试镜像
     # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
@@ -364,6 +374,8 @@ function setup_ext_docker()
     
     local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
     source ${__TMP_DIR}/docker/*.sh
+
+    echo_text_style "Install <docker> exts completed"
 
 	return $?
 }
@@ -420,6 +432,7 @@ function check_setup_docker()
     local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data
 	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
 
+    # 重装/更新/安装
     soft_${SYS_SETUP_COMMAND}_check_upgrade_action "docker" "exec_step_docker" "yum -y update docker"
 
 	return $?

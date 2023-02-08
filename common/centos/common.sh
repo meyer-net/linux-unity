@@ -390,7 +390,7 @@ function trim_str() {
 	return $?
 }
 
-#转换路径
+# 转换路径
 # 参数1：原始路径
 function convert_path () {
 	local _TMP_CONVERT_PATH_SOURCE=`eval echo '$'${1}`
@@ -453,6 +453,56 @@ function symlink_link_path()
 	done
 
 	eval ${1}='$_TMP_SYMLINK_TRUE_PATH_TMP'
+
+	return $?
+}
+
+# 将DIRS转换为实际目录
+# 参数1：结果绑定变量名，输出数组字符串
+# 参数2：数组字符串
+# 参数3：非真实链接时执行脚本，例如 rm -rf %s
+function convert_dirs_truthful_action()
+{
+	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR=(${2})
+	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR=()
+
+	for _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX in ${!_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[@]};  
+	do
+		# 指定链接
+		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX}]}"
+
+		# 真实链接
+		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}"
+		symlink_link_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR"
+
+		# 如果数组中不存在指定链接，则添加
+		# local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX=""
+		function _convert_dirs_truthful_action_record_rel_arr()
+		{
+			if [ -a ${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR} ]; then
+				# 绝对链接
+				local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR=${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}
+				convert_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR"
+
+				# if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}" ]; then
+				# 	_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX="|"
+				# fi
+
+				echo_text_style "Record really dir of [${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}], marked '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}' -> '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}'"
+				_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[${#_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]}]="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}"
+			fi
+		}
+		
+		action_if_item_not_exists "^${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}$" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" "_convert_dirs_truthful_action_record_rel_arr"
+
+		# 如果是软链接，直接删除
+		if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}" ]; then
+			exec_check_action "${3}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}"
+		fi
+	done
+	
+	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
+	eval ${1}='$_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS'
 
 	return $?
 }
@@ -810,7 +860,7 @@ function gen_nginx_starter()
 }
 
 #安装软件基础
-# 参数1：软件安装名称
+# 参数1：软件安装打印名称
 # 参数2：软件安装需调用的函数
 function setup_soft_basic()
 {
@@ -818,27 +868,32 @@ function setup_soft_basic()
 		return $?
 	fi
 
-	local _TMP_SETUP_SOFT_BASIC_CURRENT=`pwd`
-	local _TMP_SETUP_SOFT_BASIC_NAME="${1}"
+	local _TMP_SETUP_SOFT_BASIC_CURRENT_DIR=`pwd`
+	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME="${1}"
+	typeset 
 
-	local _TMP_SETUP_SOFT_BASIC_NAME_LEN=${#_TMP_SETUP_SOFT_BASIC_NAME}
+	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME_LEN=${#_TMP_SETUP_SOFT_BASIC_PRINT_NAME}
 	
 	if [ -n "${2}" ]; then
 		local _TMP_SETUP_SOFT_BASIC_SPLITER=""
 
-		fill_right "_TMP_SETUP_SOFT_BASIC_SPLITER" "-" $((_TMP_SETUP_SOFT_BASIC_NAME_LEN+20))
+		fill_right "_TMP_SETUP_SOFT_BASIC_SPLITER" "-" $((_TMP_SETUP_SOFT_BASIC_PRINT_NAME_LEN+20))
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo_text_style "Starting install <${_TMP_SETUP_SOFT_BASIC_NAME}>"
+		echo_text_style "Starting 'install' <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}>"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		exec_check_action "${2}" "${1}" "${@:3:}"
+		echo_text_style "Starting 'execute' scripts('${2}'), args('${1}')"
+		
+		local _TMP_SETUP_SOFT_BASIC_INSTALL_NAME="${1}"
+		typeset -l _TMP_SETUP_SOFT_BASIC_INSTALL_NAME
+		exec_check_action "${2}" "${_TMP_SETUP_SOFT_BASIC_INSTALL_NAME}" "${@:3:}"
 
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo_text_style "Install <${_TMP_SETUP_SOFT_BASIC_NAME}> completed"
+		echo_text_style "Install <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}> completed"
 		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
 
-		cd ${_TMP_SETUP_SOFT_BASIC_CURRENT}
+		cd ${_TMP_SETUP_SOFT_BASIC_CURRENT_DIR}
 	fi
 
 	return $?
@@ -1153,7 +1208,7 @@ function soft_path_restore_confirm_action()
 				
 				# 直接覆盖，进cover
 				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style 'Dir of <%s> backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style \"Dir of '%s' backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT="${1}"
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT}"
 
@@ -1170,7 +1225,7 @@ function soft_path_restore_confirm_action()
 			function _soft_path_restore_confirm_action_restore_choice_force_exec()
 			{
 				# 移动到备份，再覆盖
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
 				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
@@ -1266,6 +1321,101 @@ function soft_path_restore_confirm_swap()
 	return $?
 }
 
+
+# 软件目录痕迹清理与备份
+# 参数1：软件名称
+# 参数2：需要清理的目录（数组字符串）
+# 参数3：目录最终清理清理前执行脚本
+# 参数4：是否强制删除（Y/N），强制删除则不提醒，默认N
+# 示例：
+#     dirs_trail_clear "docker" "_[*]" "echo 1" "N"
+function dirs_trail_clear() 
+{
+	local _TMP_DIRS_TRAIL_CLEAR_NAME="${1}"	
+	local _TMP_DIRS_TRAIL_CLEAR_MARK_NAME="${_TMP_DIRS_TRAIL_CLEAR_NAME/\//_}"	
+	local _TMP_DIRS_TRAIL_CLEAR_SOURCE_DIR_ARR=(${2})
+	typeset -u _TMP_DIRS_TRAIL_CLEAR_FORCE
+	local _TMP_DIRS_TRAIL_CLEAR_FORCE=${4:-"N"}
+	
+	# 备份文件
+	## 获取软链接后的真实路径
+	### Record really dir of </mountdisk/data/docker> from source link </mountdisk/data/docker -> /var/lib/docker>
+	### Checked dir of </var/lib/docker> is a symlink for really dir </mountdisk/data/docker>, sys deleted.
+	### Record really dir of </run/docker> from source link </var/run/docker -> /var/run/docker>
+	### Record really dir of </etc/docker> from source link </etc/docker -> /etc/docker>
+	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
+	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
+	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
+	echo "${TMP_SPLITER3}"
+	echo_text_style "Starting 'resolve the dirs' of soft <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+
+	function _dirs_trail_clear_remove_sym_dir()
+	{
+		echo_text_style "'|'Checked a really dir <${2}>, symlink of '${1}' was deleted."
+		echo 
+		rm -rf ${1}
+	}
+
+	# 转换为真实目录，防止不识别
+	local _TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS=""
+	convert_dirs_truthful_action "_TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS" "${_TMP_DIRS_TRAIL_CLEAR_SOURCE_DIR_ARR[*]}" "_dirs_trail_clear_remove_sym_dir"
+	local _TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR=(${_TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS})
+	
+	if [ ${#_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[@]} -gt 0 ]; then
+		echo_text_style "The 'soft dirs' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was resolved"
+	else
+		echo_text_style "None 'soft dirs found for trail' in <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+	fi
+
+	# 备份 && 删除文件
+	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
+	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
+	local _TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Backup dir <%s> not found'"
+	# local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_DIRS_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
+	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
+	function _dirs_trail_clear_exec_backup()
+	{
+		local _TMP_DIRS_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_DIRS_TRAIL_CLEAR_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
+
+		local _TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT="${1}"
+		exec_text_printf "_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT" "${_TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT}"
+		local _TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT="${1}"
+		exec_text_printf "_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT" "${_TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT}"
+
+		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
+		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
+		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_NOTICE}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
+	}
+	
+	# 有记录的情况下才执行
+	if [ ${#_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[@]} -gt 0 ]; then
+		echo "${TMP_SPLITER3}"
+		echo_text_style "Starting 'trail' the soft dirs of <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+		if [ "${_TMP_DIRS_TRAIL_CLEAR_FORCE}" == "N" ]; then
+			## 具备特殊性质的备份，优先执行
+			local _TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_DIRS_TRAIL_CLEAR_MARK_NAME}"
+			if [ "$(type -t ${_TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
+				echo "${TMP_SPLITER3}"
+				echo_text_style "Starting 'exec' the 'soft special func' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+				exec_check_action "_TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_DIRS_TRAIL_CLEAR_NAME}"
+				echo_text_style "The 'soft special func' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was executed"
+			fi
+
+			exec_check_action "${3}" "${1}"
+
+			exec_split_action "${_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[*]}" "_dirs_trail_clear_exec_backup"
+		else
+			exec_check_action "${3}" "${1}"
+
+			exec_split_action "${_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[*]}" "${_TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT}"
+		fi
+
+		echo_text_style "The 'soft dirs trail' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was executed"
+	fi
+
+	return $?
+}
+
 # 软件安装目录痕迹清理与备份
 # 参数1：软件名称名称
 # 参数2：是否强制删除（Y/N），强制删除则不提醒，默认N
@@ -1274,11 +1424,7 @@ function soft_path_restore_confirm_swap()
 function soft_trail_clear() 
 {
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_NAME=${1}
-	typeset -u _TMP_SOFT_TRAIL_CLEAR_FORCE
-	local _TMP_SOFT_TRAIL_CLEAR_FORCE=${2:-"N"}
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR=()
-	local _TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR=()
-
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[0]="/var/lib/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
@@ -1289,132 +1435,73 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	# DOCKER
-	local _TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME="${1/\//_}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${DOCKER_APP_DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_DC_MARK_NAME}"
-
-	# 备份文件	
-	## 获取软链接后的真实路径
-	### Record really dir of </mountdisk/data/docker> from source link </mountdisk/data/docker -> /var/lib/docker>
-	### Checked dir of </var/lib/docker> is a symlink for really dir </mountdisk/data/docker>, sys deleted.
-	### Record really dir of </run/docker> from source link </var/run/docker -> /var/run/docker>
-	### Record really dir of </etc/docker> from source link </etc/docker -> /etc/docker>
-	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
-	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
-	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
-	echo "${TMP_SPLITER3}"
-	echo_text_style "Starting 'resolve the dirs' of soft <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-	for _TMP_SOFT_TRAIL_CLEAR_DIR_INDEX in ${!_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[@]};  
-	do
-		# 指定链接
-		local _TMP_SOFT_TRAIL_CLEAR_SYM_DIR="${_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[${_TMP_SOFT_TRAIL_CLEAR_DIR_INDEX}]}"
-
-		# 真实链接
-		local _TMP_SOFT_TRAIL_CLEAR_LNK_DIR="${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}"
-		symlink_link_path "_TMP_SOFT_TRAIL_CLEAR_LNK_DIR"
-
-		# 如果数组中不存在指定链接，则添加
-		local _TMP_SOFT_TRAIL_CLEAR_PREFIX=""
-		function _soft_trail_clear_record_rel_arr()
-		{
-			if [ -a ${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} ]; then
-				# 绝对链接
-				local _TMP_SOFT_TRAIL_CLEAR_ABS_DIR=$(su -c "cd ${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR} && pwd -P")
-				if [ "${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}" != "${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}" ]; then
-					_TMP_SOFT_TRAIL_CLEAR_PREFIX="|"
-				fi
-
-				echo_text_style "Record really dir of [${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}], marked '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}' -> '${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}'"
-				_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]}]="${_TMP_SOFT_TRAIL_CLEAR_ABS_DIR}"
-			fi
-		}
-		
-		action_if_item_not_exists "^${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}$" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_record_rel_arr"
-
-		# 如果是软链接，直接删除
-		if [ "${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}" != "${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}" ]; then
-			echo_text_style "${_TMP_SOFT_TRAIL_CLEAR_PREFIX}Checked dir of '${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}' is a symlink for really dir <${_TMP_SOFT_TRAIL_CLEAR_LNK_DIR}>, sys [deleted]."
-			echo 
-			rm -rf ${_TMP_SOFT_TRAIL_CLEAR_SYM_DIR}
-		fi
-	done
 	
-	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]} -gt 0 ]; then
-		echo_text_style "The 'soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was resolved"
-	else
-		echo_text_style "None 'soft dirs found for trail' in <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-	fi
-	echo
-
-	# 备份 && 删除文件
-	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-	local _TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
-	local _TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> [backuped] to <${BACKUP_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Backup dir <%s> not found'"
-	# local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_SOFT_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
-	local _TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style 'Dir of <%s> was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>') || echo_text_style 'Force delete dir <%s> not found'"
-	function _soft_trail_clear_exec_backup()
+	# 已经进入清理流程，不管选择是否备份。都要执行删除服务
+	function _soft_trail_clear_svr_remove_all()
 	{
-		local _TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
+		## 清理服务残留（备份前执行，否则会有资源占用的问题）
+		function _soft_trail_clear_svr_remove() 
+		{
+			echo "${TMP_SPLITER3}"
+			echo_text_style "Starting 'remove the systemctl' of <${1}>"
+			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
+			echo_text_style "The 'systemctl' of <${1}> was removed"
+		}
 
-		local _TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT="${1}"
-		exec_text_printf "_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT" "${_TMP_SOFT_TRAIL_CLEAR_BACKUP_SCRIPT}"
-		local _TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT="${1}"
-		exec_text_printf "_TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
-
-		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
-		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
-		path_exists_confirm_action "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NOTICE}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_SOFT_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
+		# export -f _soft_trail_clear_svr_remove
+		# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
+		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
+		echo "${TMP_SPLITER3}"
 	}
 	
-	# 有记录的情况下才执行
-	if [ ${#_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[@]} -gt 0 ]; then
-		# 已经进入清理流程，不管选择是否备份。都要执行删除服务
-		function _soft_trail_clear_svr_remove_all()
-		{
-			## 清理服务残留（备份前执行，否则会有资源占用的问题）
-			function _soft_trail_clear_svr_remove() 
-			{
-				echo "${TMP_SPLITER3}"
-				echo_text_style "Starting 'remove the systemctl' of <${1}>"
-				systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
-				echo_text_style "The 'systemctl' of <${1}> was removed"
-			}
-
-			# export -f _soft_trail_clear_svr_remove
-			# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
-			systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "exec_channel_action '_soft_trail_clear_svr_remove'"
-			echo "${TMP_SPLITER3}"
-		}
-		
-		echo "${TMP_SPLITER3}"
-		echo_text_style "Starting 'trail the soft dirs' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-		if [ "${_TMP_SOFT_TRAIL_CLEAR_FORCE}" == "N" ]; then
-			## 具备特殊性质的备份，优先执行
-			local _TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-			if [ "$(type -t ${_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
-				echo "${TMP_SPLITER3}"
-				echo_text_style "Starting exec the 'soft special func' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}>"
-				exec_check_action "_TMP_SOFT_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-				echo_text_style "The 'soft special func' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed"
-			fi
-
-			_soft_trail_clear_svr_remove_all
-
-			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "_soft_trail_clear_exec_backup"
-		else
-			_soft_trail_clear_svr_remove_all
-
-			exec_split_action "${_TMP_SOFT_TRAIL_CLEAR_SOFT_REALLY_DIR_ARR[*]}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE_SCRIPT}"
-		fi
-
-		echo_text_style "The 'soft dirs trail' of <${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}> was executed"
-		echo
-	fi
+	dirs_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_soft_trail_clear_svr_remove_all" "${2}"
 
 	systemctl daemon-reload
+
+	return $?
+}
+
+# Docker软件挂载目录痕迹清理与备份
+# 参数1：容器ID，例 e75f9b427730
+# 参数2：是否强制删除（Y/N），强制删除则不提醒，默认N
+# 示例：
+#     docker_soft_trail_clear "browserless/chrome" "N"
+function docker_soft_trail_clear() 
+{
+	# 完整的PSID
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
+	# 完整的容器inspect
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID})
+	# browserless/chrome:latest
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_ID=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+	# browserless/chrome:latest
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+	# browserless/chrome
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_FULL_NAME}" | cut -d':' -f1)
+	# browserless/chrome
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_FULL_NAME}" | cut -d':' -f2)
+	# browserless_chrome
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME=${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME/\//_}
+
+	typeset -u _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE=${2:-"N"}
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR=($(su_bash_channel_conda_exec "runlike ${1}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | sort | tr -d '\r'))
+	
+	# 合并重复
+	action_if_item_not_exists "^${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	action_if_item_not_exists "^${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	action_if_item_not_exists "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	action_if_item_not_exists "^${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+
+	# 容器移除
+	function _docker_soft_trail_clear_ctn_remove()
+	{
+		docker stop ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
+		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
+		docker rmi ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_ID}
+	}
+	
+	dirs_trail_clear "${1}" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
 
 	return $?
 }
@@ -1537,8 +1624,8 @@ function change_docker_container_inspect_mounts()
 					systemctl stop docker.socket
 					systemctl stop docker.service
 				fi
-
-				echo_text_style "Mount pair '${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}' → '${1}:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}'"
+				
+				echo_text_style "Mount pair '${1}'"
 				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 			fi
 		}
@@ -1561,11 +1648,114 @@ function change_docker_container_inspect_mounts()
     return $?
 }
 
+# 输出Docker镜像所有版本集合(已安装版本会打√)
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 参数2：忽略版本数组字符串，例 clean snapshot hub commit
+# 示例：
+#       echo_docker_images_vers "browserless/chrome"
+#       echo_docker_images_vers "browserless/chrome" "hub"
+function echo_docker_images_vers()
+{
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
+	# local _TMP_ECHO_DOCKER_IMAGES_VERS_STORE="${3}"
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_EXISTS_PS=$(docker images | grep "^${1}")
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_EXISTS_VERS=$(echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_EXISTS_PS}" | awk -F' ' '{print $2}')
+
+    # /mountdisk/repo/migrate/snapshot/browserless_chrome/
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
+    # /mountdisk/repo/migrate/clean/browserless_chrome/
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
+
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS=""
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS=""
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS=""
+
+	function _echo_docker_images_vers_fill_snapshot()
+	{
+		if [[ -a "${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR}" ]]; then
+			_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR} | cut -d'.' -f1 | uniq)
+		fi
+	}
+	action_if_item_not_exists "^snapshot$" "${2}" "_echo_docker_images_vers_fill_snapshot"
+
+	function _echo_docker_images_vers_fill_clean()
+	{
+		if [[ -a "${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR}" ]]; then
+			_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR} | cut -d'.' -f1 | uniq)
+		fi
+	}
+	action_if_item_not_exists "^clean$" "${2}" "_echo_docker_images_vers_fill_clean"
+
+	action_if_item_not_exists "^hub$" "${2}" "_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS=\$(fetch_docker_hub_release_vers '${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG}')"
+
+    # 打标记，已安装的版本做标注
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_ARR=()
+    function _echo_docker_images_vers_combine()
+    {
+        local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${1}"
+        local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX="${2}"
+
+        function _echo_docker_images_vers_combine_mark()
+        {
+            if [ "${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}" == "${1}" ] || [ "$(echo "${1}" | grep -oP "(?<=^_v)[0-9]+(?=\w+$)")" == "${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}" ]; then
+                _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}√"
+            fi
+        }
+
+        exec_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_EXISTS_VERS}" "_echo_docker_images_vers_combine_mark"
+
+		action_if_item_not_exists "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX}]='${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}'"
+    }
+    
+    exec_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS}" "_echo_docker_images_vers_combine"
+
+    echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
+
+    return $?
+}
+
+# 选中版本再执行
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 参数2：选择所弹出的提示文本
+# 参数3：选择版本后执行脚本
+#       参数1：是否已安装，不为空则表示已安装
+#       参数2：安装版本
+#       参数3：版本存储类型，例 clean snapshot hub commit
+# 参数4：忽略版本数组字符串，例 clean snapshot hub commit
+# 示例：
+#       choice_docker_images_vers_action "browserless/chrome" "choice echo text" "func_a"
+#       choice_docker_images_vers_action "browserless/chrome" "choice echo text" "func_a" "hub"
+function choice_docker_images_vers_action()
+{
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG="${1}"
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG_MARK_NAME="${1/\//_}"
+
+	echo_text_style "Checking the 'versions' of 'image' <${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG}>, wait for a moment"
+
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VERS=$(echo_docker_images_vers "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG}" "${4}")
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER=$(echo "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VERS}" | grep -v '√' | awk 'NR==1')
+	set_if_choice "_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER" "${2}" "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VERS}"
+	
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_NONE_MARK_VER=$(echo "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER}" | grep -oP "(?<=^)[^√]+")
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_INSTALL_OUTPUT=$([[ "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_NONE_MARK_VER}" != "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER}" ]] && echo 1)
+
+	local _TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER}.* | grep "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/)\w+(?=/${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_IMG_MARK_NAME}/${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_NONE_MARK_VER}$)")
+
+	exec_check_action "${3}" "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_INSTALL_OUTPUT}" "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_VER}" "${_TMP_CHOICE_DOCKER_IMAGES_VERS_ACTION_STORE_TYPE:-hub}"
+	
+    return $?
+}
+
 # 创建 docker 快照
 # 参数1：容器ID，例 e75f9b427730
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
 # 参数3：快照存储的时间戳，例 1670329246
 # 参数4：创建完执行
+#       参数1：容器ID，完整的
+#       参数2：镜像名称
+#       参数3：保存路径
+#       参数4：快照版本
 # 例：
 #    docker_snap_create_action 'e75f9b427730' '/mountdisk/repo/migrate/snapshot' '1670329246'
 function docker_snap_create_action()
@@ -1574,23 +1764,28 @@ function docker_snap_create_action()
 	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
 	# 完整的容器inspect
 	local _TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-	# browserless/chrome
-	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
-	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+	# 完整的IMGID
+	local _TMP_DOCKER_SNAP_CREATE_IMG_ID=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 	# 完整的镜像inspect
-	local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME})
+	local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_ID})
+	# browserless/chrome:latest
+	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
+	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
 	# browserless_chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
+	# latest_v1675749340
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_VER}_v${3}"
 	# browserless_chrome/1670329246
-	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${3}
+	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
-	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${3}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	# 强制检测如果容器非运行状态，则手动启动容器再继续
 	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=""
@@ -1624,7 +1819,7 @@ function docker_snap_create_action()
 	_docker_snap_create_action_status_check
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "Initialing 'snap create dir':↓"	
+    echo_text_style "Starting 'init' snap create dir:↓"	
 	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
 
 	# 备份容器信息
@@ -1691,7 +1886,7 @@ EOF
 		
 		# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
 		echo "#!/bin/bash" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-		docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${3}.init.extract.sh && rm -rf /tmp/${3}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+		docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 		grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 		echo "[-]"
@@ -1710,7 +1905,7 @@ EOF
 
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting make 'image boot run' script↓:"
-    su_bash_channel_conda_exec "runlike ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" | grep -oP "(?<=^b').*(?='$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
+    su_bash_channel_conda_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}" | grep -oP "(?<=^b').*(?='$)" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
 	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
 	echo "[-]"
 	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
@@ -1759,163 +1954,174 @@ EOF
 	
 	# 将容器打包成镜像
 	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'container commit' <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>([${_TMP_DOCKER_SNAP_CREATE_IMG_VER}] → [${3}])↓:"
 	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
 	### 还原标记则为SR(Snap restore c/i/d)
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COUNT=$(docker images | grep "${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^v)[0-9]+(?=SC\w+$)" | wc -l)
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:v${3}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COUNT}"
-	docker commit -a "unity-special_backup ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" -m "backup version ${_TMP_DOCKER_SNAP_CREATE_IMG_VER} to ${3}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | grep "^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v)[0-9]+(?=SC[0-9]+$)" | wc -l)
+	# latest_v1675749340SC0
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT}"
+	# browserless_chrome:latest_v1675749340SC0
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}"
+	echo_text_style "View the 'container commit' <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>([${_TMP_DOCKER_SNAP_CREATE_IMG_VER}] → [${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}])↓:"
+	docker commit -a "unity-special_backup ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" -m "backup version ${_TMP_DOCKER_SNAP_CREATE_IMG_VER} to ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}
 
 	echo "${TMP_SPLITER2}"
-	echo_text_style "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}>↓:"
-	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_NAME}
+	echo_text_style "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}>↓:"
+	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 	if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
 		local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
-		if [ -n "$(docker exec -u root -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
+		if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
 			echo "${TMP_SPLITER2}"
 			echo_text_style "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-			docker cp -a ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+			docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 			echo "[-]"
 			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile		
 		fi
 	fi
 
-	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build yaml from dfimage' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-	## dfimage 部分
-	${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-	echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-	echo "[-]"
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-	echo "[-]"
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-	
-	## imagedf 部分
-	echo "${TMP_SPLITER2}"
-	echo_text_style "View the 'build yaml from image2df' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-	${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
-	echo "[-]"
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	# Dockerfile不存在时才输出
+	if [[ ! -a ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile ]]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'build yaml from dfimage' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+		## dfimage 部分
+		${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+		echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+		echo "[-]"
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+		echo "[-]"
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+		
+		## imagedf 部分
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'build yaml from image2df' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+		${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+		echo "[-]"
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+	fi
 	
 	# 创建完执行
-	echo
-	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${3}"
+	exec_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}"
 
 	return $?
 }
 
 # 还原 Docker 快照
 # 参数1：镜像名称，例 browserless/chrome
-# 参数2：还原快照后后执行脚本
+# 参数2：镜像版本(为空时自动检索)，例 latest/1673604625
+# 参数3：还原快照后后执行脚本
 #       参数1：镜像名称，例 browserless/chrome
 #       参数2：快照版本，例 latest/1673604625
 #       参数3：快照类型，例 image/container/dockerfile
 #       参数4：快照来源，例 snapshot/clean，默认snapshot
-# 参数3：快照不存在时执行脚本
-# 参数3：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
+# 参数4：快照不存在时执行脚本
+# 参数5：指定如果镜像快照存在时，快照的还原出处的类别，为空时取并集（默认新镜像安装都会在clean下创建初始快照），例 snapshot/clean
 # 例：
 #   docker_snap_restore_if_choice_action "browserless/chrome" "clean"
 function docker_snap_restore_if_choice_action()
 {
     # browserless/chrome
-    # local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME="${1}"
+    # local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_NAME="${1}"
     # browserless_chrome
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME="${1/\//_}"	
-    # snapshot or clean
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE="${4}"
-	# /mountdisk/repo/migrate/clean/browserless_chrome/
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
-	# /mountdisk/repo/migrate/snapshot/browserless_chrome/
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
+    local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_MARK_NAME="${1/\//_}"	
     # 可选还原版本合集
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=""
+	local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS="${2}"
+    # snapshot or clean
+    local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_STORE_TYPE="${5}"
+	# /mountdisk/repo/migrate/clean/browserless_chrome/
+	local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_MARK_NAME}"
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/
+	local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_MARK_NAME}"
 
     # 指定存储类型存在判断
-    if [ -n "${4}" ]; then
-        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR="${MIGRATE_DIR}/${4}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_MARK_NAME}"
-        if [ ! -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR}" ]; then
+    if [ -n "${5}" ]; then
+        local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_DIR="${MIGRATE_DIR}/${5}/${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_MARK_NAME}"
+        if [[ ! -a ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_DIR} ]]; then
             echo "${TMP_SPLITER2}"
-            echo_text_style "Cannot found 'snapshot' <${1}> typed [${4}] based '${MIGRATE_DIR}', please check"
-            return $?
+            echo_text_style "Cannot found 'snapshot' <${1}> typed [${5}] based '${MIGRATE_DIR}', please check"
+            return 0
         fi
 
-        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_DEST_DIR} | cut -d'.' -f1 | uniq)
-        if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+        local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_DIR} | cut -d'.' -f1 | uniq)
+        if [ -z "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_VERS}" ]; then
             echo "${TMP_SPLITER2}"
-            echo_text_style "Cannot found 'snapshot version' <${1}> typed [${4}] based '${MIGRATE_DIR}', please check"
-            return $?
+            echo_text_style "Cannot found 'snapshot version' <${1}> typed [${5}] based '${MIGRATE_DIR}', please check"
+            return 0
         fi
+
+		# 指定了类型，未指定版本直接覆盖
+		if [ -z "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS="${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_DEST_VERS}"
+		fi
     fi
 
     # 合集操作
-    if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
-        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS=""
-		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR}" ]; then
-			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_DIR} | cut -d'.' -f1 | uniq)
+    if [ -z "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" ]; then
+        local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_VERS=""
+		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_DIR}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_DIR} | cut -d'.' -f1 | uniq)
 		fi
 
-        local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=""
-		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}" ]; then
-			_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR} | cut -d'.' -f1 | uniq)
+        local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_VERS=""
+		if [ -a "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_DIR}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_VERS=$(ls ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_DIR} | cut -d'.' -f1 | uniq)
 		fi
-        _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
+        _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_SNAP_VERS} ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
     fi
     
-	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" ]; then
 		# 去除已存在的容器版本
 		## browserless/chrome:v1673604625SRC
 		## browserless/chrome:v1673955750SCB 还原备份后本地将初始的latest版本还原至该版
-		local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}' | grep -oP "(?<=^v)[0-9]+(?=\w+$)")
+		local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}' | grep -oP "(?<=^_v)[0-9]+(?=\w+$)")
 		## 有运行版本存在时
-		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}" ]; then
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME="${1}"
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS}" ]; then
+			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_NAME="${1}"
 			function _docker_snap_restore_if_choice_action_remove_exists_vers() 
 			{
-				local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER="${1}"
-				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER}/d")
-				echo_text_style "Checked the image of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VER}] exists, version list removed"
+				local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VER="${1}"
+				_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" | sed "/${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VER}/d")
+				echo_text_style "Checked the image of <${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_NAME}>:[${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VER}] exists, version list removed"
 			}
 
-			exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}" "_docker_snap_restore_if_choice_action_remove_exists_vers"
+			exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS}" "_docker_snap_restore_if_choice_action_remove_exists_vers"
 		fi
 		
-		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" ]; then
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" ]; then
 			# 默认版本 /mountdisk/repo/migrate/snapshot/browserless_chrome/1670392779
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER=$(echo ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS} | cut -d' ' -f1)
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS_COUNT=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}" | wc -w)
+			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER=$(echo ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS} | cut -d' ' -f1)
+			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS_COUNT=$(echo "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}" | wc -w)
 
 			# 有多个版本时，才提供选择操作
-			if [ ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS_COUNT} -gt 1 ]; then
+			if [ ${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS_COUNT} -gt 1 ]; then
 				echo "${TMP_SPLITER2}"
-				set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER" "Please sure 'which version' u want to [restore] of the snapshot <${1}>" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
+				set_if_choice "_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER" "Please sure 'which version' u want to [restore] of the snapshot <${1}>" "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}"
 			else
-				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER="${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VERS}"
+				_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER="${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VERS}"
 			fi
 
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE="Image"
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES="Image,Container,Dockerfile"
+			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPE="Image"
+			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPES="Image,Container,Dockerfile"
 
 			echo "${TMP_SPLITER2}"
-			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPES}"
-			typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE
+			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPES}"
+			typeset -l _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPE
 
 			# 快照存储类型已被重新加载
-			if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE}" ]; then
-				_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE=$([[ -a "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_CLEAN_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}.config.v2.json" ]] && echo "clean" || echo "snapshot")
+			if [ -z "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_STORE_TYPE}" ]; then
+				_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_STORE_TYPE=$([[ -a "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_CLEAN_DIR}/${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER}.config.v2.json" ]] && echo "clean" || echo "snapshot")
 			fi
 			
-			docker_snap_restore_action "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_TYPE}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_STORE_TYPE}" "${2}"
+			docker_snap_restore_action "${1}" "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_VER}" "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_TYPE}" "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_STORE_TYPE}" "${3}"
 		else
-			echo_text_style "Checked the image of <${1}>, got exists vers ([${_TMP_DOCKER_SNAP_RESTORE_ACTION_IF_CHOICE_EXISTS_VERS}]), snapshot restore stoped"
+			echo_text_style "Checked the image of <${1}>, got exists vers ([${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS}]), snapshot restore stoped"
 		fi
 
 		# ？？？Commit的版本备份再还原data目录后，启动报错。
@@ -1958,9 +2164,9 @@ function docker_snap_restore_if_choice_action()
 	else
 		echo_text_style "Cannot found the 'snapshot' <${1}>, based '${MIGRATE_DIR}'"
 
-		if [ -n "${3}" ]; then
-			echo_text_style "Starting execute scripts '${3}'"
-			exec_check_action "${3}" "${1}"
+		if [ -n "${4}" ]; then
+			echo_text_style "Starting 'execute' scripts('${4}'), args('${1}')"
+			exec_check_action "${4}" "${1}"
 		fi
 	fi
 
@@ -1999,20 +2205,20 @@ function docker_snap_restore_action()
 		fi
 	fi
 	
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | xargs echo | grep -oP "(?<=^\[).*(?=\]$)" | awk '$1=$1')  
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")  
 
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting restore the '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' from <${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS:-"snapshot restore"}> to <${1}>:[${2}]"
     case ${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} in
         "container")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRC"
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRC"
             zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.gz | docker import - ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
 
             # 容器恢复丢失环境信息，故需要读取容器inspect信息
             cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.ctn.json | jq ".[0].Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)" > ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.ctn.env
         ;;
         "image")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRI"
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRI"
             docker load < ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.img.tar
 			
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].Id" | xargs echo | cut -d':' -f2)
@@ -2022,12 +2228,12 @@ function docker_snap_restore_action()
 				exec_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" "docker rmi %s"
 			fi
 			
-			# local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags[0]" | xargs echo)
+			# local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
 			# docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
         ;;
         "dockerfile")
             # ？？？缺少有效反向构建dockefile的操作，故存在bug
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="v${2}SRD"
+            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRD"
             docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_NONE_PATH}.Dockerfile -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
         ;;
         *)
@@ -2037,6 +2243,83 @@ function docker_snap_restore_action()
     echo_text_style "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' restored to <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
 
 	exec_check_action "${5}" "${@:1:4}"
+
+    return $?
+}
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像名称，用于检测
+# 参数2：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+#        参数1：镜像名称，例 browserless/chrome
+#        参数2：镜像版本，例 latest/1673604625
+#        参数3：快照类型（快照有效），例 image/container/dockerfile
+#        参数4：快照来源（快照有效），例 snapshot/clean，默认snapshot
+# 参数3：重装选择N时 或镜像已存在时执行脚本
+# 参数4：动作类型描述，action/install
+# 示例：
+#     soft_docker_check_upgrade_action "browserless/chrome" "exec_step_browserless_chrome"
+function soft_docker_check_upgrade_action() 
+{
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG="${1}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_MARK_NAME="${1/\//_}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT=${2}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS=$(docker images | grep "^${1}")
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS}'"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT=${3:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT}}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC=${4:-"install"}
+
+	function _soft_docker_check_upgrade_action()
+	{
+		# 参数1：是否已安装，不为空则表示已安装
+		# 参数2：安装版本
+		# 参数3：版本存储类型，例 clean snapshot hub commit
+		function _soft_docker_check_upgrade_action_choice_action()
+		{
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER="${2}"
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE="${3}"
+			function _soft_docker_check_upgrade_action_install()
+			{
+				echo_style_text "Starting 'pull' image(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}]"
+				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}" in 
+					"hub")
+						docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}
+					;;
+					*)
+						docker_snap_restore_if_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
+				esac
+			}
+
+			if [ -n "${1}" ]; then
+				# ？？？重装及备份数据
+				function _soft_docker_check_upgrade_action_reinstall()
+				{
+					# 有镜像，没容器
+					# 有容器则备份数据，有镜像直接重装
+					echo_style_text "Starting 're${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' image(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
+					# _soft_docker_check_upgrade_action_install
+					# docker_snap_restore_if_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "_soft_docker_check_upgrade_action_install && exec_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${2}' '${3}'"
+				}
+
+				# 已经存在版本，安装该版本可以走快照
+				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked image(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${2}]) was exists, please sure u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${2}'"
+			else
+				_soft_docker_check_upgrade_action_install
+
+				exec_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${2}" "${3}"
+			fi
+		}
+
+		choice_docker_images_vers_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "Please sure 'which version' u want to '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' of the 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>" "_soft_docker_check_upgrade_action_choice_action"
+	}
+
+	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS}" | awk -F' ' '{print $2}')
+	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS}" ]; then
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL="N"
+		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked image(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>) was got vers [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS//[[:space:]]/,}], please sure u will [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT"
+	else
+		_soft_docker_check_upgrade_action
+	fi
 
     return $?
 }
@@ -2063,45 +2346,10 @@ function soft_docker_check_upgrade_setup()
 	{
 		echo_text_style "Checking the 'versions' of 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>, wait for a moment"
 
-		# /mountdisk/repo/migrate/snapshot/browserless_chrome/
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG_MARK_NAME}"
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS=""
-		if [ -a "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR}" ]; then
-			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS=$(ls ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_DIR} | cut -d'.' -f1 | uniq)
-		fi
-
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS=""
-		# /mountdisk/repo/migrate/clean/browserless_chrome/
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG_MARK_NAME}"
-		if [ -a "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR}" ]; then
-			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS=$(ls ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR} | cut -d'.' -f1 | uniq)
-		fi
-
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_HUB_VERS=$(fetch_docker_hub_release_vers "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}")
-
-		# 打标记，已安装的版本做标注
-		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS=""
-		function _soft_docker_check_upgrade_setup_switch_vers_combine()
-		{
-			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP="${1}"
-
-			function _soft_docker_check_upgrade_setup_switch_vers_combine_mark()
-			{
-				if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}" == "${1}" ] || [ "$(echo "${1}" | grep -oP "(?<=^v)[0-9]+(?=\w+$)")" == "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}" ]; then
-					_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}√"
-				fi
-			}
-
-			exec_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" "_soft_docker_check_upgrade_setup_switch_vers_combine_mark"
-
-			_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER_TEMP}"
-		}
-		
-		exec_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SNAP_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_VERS} ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_HUB_VERS}" "_soft_docker_check_upgrade_setup_switch_vers_combine"
-		_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS=$(echo_docker_images_vers "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}")
 
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}" | grep -v '√' | awk 'NR==1')
-		set_if_choice "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER" "Please sure 'which ver' u want to 'install' of the 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}"
+		set_if_choice "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER" "Please sure 'which version' u want to 'install' of the 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VERS}"
 		
 		# 去标记化版本号
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_VER}" | grep -oP "(?<=^)[^√]+")
@@ -2112,18 +2360,31 @@ function soft_docker_check_upgrade_setup()
 			# ？？？重装及备份数据
 			function _soft_docker_check_upgrade_setup_switch_vers_reinstall()
 			{
+				# 有镜像，没容器
+				# 有容器则备份数据，有镜像直接重装
 				docker_snap_restore_if_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SCRIPT" "docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER} && exec_check_action '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}'"
 			}
 			
 			# 已经存在版本，安装该版本可以走快照
 			confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL" "Checked the image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_REALLY_VER}] was exists, please sure u will [reinstall] 'still or not'" "_soft_docker_check_upgrade_setup_switch_vers_reinstall" "(docker images | awk 'NR==1') && (echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}' | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}')"
 		else
-			docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}
+			# 判断镜像来源是快照，还是HUB
+		
+			function _soft_docker_check_upgrade_setup_restore_from_local()
+			{
+				local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_RESTORE_TYPE=""
+				path_exists_yn_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_CLEAN_DIR}/${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}.run" "TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_RESTORE_TYPE='clean'" "TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_RESTORE_TYPE='snapshot'"
+				???
+				docker_snap_restore_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}" "container" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_RESTORE_TYPE}"
+			}
+
+			action_if_item_not_exists "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_HUB_VERS[*]}" "_soft_docker_check_upgrade_setup_restore_from_local" "docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}"
+			
 			exec_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_NONE_MARK_VER}"
 		fi
 	}
 
-	#  | grep -oP "(?<=^v)[0-9]+(?=\w+$)"
+	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_PS}" | awk -F' ' '{print $2}')
 	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_EXISTS_VERS}" ]; then
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_SETUP_YN_REINSTALL="N"
@@ -2258,7 +2519,7 @@ function soft_docker_boot_print()
 			echo_text_style "Checked the image of <${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}] typed 'container', start 'change args'(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
 
 			# 如果是容器还原的镜像，启动时需还原依赖缺失部分
-			local _TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.* | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).*(?=/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}$)")
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.* | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).+(?=/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}$)")
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH="${MIGRATE_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}"
 
 			# ？？？CMD 是个合并解析的数组，参数多时可能存在bug
@@ -2344,25 +2605,6 @@ function soft_docker_boot_print()
 	fi
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View clear list 'unuse symlink'↓:"
-	# 清空无效软连接
-	function _soft_docker_boot_print_clear_unuse_link()
-	{
-		if [ ! -a ${1} ]; then
-			echo_text_style "${1}"
-			rm -rf ${1}
-		fi
-	}
-
-	find ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
-	find ${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
-
-	# 加入到DOCKER基本汇总目录
-	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
-	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.config.v2.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/config.v2.json"
-	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}.hostconfig.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/hostconfig.json"
-
-    echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container user'↓:"
     docker exec -it ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} sh -c "whoami"
 
@@ -2434,6 +2676,25 @@ function soft_docker_boot_print()
 		# 二次等待
 		_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Rebooting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' over chown mounts, wait for a moment"
 	fi
+	
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View clear list 'unuse symlink'↓:"
+	# 清空无效软连接
+	function _soft_docker_boot_print_clear_unuse_link()
+	{
+		if [[ ! -a ${1} ]]; then
+			echo_text_style "rm -rf ${1}"
+			rm -rf ${1}
+		fi
+	}
+
+	# 加入到DOCKER基本汇总目录
+	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.config.v2.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/config.v2.json"
+	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.hostconfig.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/hostconfig.json"
+
+	find ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
+	find ${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
@@ -2470,7 +2731,7 @@ function soft_docker_boot_print()
 		
 		# 备份当前容器，仅在第一次 	
 		local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}_${LOCAL_TIMESTAMP}'"
+		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
 	fi
 
 	return $?
@@ -2504,24 +2765,24 @@ function item_check_yn_action()
 		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT=${1}
 		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT}"
 		
-		echo ${TMP_SPLITER}
+		echo ${TMP_SPLITER2}
         echo_text_style "Checking the '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}' of <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}>"
-        echo ${TMP_SPLITER}
 		
 		# 获取判断响应
 		local _TMP_SOFT_CHECK_YN_ACTION_RES=$(exec_check_action '_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT' ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM})
 		
 		# 不存在命令时执行
+        # echo ${TMP_SPLITER2}
 		if [ -z "${_TMP_SOFT_CHECK_YN_ACTION_RES}" ]; then
+			# echo_text_style "Checked the '${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}' not found"
 			exec_check_action "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}
 		else
+			# echo_text_style "Checked the '${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}' found"
 			exec_check_action "_TMP_SOFT_CHECK_YN_ACTION_FINAL_Y_SCRIPT" ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}
 		fi
-
-        echo
 	}
 	
-    exec_split_action "${_TMP_SOFT_CHECK_YN_ACTION_CHECK_ITEMS}" "_item_check_yn_action '%s'"
+    exec_split_action "${_TMP_SOFT_CHECK_YN_ACTION_CHECK_ITEMS}" "_item_check_yn_action"
 
 	return $?
 }
@@ -2600,7 +2861,7 @@ function soft_cmd_check_git_down_action()
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
 
 	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
-	echo_text_style "Starting execute script (<${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}>)"
+	echo_text_style "Starting 'execute' script('${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}')"
 
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 	# echo_text_style '[Command] of <${1}> installed'
@@ -2695,7 +2956,7 @@ function soft_cmd_check_upgrade_action()
 			# 重装先确认备份，默认备份
 			## Please sure the soft of 'conda' u will 'backup check still or not'?
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
-			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> u will 'backup check still or not'"
+			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> u will [backup check] 'still or not'"
 
 			# 是否强制删除这里取反，soft_trail_clear参数需要
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N}"
@@ -2782,10 +3043,10 @@ function soft_yum_check_setup()
 
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD}" "${_TMP_SOFT_YUM_CHECK_SETUP}"
-		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"The yum repo of <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> was installed"}"
+		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"Soft of <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> was installed by yum"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'The yum repo of <%s> has installed'" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'Soft of <%s> has installed by yum'" "_soft_yum_check_setup_echo"
 
 	return $?
 }
@@ -2806,7 +3067,7 @@ function soft_yum_check_upgrade_action()
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
 
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting remove yum repo of '${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}'"
+		echo_text_style "Starting 'remove' yum repo of <${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}>"
 
 		# 清理安装包，删除空行（cut -d可能带来空行）
 		yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log
@@ -3207,7 +3468,7 @@ function setup_soft_wget()
 	local TMP_SOFT_SETUP_PATH=${_TMP_SOFT_WGET_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
 
     # ls -d ${TMP_SOFT_SETUP_PATH} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_WGET_NAME} | grep -v grep
-	if [ ! -a ${TMP_SOFT_SETUP_PATH} ]; then
+	if [[ ! -a ${TMP_SOFT_SETUP_PATH} ]]; then
 		local _TMP_SOFT_WGET_FILE_NAME=
 		local _TMP_SOFT_WGET_FILE_DIR="${DOWN_DIR}"
 		while_wget "${_TMP_SOFT_WGET_URL}" '_TMP_SOFT_WGET_FILE_DIR=`pwd` && _TMP_SOFT_WGET_FILE_NAME=${_TMP_SOFT_WGET_FILE_DEST_NAME}'
@@ -4011,15 +4272,23 @@ function exec_check_action() {
 	
 	# 空格数等于0的情况，可能是函数名或变量名。
 	# 循环获取到最终的值，有可能是变量名嵌套传递。
-	while [ `echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l` -eq 0 ]; do
+	local _TMP_EXEC_CHECK_ACTION_PRE_SCRIPT=""
+	while [ $(echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o '[[:space:]]' | wc -l) -eq 0 ]; do
 		# 函数名优先
-		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then
-			_TMP_EXEC_CHECK_ACTION_SCRIPT=`eval echo '$'${_TMP_EXEC_CHECK_ACTION_SCRIPT}`
-			
+		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then	
+			# 解析后结果还是相同，放弃解析，避免死循环
+			if [ -n "${_TMP_EXEC_CHECK_ACTION_PRE_SCRIPT}" ] && [ "${_TMP_EXEC_CHECK_ACTION_PRE_SCRIPT}" == "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" ]; then
+				break
+			fi
+
+			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(eval echo '$'${_TMP_EXEC_CHECK_ACTION_SCRIPT})
+		
 			# 变量解析后可能为空，为空则不执行
 			if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
-				return $?
+				return 0
 			fi
+
+			_TMP_EXEC_CHECK_ACTION_PRE_SCRIPT="${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 		else
 			break
 		fi
@@ -4070,6 +4339,7 @@ function command_check_action() {
 #分割并执行动作
 # 参数1：用于分割的字符串
 # 参数2：对分割字符串执行脚本
+# 参数x-N：动态参数
 #例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function exec_split_action()
 {
@@ -4077,17 +4347,26 @@ function exec_split_action()
 	local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT=${2}
 	local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_COUNT=$(echo "${2}" | grep -o "%s" | wc -l)
 	
-	for _TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM in ${_TMP_EXEC_SPLIT_ACTION_SPLIT_ARR[@]}; do
-		# 附加动态参数
-		local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS="${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
-		for ((_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX=1;_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX<${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_COUNT};_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX++)); do
-			_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS=$(printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS} %s" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}")
-		done
+	for _TMP_EXEC_SPLIT_ACTION_CURR_INDEX in ${!_TMP_EXEC_SPLIT_ACTION_SPLIT_ARR[@]}; do
+		local _TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM=${_TMP_EXEC_SPLIT_ACTION_SPLIT_ARR[_TMP_EXEC_SPLIT_ACTION_CURR_INDEX]}
 		
+		# fix-源 原逻辑为通过循环将统计脚本中有多少%s，从而进行格式化，然后附加对等个数的参数进入
+		# 附加动态参数
+		# local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS="${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
+		# for ((_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX=1;_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX<${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_COUNT};_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX++)); do
+		# 	_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS=$(printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS} %s" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}")
+		# done
+        # local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT=`printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT}" ${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS}`
+		# exec_check_action "_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
+
+		# fix-后 直接将SCRIPT脚本%s进行格式化
+		# 附加动态参数
+		local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FINAL="${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
+		exec_text_printf "_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT}"
+
 		# 格式化运行动态脚本
-        local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT=`printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT}" ${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS}`
-		exec_check_action "_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
-    done
+		exec_check_action "_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}" "${_TMP_EXEC_SPLIT_ACTION_CURR_INDEX}"
+	done
 
 	return $?
 }
