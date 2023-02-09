@@ -283,13 +283,38 @@ function reconf_dc_browserless_chrome()
 #    参数3：最终启动版本
 #    参数4：最终启动命令
 #    参数5：最终启动参数
+#    参数6：最终标记版本
 function exec_step_browserless_chrome() {
+    # 变量覆盖特性，其它方法均可读取
+    ## 执行传入参数
     local TMP_DC_BLC_SETUP_CTN_ID="${1}"
     # local TMP_DC_BLC_SETUP_PS_SID="${TMP_DC_BLC_SETUP_CTN_ID:0:12}"
     local TMP_DC_BLC_SETUP_CTN_PORT="${2}"
     local TMP_DC_BLC_SETUP_CTN_VER="${3}"
     local TMP_DC_BLC_SETUP_CTN_CMD="${4}"
     local TMP_DC_BLC_SETUP_CTN_ARGS="${5}"
+    local TMP_DC_BLC_SETUP_CTN_MARK_VER="${6:-${3}}"
+
+    # 统一编排到的路径
+    local TMP_DC_BLC_CURRENT_DIR=$(pwd)
+    local TMP_DC_BLC_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_MARK_VER}
+    local TMP_DC_BLC_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_MARK_VER}
+    local TMP_DC_BLC_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_MARK_VER}
+    local TMP_DC_BLC_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_MARK_VER}
+
+    # 统一标记名称(存在于安装目录的真实名称)
+    local TMP_DC_BLC_SETUP_WORK_MARK="work"
+    local TMP_DC_BLC_SETUP_LOGS_MARK="logs"
+    local TMP_DC_BLC_SETUP_DATA_MARK="workspace"
+    # local TMP_DC_BLC_SETUP_DATA_MARK="data"
+    local TMP_DC_BLC_SETUP_ETC_MARK="etc"
+    local TMP_DC_BLC_SETUP_APP_MARK="chrome"
+
+    # 安装后的真实路径（此处依据实际路径名称修改）
+    local TMP_DC_BLC_SETUP_WORK_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_WORK_MARK}
+    local TMP_DC_BLC_SETUP_LOGS_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_LOGS_MARK}
+    local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
+    local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
     
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'execute step' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_CTN_VER}]('${TMP_DC_BLC_SETUP_CTN_ID}'), hold on please"
@@ -318,39 +343,17 @@ function exec_step_browserless_chrome() {
 
 # x2-简略启动，获取初始化软件（形成启动后才可抽取目录信息）
 #    参数1：镜像名称，例 browserless/chrome
-#    参数2：镜像版本，例 latest_1673604625
+#    参数2：镜像版本，例 latest
 #    参数3：快照类型(还原时有效)，例 image/container/dockerfile
 #    参数4：快照来源，例 snapshot/clean/hub/commit，默认snapshot
 function boot_build_dc_browserless_chrome() {
-    # 初始接受参数
+    # 变量覆盖特性，其它方法均可读取
+    ## 执行传入参数
     local TMP_DC_BLC_SETUP_IMG_NAME="${1}"
     local TMP_DC_BLC_SETUP_IMG_MARK_NAME="${1/\//_}"
     local TMP_DC_BLC_SETUP_IMG_VER="${2}"
     local TMP_DC_BLC_SETUP_IMG_SNAP_TYPE="${3}"
     local TMP_DC_BLC_SETUP_IMG_STORE="${4}"
-
-    # 变量覆盖特性，其它方法均可读取
-    local TMP_DC_BLC_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_IMG_VER}
-    local TMP_DC_BLC_CURRENT_DIR=$(pwd)
-
-    # 统一编排到的路径
-    local TMP_DC_BLC_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_IMG_VER}
-    local TMP_DC_BLC_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_IMG_VER}
-    local TMP_DC_BLC_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_IMG_VER}
-
-    # 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_BLC_SETUP_WORK_MARK="work"
-    local TMP_DC_BLC_SETUP_LOGS_MARK="logs"
-    local TMP_DC_BLC_SETUP_DATA_MARK="workspace"
-    # local TMP_DC_BLC_SETUP_DATA_MARK="data"
-    local TMP_DC_BLC_SETUP_ETC_MARK="etc"
-    local TMP_DC_BLC_SETUP_APP_MARK="chrome"
-
-    # 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_BLC_SETUP_WORK_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_WORK_MARK}
-    local TMP_DC_BLC_SETUP_LOGS_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_LOGS_MARK}
-    local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
-    local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
