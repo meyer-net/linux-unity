@@ -600,8 +600,8 @@ function change_service_user()
 
 # 修改JSON参数单项并输出
 # 参数1：JSON内容变量名
-# 参数2：修改的参数节点，例如 .Config.WorkingDir
-# 参数3：修改的参数节点内容
+# 参数2：修改的参数节点，例 .Config.WorkingDir
+# 参数3：修改的参数节点内容，例 "/usr/src/app"
 function change_json_arg_item()
 {
 	local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=`eval echo '$'${1}`
@@ -1505,19 +1505,60 @@ function docker_soft_trail_clear()
 	return $?
 }
 
+# 修改DOCKER容器包裹执行器
+# 参数1：容器ID
+# 参数2：中间执行脚本
+# 示例：
+#       change_docker_container_inspect_wrap "e75f9b427730" "change_docker_container_inspect_arg 'e75f9b427730' '.Config.WorkingDir' '/usr/src/app'"
+function change_docker_container_inspect_wrap()
+{
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS=""
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_DC_STATUS=$(systemctl status docker | grep -oP "(?<=^   Active: )[^\s]+")
+	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_DC_STATUS}" != "inactive" ]; then
+		_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
+		## 重新启动并构建新容器
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Starting 'stop' all 'running containers' (${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}) & docker 'service', hold on please"
+		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container stop
+		systemctl stop docker.socket
+		systemctl stop docker.service
+	fi
+
+	exec_check_action "${2}" "${1}" "${@:3}"
+	
+	echo "${TMP_SPLITER2}"
+	echo_text_style "Starting 'boot' docker 'service', hold on please"
+	systemctl start docker
+	
+	if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" ]; then
+		# 启动容器
+		echo "${TMP_SPLITER2}"
+		echo_text_style "Starting 'boot' all 'stopped containers'(<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}>), hold on please"
+		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container start
+	fi
+
+	# 挂载可能产生等待
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+	if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_PORT}" ]; then
+		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
+	fi
+
+    return $?
+}
+
 # 修改DOCKER容器信息
 # 参数1：容器ID
-# 参数2：JSON内容变量名
-# 参数3：修改的参数节点，例 .Config.WorkingDir
-# 参数4：修改的参数节点内容，例 /usr/src/app
+# 参数2：修改的参数节点，例 .Config.WorkingDir
+# 参数3：修改的参数节点内容，例 /usr/src/app
 # 示例：
 #       change_docker_container_inspect_arg "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
 function change_docker_container_inspect_arg()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_DATA_PATH}/config.v2.json"
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH})
-    
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2" "${3}" "${4}"
+	
+    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2" "${2}" "\"${3}\""
 
     echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2}" | jq > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH}
 
@@ -1532,7 +1573,8 @@ function change_docker_container_inspect_arg()
 #       change_docker_container_inspect_env "e75f9b427730" "LANG" "C.UTF-8"
 function change_docker_container_inspect_env()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_DATA_PATH}/config.v2.json"
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH})
     
 	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "${2}=${3}"
@@ -1550,10 +1592,11 @@ function change_docker_container_inspect_env()
 #       change_docker_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/latest" "/usr/src/app"
 function change_docker_container_inspect_mount()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH=$(find / -name config.v2.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH}/config.v2.json"
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH})
 	
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH=$(find / -name hostconfig.json | grep "/containers/${1}*" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH}/hostconfig.json"
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH})
     
     # {
@@ -1594,7 +1637,6 @@ function change_docker_container_inspect_mount()
     return $?
 }
 
-
 # 修改DOCKER容器挂载信息
 # 参数1：容器ID
 # 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/latest:/usr/src/app 
@@ -1602,46 +1644,29 @@ function change_docker_container_inspect_mount()
 #       change_docker_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/latest:/usr/src/app"
 function change_docker_container_inspect_mounts()
 {
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_ID="${1}"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID="${1}"
+	
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DATA_PATH}/hostconfig.json"
+    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH})
+
+    # local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
 	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 
 	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" ]; then
-		local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
 		function formal_dc_browserless_chrome_ctn_bind()
 		{
 			# 检测倒未绑定对象
 			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
 			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
-			if [ -z "$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" | grep -o ".*:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}")" ]; then
-				local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DC_STATUS=$(systemctl status docker | grep -oP "(?<=^   Active: )[^\s]+")
-				if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DC_STATUS}" != "inactive" ]; then
-					## 重新启动并构建新容器
-					echo "${TMP_SPLITER2}"
-					echo_text_style "Stoping 'all running containers' (${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}) & docker service, hold on please"
-					echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}" | xargs docker container stop
-					systemctl stop docker.socket
-					systemctl stop docker.service
-				fi
-				
-				echo_text_style "Mount pair '${1}'"
-				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+			if [ -z "$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" | grep -o ".*:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}")" ]; then				
+				echo_text_style "Mounting pair '${1}'"
+				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 			fi
 		}
 
 		exec_split_action "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
-		
-		## 重启容器
-		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting docker service & 'stopped containers' (<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}>), hold on please"
-		systemctl start docker
-		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_STOP_IDS}" | xargs docker container start
-
-		# 挂载可能产生等待
-		local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
-		if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_PORT}" ]; then
-			exec_sleep_until_not_empty "Starting wait reboot over mounts change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
-		fi
 	fi
 
     return $?
@@ -1735,7 +1760,10 @@ function choice_docker_cust_vers_action()
 
 	function _choice_docker_cust_vers_action()
 	{
-		local _TMP_CHOICE_DOCKER_CUST_VERS_ACTION_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${1}.* | grep "${_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/)\w+(?=/${_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_IMG_MARK_NAME}/${1}$)")
+		local _TMP_CHOICE_DOCKER_CUST_VERS_ACTION_STORE_TYPE="hub"
+		if [[ -a ${MIGRATE_DIR} ]]; then
+			_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${1}.* | grep "${_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/)\w+(?=/${_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_IMG_MARK_NAME}/${1}$)")
+		fi
 
 		exec_check_action "_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_SCRIPTS" "${2}" "${1}" "${_TMP_CHOICE_DOCKER_CUST_VERS_ACTION_STORE_TYPE:-hub}"
 	}

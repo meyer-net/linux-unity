@@ -68,11 +68,13 @@ function formal_dc_browserless_chrome() {
     # 开始标准化
     ## 还原 & 创建 & 迁移
     ### 日志
+    #### /mountdisk/logs/docker_apps/browserless_chrome/latest
     # function _formal_dc_browserless_chrome_cp_logs() {
     #     echo "${TMP_SPLITER2}"
     #     echo_text_style "View the 'logs copy'↓:"
 
     #     # 拷贝日志目录
+    #     ## /mountdisk/logs/docker_apps/browserless_chrome/latest/app_output
     #     # mkdir -pv ${1}/app_output
     #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app_output
     #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK} ${1}/app_output
@@ -83,6 +85,7 @@ function formal_dc_browserless_chrome() {
     soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
 
     ### 数据
+    #### /mountdisk/data/docker_apps/browserless_chrome/latest
     function _formal_dc_browserless_chrome_cp_data() {
         echo "${TMP_SPLITER2}"
         echo_text_style "View the 'data copy'↓:"
@@ -97,12 +100,14 @@ function formal_dc_browserless_chrome() {
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
 
-    # ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    #### /mountdisk/etc/docker_apps/browserless_chrome/latest
     # function _formal_dc_browserless_chrome_cp_etc() {
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'config copy'↓:"
+    #     echo_text_style "View the 'etc copy'↓:"
 
     #     # 拷贝日志目录
+    #     ## /mountdisk/etc/docker_apps/browserless_chrome/latest/app
     #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK} ${1}/app
     #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/etc/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app
     #     ls -lia ${1}
@@ -117,12 +122,15 @@ function formal_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_BLC_SETUP_CTN_ID}"
     #### /mountdisk/etc/docker_apps/browserless_chrome/latest/container
     local TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/data/docker/containers/${CTN_ID} ©&-> /mountdisk/etc/docker_apps/browserless_chrome/latest/container
+    #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/browserless_chrome/latest/container
     soft_path_restore_confirm_swap "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_BLC_SETUP_CTN_DIR}"
     
     ### 迁移ETC下LOGS归位
-    #### /mountdisk/etc/docker_apps/browserless_chrome/latest/container/${CTN_ID}-json.log ©&-> /mountdisk/logs/docker_apps/browserless_chrome/latest/docker_output/${CTN_ID}-json.log
-    soft_path_restore_confirm_move "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
+    #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
+    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/browserless_chrome/latest/docker_output/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
+    #### /mountdisk/etc/docker_apps/browserless_chrome/latest/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/browserless_chrome/latest/docker_output/${CTN_ID}-json.log
+    # soft_path_restore_confirm_move "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
+    #### ]
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
@@ -132,8 +140,10 @@ function formal_dc_browserless_chrome() {
     path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/browserless_chrome/latest -> /mountdisk/logs/docker_apps/browserless_chrome/latest
     path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_VER}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
+    #### /mountdisk/logs/docker_apps/browserless_chrome/latest/docker_output/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/browserless_chrome/latest/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
     ### 数据
-    #### /opt/docker_apps/browserless_chrome/latest/data -> /mountdisk/data/docker_apps/browserless_chrome/latest
+    #### /opt/docker_apps/browserless_chrome/latest/workspace -> /mountdisk/data/docker_apps/browserless_chrome/latest
     path_not_exists_link "${TMP_DC_BLC_SETUP_DATA_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}"
     ### ETC
     #### /opt/docker_apps/browserless_chrome/latest/etc -> /mountdisk/etc/docker_apps/browserless_chrome/latest
@@ -158,8 +168,18 @@ function formal_dc_browserless_chrome() {
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_BLC_SETUP_APP_MARK}
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting 'inspect change', hold on please"
-    change_docker_container_inspect_mounts "${TMP_DC_BLC_SETUP_CTN_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
 
+    function _formal_dc_browserless_chrome_change_inspect()
+    {
+        # （废弃）修复日志路径在软链情况下，docker就开始跑乱不识别的问题
+        # change_docker_container_inspect_arg "${1}" ".LogPath" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${1}-json.log"
+
+        # 挂载目录
+        change_docker_container_inspect_mounts "${1}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
+    }
+
+    change_docker_container_inspect_wrap "${TMP_DC_BLC_SETUP_CTN_ID}" "_formal_dc_browserless_chrome_change_inspect"
+    
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
     # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
 
@@ -323,7 +343,7 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_LOGS_MARK="logs"
     local TMP_DC_BLC_SETUP_DATA_MARK="workspace"
     # local TMP_DC_BLC_SETUP_DATA_MARK="data"
-    local TMP_DC_BLC_SETUP_ETC_MARK="config"
+    local TMP_DC_BLC_SETUP_ETC_MARK="etc"
     local TMP_DC_BLC_SETUP_APP_MARK="chrome"
 
     # 安装后的真实路径（此处依据实际路径名称修改）
