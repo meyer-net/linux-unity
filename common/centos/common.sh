@@ -2591,9 +2591,9 @@ function soft_docker_boot_print()
 	}
 
 	# 加入到DOCKER基本汇总目录
-	path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
-	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.config.v2.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/config.v2.json"
-	path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.hostconfig.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/hostconfig.json"
+	# path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.json.log" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}-json.log"
+	# path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.config.v2.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/config.v2.json"
+	# path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}.hostconfig.json" "" "${DOCKER_SETUP_DIR}/data/containers/${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}/hostconfig.json"
 
 	find ${DOCKER_SETUP_DIR}/logs/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
 	find ${DOCKER_SETUP_DIR}/etc/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "exec_channel_action '_soft_docker_boot_print_clear_unuse_link'"
