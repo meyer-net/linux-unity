@@ -17,6 +17,20 @@ readonly __DIR __FILE __CONF
 # 清理系统缓存后执行
 echo 3 >/proc/sys/vm/drop_caches
 
+function Usage(){
+cat << HELP
+Usage: unity_specialstart NAME[:TAG]
+unity_specialstart list all tags for docker image on a remote registry.
+Example:
+    unity_specialstart (default nginx)
+HELP
+}
+ARG=$1
+if [[ "$ARG" =~ "-h" ]];then
+    Usage
+    exit 0
+fi
+
 # 初始基本参数启动目录
 function bootstrap() {
     cd ${__DIR}

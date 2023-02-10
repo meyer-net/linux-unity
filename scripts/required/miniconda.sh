@@ -311,7 +311,7 @@ def run(playwright: Playwright) -> None:
 
     try:
         parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
-        parser.add_argument('image', help='镜像地址，例如labring/sealos')
+        parser.add_argument('image', help='镜像地址，例 labring/sealos')
         args = parser.parse_args()
         
         page.goto("https://hub.docker.com/r/{}/tags".format(args.image), wait_until='networkidle')
@@ -336,7 +336,7 @@ from playwright.async_api import async_playwright
 
 async def main():
     parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
-    parser.add_argument('image', help='镜像地址，例如labring/sealos')
+    parser.add_argument('image', help='镜像地址，例 labring/sealos')
     args = parser.parse_args()
 
     #ws_endpoint = "wss://localhost:${TMP_MCD_SETUP_BC_PS_PORT}/?token={}".format("")
@@ -357,6 +357,53 @@ async def main():
             ver_arr = await ver_locators.all_inner_texts()
             for ver in ver_arr:
                 print(ver)
+        finally:
+            await context.close()
+            await browser.close()
+
+asyncio.get_event_loop().run_until_complete(main())
+EOF
+
+    cat >${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_ver_digests.py<<EOF
+import argparse
+import asyncio
+from playwright.async_api import async_playwright
+
+async def main():
+    parser = argparse.ArgumentParser(description='提供指定docker仓库的tags版本列表查询')
+    parser.add_argument('image', help='镜像地址，例 labring/sealos')
+    parser.add_argument('ver', help='镜像版本，例 latest')
+    args = parser.parse_args()
+
+    #ws_endpoint = "wss://localhost:${TMP_MCD_SETUP_BC_PS_PORT}/?token={}".format("")
+    
+    async with async_playwright() as playwright:
+        browser = await playwright.chromium.launch(headless=True)
+        # browser = await playwright.chromium.connect(ws_endpoint=ws_endpoint)
+        context = await browser.new_context() 
+
+        try:
+            page = await context.new_page()
+            
+            await page.goto("https://hub.docker.com/r/{}/tags".format(args.image), wait_until='networkidle')
+            # await page.wait_for_load_state(stat="networkidle")
+            
+            # 获取跳转到镜像的元素
+            #list_items = page.get_by_test_id("repotagsTagListItem")
+            #for list_item in await list_items.all():
+            #    item_ver_node = list_item.get_by_test_id("navToImage")
+            #    for item_ver_node_text in await item_ver_node.all_inner_texts():
+            #        # 获取对应的版本号，找到匹配的
+            #        if (item_ver_node_text == args.ver):
+            #            print(await list_item.get_by_test_id("repotagsImageList-{}".format(args.ver)).locator("div:has(span)").locator(".MuiTypography-root").all_inner_texts())
+
+            # 获取跳转到镜像的元素
+            # 参考 http://playwright.dev/python/docs/api/class-locator
+            ver_row = page.get_by_test_id("repotagsImageList-{}".format(args.ver))
+            # 开始找寻节点下的tags
+            ver_tags = await ver_row.locator(".MuiTypography-root").all_inner_texts()
+            for ver_tag in ver_tags:
+                print(ver_tag)
         finally:
             await context.close()
             await browser.close()

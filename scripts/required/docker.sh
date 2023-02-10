@@ -213,6 +213,11 @@ function conf_docker()
 
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
+    cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/daemon.json << 'EOF'
+{
+  "registry-mirrors": ["https://hub.docker.com/", "https://quay.io/search", "https://hub.daocloud.io/"]
+}
+EOF
     
     ## 授权权限，否则无法写入
     ### 默认的安装有docker组，无docker用户
@@ -224,7 +229,7 @@ function conf_docker()
 	chown -R docker:docker ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
     chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
-	# chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
+	chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
 
     # 启动服务
     systemctl start docker.service
@@ -377,6 +382,8 @@ function setup_ext_docker()
     
     local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
     source ${__TMP_DIR}/docker/*.sh
+    # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
+    # https://github.com/containrrr/watchtower 
 
     echo_text_style "Install <docker> exts completed"
 
