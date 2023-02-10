@@ -2467,7 +2467,7 @@ function soft_docker_boot_print()
 		echo_text_style "Cannot found created container from image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]), start to build it"
 
 		# 还原容器逻辑，参数优先从此处取
-		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP "\w+(?=SRC$)")
+		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP ".+(?=SRC$)")
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" ]; then
 			echo "${TMP_SPLITER2}"
 			echo_text_style "Checked the image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]) typed 'container', start 'change args' from source(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
@@ -2476,6 +2476,7 @@ function soft_docker_boot_print()
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.* | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).+(?=/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}$)")
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH="${MIGRATE_DIR}/${_TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE}/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}"
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_INSPECT=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.inspect.ctn.json)
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_HOSTCONF=$(cat ${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.hostconfig.json)
 			
 			# 必须指定启动命令
 			_TMP_SOFT_DOCKER_BOOT_PRINT_CMD=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_INSPECT}" | jq ".[0].Config.Cmd" | grep -oP "(?<=^  \").*(?=\",*$)")
@@ -2487,13 +2488,29 @@ function soft_docker_boot_print()
 			local _TMP_SOFT_DOCKER_ROOT_PRINT_FILE_ENVS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_INSPECT}" | jq ".[0].Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)")
 			local _TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS=$(echo "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_ENVS}" | xargs printf "--env=%s ")
 
-			function _soft_docker_boot_print_filter_args()
+			# 挂载盘信息获取
+			local _TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_HOSTCONF}" | jq ".Binds" | grep -oP "(?<=^  \").*(?=\",*$)")
+			local _TMP_SOFT_DOCKER_ROOT_PRINT_ARG_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS}" | xargs printf "--volume=%s ")
+			
+			local _TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" | grep -oP ".+(?=_v[0-9]+$)")
+			
+			function _soft_docker_boot_print_filter_arg_envs()
 			{
-				action_if_item_not_exists "^${1}$" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "" "_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=\${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS//${1}/}"
+				# --env=APP_DIR=/usr/src/app
+				local _TMP_SOFT_DOCKER_BOOT_PRINT_ENV_KEY=$(echo "${1}" | cut -d'=' -f1)
+				action_if_item_not_exists "^--env=${_TMP_SOFT_DOCKER_BOOT_PRINT_ENV_KEY}=" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "" "_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=\${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS//\${1}/}"
 			}
-			exec_split_action "${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS}" "_soft_docker_boot_print_filter_args"
+			exec_split_action "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_ENVS}" "_soft_docker_boot_print_filter_arg_envs"
+			
+			function _soft_docker_boot_print_filter_arg_mounts()
+			{
+				# --volume=/mountdisk/data/docker_apps/browserless_chrome/d994a60f9b5c:/usr/src/app/workspace
+				local _TMP_SOFT_DOCKER_BOOT_PRINT_MOUNT_KEY=$(echo "${1}" | cut -d':' -f2)
+				action_if_item_not_exists "^--volume=.+:${_TMP_SOFT_DOCKER_BOOT_PRINT_MOUNT_KEY}$" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "" "_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=\${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS//\${1}/}"
+			}
+			exec_split_action "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS}" "_soft_docker_boot_print_filter_arg_mounts"
 
-			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
+			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
 			
 			echo "${TMP_SPLITER2}"
 			echo_text_style "Changed the image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]) boot args(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"}) to boot it"
