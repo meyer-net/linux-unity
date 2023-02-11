@@ -1473,7 +1473,7 @@ function docker_soft_trail_clear()
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID})
 	# e75f9b427730
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_ID=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
-	# browserless/chrome:imgid1111111
+	# browserless/chrome:imgver111111
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
 	# browserless/chrome
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_FULL_NAME}" | cut -d':' -f1)
@@ -1586,10 +1586,10 @@ function change_docker_container_inspect_env()
 
 # 修改DOCKER容器挂载信息
 # 参数1：容器ID
-# 参数2：挂载路径，例 /opt/docker_apps/browserless_chrome/imgid1111111
+# 参数2：挂载路径，例 /opt/docker_apps/browserless_chrome/imgver111111
 # 参数3：容器路径 /usr/src/app
 # 示例：
-#       change_docker_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgid1111111" "/usr/src/app"
+#       change_docker_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111" "/usr/src/app"
 function change_docker_container_inspect_mount()
 {
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
@@ -1625,12 +1625,12 @@ function change_docker_container_inspect_mount()
 
     change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
     change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
-    
+
     # argjson相关参考：https://www.jianshu.com/p/e05a5940f833
     echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
 
 	# 修改 hostconfig.json
-	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.*=${3}$" "${2}:${3}"
+	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "${2}:${3}"
 
 	echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
     
@@ -1639,9 +1639,9 @@ function change_docker_container_inspect_mount()
 
 # 修改DOCKER容器挂载信息
 # 参数1：容器ID
-# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgid1111111:/usr/src/app 
+# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app 
 # 示例：
-#       change_docker_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgid1111111:/usr/src/app"
+#       change_docker_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app"
 function change_docker_container_inspect_mounts()
 {
 	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID="${1}"
@@ -1650,23 +1650,33 @@ function change_docker_container_inspect_mounts()
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DATA_PATH}/hostconfig.json"
     local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH})
 
-    # local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
+    # local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"[,]*$)" | sort)
+	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 
-	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" ]; then
+	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" ]; then
 		function formal_dc_browserless_chrome_ctn_bind()
 		{
 			# 检测倒未绑定对象
 			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
 			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
-			if [ -z "$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BINDS}" | grep -o ".*:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}")" ]; then				
-				echo_text_style "Mounting pair '${1}'"
+			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" | grep -oE "[^:]+:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}$")
+			if [ -z "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then				
+				echo_text_style "Mounting newer pair → '${1}'"	
+
 				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+			else
+				if [ "${1}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then
+					echo_text_style "Mounting change pair → '${1}'(${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR})"	
+
+					change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+				else
+					echo_text_style "Keep mount pair → '${1}'"	
+				fi
 			fi
 		}
 
-		exec_split_action "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_SORT_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
+		exec_split_action "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
 	fi
 
     return $?
@@ -1736,7 +1746,7 @@ function echo_docker_images_vers()
 				return
             fi
 
-			# 已安装版本是版本列表的子版本，例：imgid1111111_v1675941850SRC -> imgid1111111_v1675941850
+			# 已安装版本是版本列表的子版本，例：imgver111111_v1675941850SRC -> imgver111111_v1675941850
 			if [ -n "$(echo "${1}" | grep -oP "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}")" ]; then
                 _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}√"
 				return
@@ -1828,7 +1838,7 @@ function docker_snap_create_action()
 	local _TMP_DOCKER_SNAP_CREATE_IMG_ID=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 	# 完整的镜像inspect
 	local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_ID})
-	# browserless/chrome:imgid1111111
+	# browserless/chrome:imgver111111
 	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
 	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
 	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
@@ -1838,11 +1848,11 @@ function docker_snap_create_action()
 	local _TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
 	# browserless/chrome
 	local _TMP_DOCKER_SNAP_CREATE_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
-	# imgid1111111_v1670329246/1-puppeteer-13.1.3_v1670329246
+	# imgver111111_v1670329246/1-puppeteer-13.1.3_v1670329246
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_VER}_v${3}"
-	# browserless_chrome/imgid1111111_v1670329246
+	# browserless_chrome/imgver111111_v1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}
-	# /mountdisk/repo/migrate/snapshot/browserless_chrome/imgid1111111_v1670329246
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/imgver111111_v1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
 	
 		
@@ -2010,9 +2020,9 @@ EOF
 	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
 	### 还原标记则为SR(Snap restore c/i/d)			
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | grep "^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER})SC(?=[0-9]+$)" | wc -l)
-	# imgid1111111_v1675749340SC0
+	# imgver111111_v1675749340SC0
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT}"
-	# browserless_chrome:imgid1111111_v1675749340SC0
+	# browserless_chrome:imgver111111_v1675749340SC0
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}"
 	echo_text_style "View the 'container commit' <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>([${_TMP_DOCKER_SNAP_CREATE_IMG_VER}] → [${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}])↓:"
 	docker commit -a "unity-special_backup ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" -m "backup version ${_TMP_DOCKER_SNAP_CREATE_IMG_VER} to ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}
@@ -2067,10 +2077,10 @@ EOF
 
 # 还原 Docker 快照
 # 参数1：镜像名称，例 browserless/chrome
-# 参数2：镜像版本(为空时自动检索)，例 imgid1111111_v1670329246
+# 参数2：镜像版本(为空时自动检索)，例 imgver111111_v1670329246
 # 参数3：还原快照后后执行脚本
 #       参数1：镜像名称，例 browserless/chrome
-#       参数2：快照版本，例 imgid1111111_v1670329246
+#       参数2：快照版本，例 imgver111111_v1670329246
 #       参数3：快照类型，例 image/container/dockerfile
 #       参数4：快照来源，例 snapshot/clean，默认snapshot
 # 参数4：快照不存在时执行脚本
@@ -2208,7 +2218,7 @@ function docker_snap_restore_if_choice_action()
 
 # 还原 Docker 快照
 # 参数1：镜像名称，例 browserless/chrome
-# 参数2：快照版本，例 imgid1111111_v1670329246
+# 参数2：快照版本，例 imgver111111_v1670329246
 # 参数3：快照类型，例 image/container/dockerfile
 # 参数4：快照来源，例 snapshot/clean，默认snapshot
 # 参数5：完成后执行脚本，传递参数 1-4，更新版本号
@@ -2280,7 +2290,7 @@ function docker_snap_restore_action()
 # 参数1：镜像名称，用于检测
 # 参数2：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
 #        参数1：镜像名称，例 browserless/chrome
-#        参数2：镜像版本，例 imgid1111111_v1670329246
+#        参数2：镜像版本，例 imgver111111_v1670329246
 #        参数3：快照类型（快照有效），例 image/container/dockerfile
 #        参数4：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
 # 参数3：重装选择N时 或镜像已存在时执行脚本
@@ -2363,7 +2373,7 @@ function soft_docker_check_upgrade_action()
 
 # Docker启动执行脚本
 # 参数1：镜像名称，例 browserless/chrome
-# 参数2：启动版本，例 imgid1111111_v1670329246
+# 参数2：启动版本，例 imgver111111_v1670329246
 # 参数3：初始启动命令
 # 参数4：初始启动参数
 # 参数5：启动前运行脚本
@@ -2461,6 +2471,7 @@ function soft_docker_boot_print()
 
 	# 确认是否构建新容器
 	## 容器不存在
+	local _TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER="${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}"
     local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS}" | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | cut -d' ' -f1)
     if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
 		echo "${TMP_SPLITER2}"
@@ -2469,8 +2480,11 @@ function soft_docker_boot_print()
 		# 还原容器逻辑，参数优先从此处取
 		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP ".+(?=SRC$)")
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" ]; then
+			# 重新标记MARK
+			_TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" | grep -oP ".+(?=_v[0-9]+$)")
+
 			echo "${TMP_SPLITER2}"
-			echo_text_style "Checked the image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]) typed 'container', start 'change args' from source(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
+			echo_text_style "Checked the image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]) typed 'container', start 'mark ver'(${_TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER}) then 'change args' from source(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"})"
 
 			# 如果是容器还原的镜像，启动时需还原依赖缺失部分
 			local _TMP_SOFT_DOCKER_BOOT_PRINT_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}.* | grep "${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).+(?=/${_TMP_SOFT_DOCKER_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}$)")
@@ -2491,9 +2505,7 @@ function soft_docker_boot_print()
 			# 挂载盘信息获取
 			local _TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_FILE_HOSTCONF}" | jq ".Binds" | grep -oP "(?<=^  \").*(?=\",*$)")
 			local _TMP_SOFT_DOCKER_ROOT_PRINT_ARG_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS}" | xargs printf "--volume=%s ")
-			
-			local _TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" | grep -oP ".+(?=_v[0-9]+$)")
-			
+						
 			function _soft_docker_boot_print_filter_arg_envs()
 			{
 				# --env=APP_DIR=/usr/src/app
@@ -2504,13 +2516,13 @@ function soft_docker_boot_print()
 			
 			function _soft_docker_boot_print_filter_arg_mounts()
 			{
-				# --volume=/mountdisk/data/docker_apps/browserless_chrome/d994a60f9b5c:/usr/src/app/workspace
+				# --volume=/mountdisk/data/docker_apps/browserless_chrome/imgver111111:/usr/src/app/workspace
 				local _TMP_SOFT_DOCKER_BOOT_PRINT_MOUNT_KEY=$(echo "${1}" | cut -d':' -f2)
 				action_if_item_not_exists "^--volume=.+:${_TMP_SOFT_DOCKER_BOOT_PRINT_MOUNT_KEY}$" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "" "_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=\${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS//\${1}/}"
 			}
 			exec_split_action "${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS}" "_soft_docker_boot_print_filter_arg_mounts"
 
-			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_FILE_MOUNTS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
+			_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS="${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_ENVS} ${_TMP_SOFT_DOCKER_ROOT_PRINT_ARG_MOUNTS} --workdir=${_TMP_SOFT_DOCKER_BOOT_PRINT_WORKING_DIR}"
 			
 			echo "${TMP_SPLITER2}"
 			echo_text_style "Changed the image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]) boot args(${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}) && cmd(${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD:-"None"}) to boot it"
@@ -2623,7 +2635,7 @@ function soft_docker_boot_print()
 		fi
 	fi
 	
-    exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}"
+    exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER}"
 
 	# 重新加载容器inspect
 	_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
