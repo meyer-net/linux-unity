@@ -1767,6 +1767,17 @@ function change_docker_container_inspect_mounts()
     return $?
 }
 
+# 输出Docker镜像已存在版本集合
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 示例：
+#       echo_docker_images_exists_vers "browserless/chrome"
+function echo_docker_images_exists_vers()
+{
+	docker images | grep "^${1}" | awk -F' ' '{if($2=="latest"||$2=="<none>"){print $3} else {print $2}}' | sed 's/S[A-Z][0-9|A-Z]*$//' | uniq
+
+	return $?
+}
+
 # 输出Docker镜像所有版本集合(已安装版本会打√)
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 参数2：忽略版本数组字符串，例 clean snapshot hub
@@ -1778,8 +1789,7 @@ function echo_docker_images_vers()
 	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
 	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
 	# local _TMP_ECHO_DOCKER_IMAGES_VERS_STORE="${3}"
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_PS=$(docker images | grep "^${1}")
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS=$(echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_PS}" | awk -F' ' '{if($2=="latest"||$2=="<none>"){print $3} else {print $2}}' | grep -Pv ".+_v[0-9]+(?=SC[0-9]+$)" | uniq)
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	
     # /mountdisk/repo/migrate/snapshot/browserless_chrome/
     local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
@@ -2216,7 +2226,7 @@ function docker_snap_restore_if_choice_action()
 		# 去除已存在的容器版本
 		## browserless/chrome:v1673604625SRC
 		## browserless/chrome:v1673955750SCB 还原备份后本地将初始的latest版本还原至该版
-		local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS=$(docker images | grep "^${1}" | awk -F' ' '{print $2}' | grep -oP "(?<=^_v)[0-9]+(?=\w+$)")
+		local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 		## 有运行版本存在时
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_EXISTS_VERS}" ]; then
 			local _TMP_DOCKER_SNAP_RESTORE_IF_CHOICE_ACTION_IMG_NAME="${1}"
@@ -2387,8 +2397,8 @@ function soft_docker_check_upgrade_action()
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG="${1}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_MARK_NAME="${1/\//_}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT=${2}
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS=$(docker images | grep "^${1}")
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS}'"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP=$(docker images | grep "^${1}")
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo '\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}'"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT=${3:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT}}
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC=${4:-"install"}
 
@@ -2445,7 +2455,7 @@ function soft_docker_check_upgrade_action()
 	}
 
 	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_PS}" | awk -F' ' '{if($2=="<none>"){print $3} else {print $2}}' | grep -Pv ".+_v[0-9]+(?=SC[0-9]+$)" | uniq)
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS}" ]; then
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL="N"
 		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked image(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>) was got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS//[[:space:]]/,}]), please sure u will [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT"
