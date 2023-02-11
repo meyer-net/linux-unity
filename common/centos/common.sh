@@ -1175,7 +1175,7 @@ function path_not_exists_link()
 function soft_path_restore_confirm_action() 
 {
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC="${FUNCNAME[1]}"
-	if [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_create" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_move" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_copy" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_swap" ]; then
+	if [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_create" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_pcreate" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_cust" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_move" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_copy" ] || [ "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}" == "soft_path_restore_confirm_swap" ]; then
 		_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC="${FUNCNAME[2]}"
 	fi
 
@@ -1185,71 +1185,103 @@ function soft_path_restore_confirm_action()
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH="${BACKUP_DIR}${1}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft already got the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}', please sure u want to 'cover still or force'"
+
+	# 备份到强制，然后删除
+	# 参数1：操作目录，例如：/opt/docker
+	function _soft_path_restore_confirm_action_force_exec()
+	{
+		# 移动到备份，再覆盖
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_text_style 'Force delete dir of <%s> not found'"
+
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
+		exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
+
+		exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT"
+	}
+	
+	# 覆盖目录
+	# 参数1：操作目录，例如：/opt/docker
+	function _soft_path_restore_confirm_action_cover_exec()
+	{
+		echo
+		echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting cover the path of '${1}'"
+		
+		# 直接覆盖，进cover
+		# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Cover dir of <%s> not found'"
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT="${1}"
+		exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT}"
+
+		# 文件不存在，直接复制
+		exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT"
+		
+		echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) The path of '${1}' was covered"
+		echo
+	}
+	
 	function _soft_path_restore_confirm_action_restore_exec()
 	{
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS=`ls ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH} | sort -rV`
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER=`echo "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}" | awk 'NR==1'`
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS=`ls ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH} | sort -rV`
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER=`echo "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}" | awk 'NR==1'`
 
 		## 提示&选择查找存在备份的最新文件
 		# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
 		function _soft_path_restore_confirm_action_restore_choice_exec()
 		{
-			# 覆盖目录
-			# 参数1：操作目录，例如：/opt/docker
-			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
-			{
-				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VERS}"
-
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER}"
-
-				echo
-				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' to <${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}>"
-				
-				# 直接覆盖，进cover
-				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}/ %s  && echo_text_style \"Dir of '%s' backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH} %s"
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT="${1}"
-				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_COVER_SCRIPT}"
-
-				# 文件不存在，直接复制
-				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_SCRIPT"
-				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS" "${1}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}"
-				
-				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) The path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_RESTORE_PATH}' was resotred"
-				echo
-			}
-
 			# 备份到强制，然后删除
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_force_exec()
 			{
-				# 移动到备份，再覆盖
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
+				_soft_path_restore_confirm_action_force_exec "${@}"
 
-				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
-				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
-
-				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT"
 				_soft_path_restore_confirm_action_restore_choice_cover_exec "${@}"
+			}
+
+			# 覆盖目录
+			# 参数1：操作目录，例如：/opt/docker
+			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
+			{
+				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
+
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER}"
+
+				echo
+				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Starting resotre the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH}' to <${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}>"
+				
+				# 直接覆盖，进cover
+				# [formal_docker] Checked current soft already got the path of '/etc/docker', please sure u want to 'cover still or force'?
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_COVER_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${COVER_DIR}%s && cp -Rp %s ${COVER_DIR}%s/${LOCAL_TIMESTAMP} && rsync -av ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH}/ %s  && echo_text_style \"Dir of '%s' backuped to <${COVER_DIR}%s/${_TMP_SOFT_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || cp -Rp ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH} %s"
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PRINTF_COVER_SCRIPT="${1}"
+				exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PRINTF_COVER_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_COVER_SCRIPT}"
+
+				# 文件不存在，直接复制
+				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PRINTF_COVER_SCRIPT"
+				exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS" "${1}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH}"
+				
+				echo_text_style "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) The path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH}' was resotred"
+				echo
 			}
 
 			# 还原目标路径本身存在，移至强行删除目录中（如果是走安装程序过来，会被提前备份，不会触发此段）
 			# 走到这步，已选择还原备份（是否覆盖还原/强制还原的过程，强制还原始终执行覆盖还原的逻辑）
-			local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked current soft already got the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}', please sure u want to 'cover still or force'"
-			path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "_soft_path_restore_confirm_action_restore_choice_force_exec" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "N"
+			path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "_soft_path_restore_confirm_action_force_exec" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "N"
 		}
 		
-		path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_VER:-"none"}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO}" "_soft_path_restore_confirm_action_restore_choice_exec" "_soft_path_restore_confirm_action_create_exec" "_soft_path_restore_confirm_action_create_exec" "Y"
+		path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER:-"none"}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO}" "_soft_path_restore_confirm_action_restore_choice_exec" "_soft_path_restore_confirm_action_newer_exec" "_soft_path_restore_confirm_action_newer_exec" "Y"
 	}
 	
+	# 没有备份时执行
 	# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
-	function _soft_path_restore_confirm_action_create_exec()
+	function _soft_path_restore_confirm_action_newer_exec()
 	{
+		path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_cover_exec" "_soft_path_restore_confirm_action_force_exec"
+		
 		exec_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${1}"
 	}
 
 	# 查找备份是否存在
-	path_exists_yn_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}" "_soft_path_restore_confirm_action_restore_exec" "_soft_path_restore_confirm_action_create_exec"
+	path_exists_yn_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}" "_soft_path_restore_confirm_action_restore_exec" "_soft_path_restore_confirm_action_newer_exec"
 
 	return $?
 }
@@ -1684,7 +1716,7 @@ function change_docker_container_inspect_mounts()
 
 # 输出Docker镜像所有版本集合(已安装版本会打√)
 # 参数1：镜像名称，用于检测，例 browserless/chrome
-# 参数2：忽略版本数组字符串，例 clean snapshot hub commit
+# 参数2：忽略版本数组字符串，例 clean snapshot hub
 # 示例：
 #       echo_docker_images_vers "browserless/chrome"
 #       echo_docker_images_vers "browserless/chrome" "hub"
@@ -1771,7 +1803,7 @@ function echo_docker_images_vers()
 # 参数3：选择版本后执行脚本
 #       参数1：是否已安装，不为空则表示已安装
 #       参数2：安装版本
-#       参数3：版本存储类型，例 clean snapshot hub commit
+#       参数3：版本存储类型，例 clean snapshot hub
 # 参数4：指定的版本数组字符串
 # 示例：
 #       choice_docker_cust_vers_action "browserless/chrome" "choice echo text" "func_a" "a b c"
@@ -1805,8 +1837,8 @@ function choice_docker_cust_vers_action()
 # 参数3：选择版本后执行脚本
 #       参数1：是否已安装，不为空则表示已安装
 #       参数2：安装版本
-#       参数3：版本存储类型，例 clean snapshot hub commit
-# 参数4：忽略版本数组字符串，例 clean snapshot hub commit
+#       参数3：版本存储类型，例 clean snapshot hub
+# 参数4：忽略版本数组字符串，例 clean snapshot hub
 # 示例：
 #       choice_docker_images_vers_action "browserless/chrome" "choice echo text" "func_a"
 #       choice_docker_images_vers_action "browserless/chrome" "choice echo text" "func_a" "hub"
@@ -2311,7 +2343,7 @@ function soft_docker_check_upgrade_action()
 	{
 		# 参数1：是否已安装，不为空则表示已安装
 		# 参数2：安装版本
-		# 参数3：版本存储类型，例 clean snapshot hub commit
+		# 参数3：版本存储类型，例 clean snapshot hub
 		function _soft_docker_check_upgrade_action_choice_action()
 		{
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER="${2}"
