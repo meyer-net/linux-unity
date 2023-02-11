@@ -639,6 +639,59 @@ function change_json_arg_arr()
     return $?
 }
 
+# 检测端口占用，并提示交换 ???提取变量识别逻辑
+# 参数1：需要设置的变量名，或变量
+# 示例：
+#      bind_exchange_port 13000
+#      _PORT_VAR=13000 && bind_exchange_port "_PORT_VAR"
+function bind_exchange_port() {
+	local _TMP_BIND_EXCHANGE_PORT_VAR_NAME="${1}"
+	local _TMP_BIND_EXCHANGE_PORT_VAR_VAL=`eval echo '${'"${1}"'}'`
+	local _TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}
+
+	# 识别直接赋值
+	if [ -z "${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}" ]; then
+		_TMP_BIND_EXCHANGE_PORT_VAR_VAL=${1}
+		_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=${1}
+		_TMP_BIND_EXCHANGE_PORT_VAR_NAME="_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT"
+	fi
+
+	local _TMP_BIND_EXCHANGE_PORT_USING=$(lsof -i:${_TMP_BIND_EXCHANGE_PORT_VAR_VAL} | awk 'NR>1')
+	if [ -n "${_TMP_BIND_EXCHANGE_PORT_USING}" ]; then
+		if [ "${#_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}" < 5 ]; then
+			rand_val "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" 10000 65535
+		else
+			_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=$((_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT+1))
+		fi
+
+		local _TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR=($(echo "${_TMP_BIND_EXCHANGE_PORT_USING}" | cut -d' ' -f1 | uniq))
+		input_if_empty "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" "Checked Port '${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}' is using(<${_TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR[*]}>), please [change] newer one"
+	fi
+	
+	eval ${_TMP_BIND_EXCHANGE_PORT_VAR_NAME}='${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}'
+
+	# 非绑定变量名时，直接输出结果
+	if [ "${1}" != "${_TMP_BIND_EXCHANGE_PORT_VAR_NAME}" ]; then
+		echo "${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}"
+	fi
+
+	return $?
+}
+
+# 检测端口占用，并执行脚本
+# 参数1：需要设置的变量名
+function exchange_port_action() {
+	local _TMP_TRIM_STR_VAR_NAME="${1}"
+	local _TMP_TRIM_STR_VAR_VAL=`eval echo '$'${1}`
+	if [ -f "${SETUP_DIR}/.sys_domain" ]; then
+		_TMP_EXCHANGE_PORT_ACTION_VAL=`cat ${SETUP_DIR}/.sys_domain`
+	fi
+
+	eval ${1}='${_TMP_EXCHANGE_PORT_ACTION_VAL}'
+
+	return $?
+}
+
 # 执行休眠
 # 参数1：休眠数值
 # 参数2：休眠等待文字
@@ -735,12 +788,12 @@ function resolve_unmount_disk () {
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT} -eq 0 ]; then
 			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
 			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Suggest step："
-			echo_text_style "                                Type ${green}n${reset}, ${red}enter${reset}"
-			echo_text_style "                                Type ${green}p${reset}, ${red}enter${reset}"
-			echo_text_style "                                Type ${green}1${reset}, ${red}enter${reset}"
-			echo_text_style "                                Type ${red}enter${reset}"
-			echo_text_style "                                Type ${red}enter${reset}"
-			echo_text_style "                                Type ${green}w${reset}, ${red}enter${reset}"
+			echo_text_style "                                Type 'n', <enter>"
+			echo_text_style "                                Type 'p', <enter>"
+			echo_text_style "                                Type '1', <enter>"
+			echo_text_style "                                Type <enter>"
+			echo_text_style "                                Type <enter>"
+			echo_text_style "                                Type 'w', <enter>"
 			echo "---------------------------------------------"
 
 			fdisk ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
@@ -1550,7 +1603,7 @@ function change_docker_container_inspect_wrap()
 		_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
 		## 重新启动并构建新容器
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting 'stop' all 'running containers' (${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}) & docker 'service', hold on please"
+		echo_text_style "Starting 'stop' all 'running containers'(<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}>) & docker 'service', hold on please"
 		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container stop
 		systemctl stop docker.socket
 		systemctl stop docker.service
@@ -2426,7 +2479,9 @@ function soft_docker_boot_print()
 		
 	# -P :是容器内部端口随机映射到主机的端口。
 	# -p : 是容器内部端口绑定到指定的主机端口。
-    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_PAIR=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_PAIR}" | cut -d':' -f1)
+    local _TMP_SOFT_DOCKER_BOOT_PRINT_PS_INN_PORT=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_PAIR}" | cut -d':' -f2)
     
 	local _TMP_SOFT_DOCKER_BOOT_PRINT_BEFORE_BOOT_SCRIPTS=${5}
 
@@ -2508,7 +2563,10 @@ function soft_docker_boot_print()
     if [ -z "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Cannot found created container from image(<${1}>:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]), start to build it"
-
+		
+		bind_exchange_port "_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT"
+		_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" | sed "s@${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT_PAIR}@${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}:${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_INN_PORT}@g")
+		
 		# 还原容器逻辑，参数优先从此处取
 		local _TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC=$(echo "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" | grep -oP ".+(?=SRC$)")
 		if [ -n "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER_SRC}" ]; then
@@ -2574,7 +2632,7 @@ function soft_docker_boot_print()
 		
 		if [ -a "${_TMP_SOFT_DOCKER_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
-			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
+			_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}', wait for a moment"
 
 			echo "${TMP_SPLITER2}"
 			echo_text_style "View the 'update dependency exec'↓:"
@@ -2594,10 +2652,10 @@ function soft_docker_boot_print()
         docker start ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 
         # 复原后，端口可能改变
-        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT=$(docker port ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | cut -d':' -f2 | awk 'NR==1')
+        _TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT=$(docker port ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID} | cut -d':' -f2 | awk 'NR==1')
     fi
 
-	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}', wait for a moment"
+	_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}" "Booting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' to port '${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}', wait for a moment"
 	
 	# 启动状态异常则不往下走
 	# "State": {
@@ -2667,7 +2725,7 @@ function soft_docker_boot_print()
 		fi
 	fi
 	
-    exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER}"
+    exec_check_action "${6}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_CMD}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_ARGS}" "${_TMP_SOFT_DOCKER_BOOT_PRINT_MARK_VER}"
 
 	# 重新加载容器inspect
 	_TMP_SOFT_DOCKER_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID})
@@ -2691,7 +2749,7 @@ function soft_docker_boot_print()
 		docker container restart ${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}
 
 		# 二次等待
-		_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_PORT}" "Rebooting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' over chown mounts, wait for a moment"
+		_soft_docker_boot_print_wait "${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_OPN_PORT}" "Rebooting the image <${1}:[${_TMP_SOFT_DOCKER_BOOT_PRINT_VER}]>([${_TMP_SOFT_DOCKER_BOOT_PRINT_PS_ID}])' over chown mounts, wait for a moment"
 	fi
 	
     echo "${TMP_SPLITER2}"
@@ -3203,9 +3261,9 @@ function while_wget()
 	# _TMP_WHILE_WGET_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_WGET_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_WGET_FILE_DEST_NAME" || echo ${_TMP_WHILE_WGET_FILE_SOUR_NAME})
 	
 	echo "-------------------------------------------------------------------------------------------------------------------"
-	echo "Starting get file from '${red}${_TMP_WHILE_WGET_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_WGET_FILE_DEST_NAME}${reset}'"
+	echo_text_style "Starting <get> file from [${_TMP_WHILE_WGET_TRUE_URL}] named '${_TMP_WHILE_WGET_FILE_DEST_NAME}'"
 	echo "-------------------------------------------------------------------------------------------------------------------"
-	echo "${green}Current Dir${reset}：`pwd`"
+	echo_text_style "'Current Dir'：`pwd`"
 	local _TMP_WHILE_WGET_DIST_FILE_EXT=`echo ${_TMP_WHILE_WGET_FILE_DEST_NAME##*.}`	
 	case ${_TMP_WHILE_WGET_DIST_FILE_EXT} in
 		"rpm")
@@ -3222,8 +3280,8 @@ function while_wget()
 	esac
 
 	local _TMP_WHILE_WGET_COMMAND="wget -c --tries=0 --timeout=60 ${_TMP_WHILE_WGET_TRUE_URL} -O ${_TMP_WHILE_WGET_FILE_DEST_NAME}"
-	echo "${green}Wget Command${reset}：${_TMP_WHILE_WGET_COMMAND}"
-	echo "${green}Wget/Current Dir${reset}：`pwd`"
+	echo_text_style "'Wget Command'：${_TMP_WHILE_WGET_COMMAND}"
+	echo_text_style "'Wget/Current Dir'：`pwd`"
 	echo
 
 	# 循环执行wget命令，直到成功
@@ -3276,14 +3334,14 @@ function while_curl()
 	# _TMP_WHILE_CURL_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_CURL_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_CURL_FILE_DEST_NAME" || echo $_TMP_WHILE_CURL_FILE_NAME)
 	
 	echo "-------------------------------------------------------------------------------------------------------------------------"
-	echo "Starting curl file from '${red}${_TMP_WHILE_CURL_TRUE_URL}${reset}' named '${green}${_TMP_WHILE_CURL_FILE_DEST_NAME}${reset}'"
+	echo_text_style "Starting <curl> file from [${_TMP_WHILE_CURL_TRUE_URL}] named '${_TMP_WHILE_CURL_FILE_DEST_NAME}'"
 	echo "-------------------------------------------------------------------------------------------------------------------------"
-	echo "${green}Current Dir${reset}：`pwd`"
+	echo_text_style "'Current Dir'：`pwd`"
 
 	cd ${CURL_DIR}
 	local _TMP_WHILE_CURL_COMMAND="curl -4sSkL ${_TMP_WHILE_CURL_TRUE_URL} -o ${_TMP_WHILE_CURL_FILE_DEST_NAME}"
-	echo "${green}Curl Command${reset}：${_TMP_WHILE_CURL_COMMAND}"
-	echo "${green}Curl/Current Dir${reset}：`pwd`"
+	echo_text_style "'Curl Command'：${_TMP_WHILE_CURL_COMMAND}"
+	echo_text_style "'Curl/Current Dir'：`pwd`"
 	echo
 
 	while [ ! -f "${_TMP_WHILE_CURL_FILE_DEST_NAME}" ]; do
@@ -3322,26 +3380,26 @@ function while_exec()
 	local _TMP_WHILE_EXEC_FAILURE_SCRIPT=${3}
 
 	echo "${TMP_SPLITER}"
-	echo "Starting exec check script '${green}${_TMP_WHILE_EXEC_CHECK_SCRIPT}${reset}'"
+	echo_text_style "Starting exec check script '${_TMP_WHILE_EXEC_CHECK_SCRIPT}'"
 	local _TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
 	if [ $I -eq 1 ] && [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" == "1" ]; then
-		echo "Script is '${green}running${reset}', exec exit"
+		echo_text_style "Script is 'running', exec exit"
 		break
 	fi
 
-	echo "Starting exec script '${green}$_TMP_WHILE_EXEC_SCRIPT${reset}'"
+	echo_text_style "Starting exec script '$_TMP_WHILE_EXEC_SCRIPT'"
 	echo "${TMP_SPLITER}"
 
 	for I in $(seq 99);
 	do
-		echo "Execute sequence：'${green}${I}${reset}'"
+		echo_text_style "Execute sequence：'${I}'"
 		echo "${TMP_SPLITER2}"
 		eval "$_TMP_WHILE_EXEC_SCRIPT"
 
 		_TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
 
 		if [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" != "1" ]; then
-			echo "Execute ${red}failure${reset}, the result response '${red}${_TMP_WHILE_EXEC_CHECK_RESULT}${reset}', this will wait for 30s to try again"
+			echo_text_style "Execute <failure>, the result response '<${_TMP_WHILE_EXEC_CHECK_RESULT}>', this will wait for 30s to try again"
 			
 			path_exists_yn_action "${GUM_PATH}" "gum spin --spinner monkey --title \"Waitting for try again...\" -- sleep 30" "sleep 30"	
 
@@ -3351,7 +3409,7 @@ function while_exec()
 			fi
 		else
 			echo "${TMP_SPLITER}"
-			echo "Execute ${green}success${reset}"
+			echo_text_style "Execute 'success'"
 			echo "${TMP_SPLITER3}"
 			break
 		fi
@@ -3806,7 +3864,7 @@ function input_if_empty()
 	
 	local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
 	function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
-		echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '${green}`eval echo ${_TMP_INPUT_IF_EMPTY_DFT_VAL}`${reset}'"
+		echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '`eval echo ${_TMP_INPUT_IF_EMPTY_DFT_VAL}`'"
 		read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
 		echo ""
 	}
@@ -3860,19 +3918,19 @@ function set_newer_by_url_list_link_date()
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_NAME}`
 
     echo ${TMP_SPLITER}
-    echo "Checking the soft version by link date in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}${reset}'， default val is '${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}${reset}'"    
+    echo "Checking the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}'"    
 	#  | awk '{if (NR>2) {print}}' ，缺失无效行去除的判断
     local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | awk -F'</a>' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | sed '/^$/d' | awk -F' ' '{print $1}' | awk 'function t_f(t){"date -d \""t"\" +%s" | getline ft; return ft}{print t_f(${1})}' | awk 'BEGIN {max = 0} {if (${1}+0 > max+0) {max=${1} ;content=$0} } END {print content}' | xargs -I {} env LC_ALL=en_US.en date -d@{} "+%d-%h-%Y"`
     local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}" | sed 's/\(.*\)href="\([^"\n]*\)"\(.*\)/\2/g'`
 
 	if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}" ]; then
-		echo "Upgrade the soft version by link date in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}${reset}'， release newer version to '${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}${reset}'"
+		echo "Upgrade the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'"
 
-		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer ${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}${reset}，if u want to change"
+		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
 
 		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT'
 	else
-		echo "Cannot check the soft version by link date in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}${reset}'，Some part info"
+		echo "Cannot check the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>，Some part info"
 		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}"
 	fi
 
@@ -3903,20 +3961,20 @@ function set_newer_by_url_list_link_text()
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_NAME}`
 
     echo ${TMP_SPLITER}
-    echo "Checking the soft version by link text in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}${reset}'， default val is '${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}${reset}'"
+    echo_text_style "Checking the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}'"
 	# 清除字母开头： | tr -d "a-zA-Z-"
     local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep -oP "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG}" | sort -rV | awk 'NR==1'`
 	# local TMP_NEWER_FILENAME=$(echo ${3} | sed "s@()@${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}.*@g")
     # local TMP_NEWER_HREF_LINK_FILENAME=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep "${TMP_NEWER_FILENAME}\$" | awk 'NR==1' | sed 's@.*/@@g'`
 
 	if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}" ]; then
-		echo "Upgrade the soft version by link text in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}${reset}'， release newer version to '${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}${reset}'"
+		echo_text_style "Upgrade the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'"
 		
-		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer ${green}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}${reset}，if u want to change"
+		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
 
 		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS'
 	else
-		echo "Cannot check the soft version by link text in url of '${red}${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}${reset}'，Some part info"
+		echo_text_style "Cannot check the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>，Some part info"
 		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}"
 	fi
 
@@ -3946,18 +4004,18 @@ function set_github_soft_releases_newer_version()
 	local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_NAME}`
 
     echo ${TMP_SPLITER}
-    echo "Checking the soft in github repos of '${red}${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}${reset}'， default val is '${green}${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}${reset}'"
+    echo_text_style "Checking the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>， default val is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
 	# local _TMP_GITHUB_SOFT_NEWER_VERS=`curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1`
 	local _TMP_GITHUB_SOFT_NEWER_VERS=`curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}'`
 
 	if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
-		echo "Upgrade the soft in github repos of '${red}${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}${reset}'， release newer version to '${green}${_TMP_GITHUB_SOFT_NEWER_VERS}${reset}'"
+		echo_text_style "Upgrade the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>， release newer version to '${_TMP_GITHUB_SOFT_NEWER_VERS}'"
 
-		input_if_empty "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer ${green}${_TMP_GITHUB_SOFT_NEWER_VERS}${reset}，if u want to change"
+		input_if_empty "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}'，if u want to change"
 
 		eval ${1}='$_TMP_GITHUB_SOFT_NEWER_VERS'
 	else
-		echo "Cannot check the soft in github repos of '${red}${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}${reset}'，Some part info"
+		echo_text_style "Cannot check the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>，Some part info"
 		echo "${_TMP_GITHUB_SOFT_NEWER_VERS}"
 	fi
     echo ${TMP_SPLITER}
@@ -4484,7 +4542,7 @@ function confirm_yn_action()
 
 	local _TMP_CONFIRM_YN_ACTION_Y_N=""
 	function _TMP_CONFIRM_YN_ACTION_NORMAL_FUNC() {
-		echo_text_style "${_TMP_CONFIRM_YN_ACTION_NOTICE}, by follow key ('${red}yes(y) or enter key/no(n) or else${reset}')?"
+		echo_text_style "${_TMP_CONFIRM_YN_ACTION_NOTICE}, by follow key ('yes(y)' or enter key 'no(n)' or 'else')?"
 		read -n 1 _TMP_CONFIRM_YN_ACTION_Y_N
 		echo ""
 
@@ -4688,14 +4746,14 @@ function exec_while_read()
 	for I in $(seq 99);
 	do
 		local _TMP_EXEC_WHILE_READ_CURRENT_NOTICE=`eval echo "${_TMP_EXEC_WHILE_READ_NOTICE}"`
-		echo "${_TMP_EXEC_WHILE_READ_CURRENT_NOTICE} Or '${red}enter key${reset}' To Quit"
+		echo_text_style "${_TMP_EXEC_WHILE_READ_CURRENT_NOTICE} Or 'enter key' To Quit"
 		read -e _TMP_EXEC_WHILE_READ_CURRENT
 
-		echo "Item of '${red}${_TMP_EXEC_WHILE_READ_CURRENT}${reset}' inputed"
+		echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_CURRENT}> inputed"
 		
 		if [ -z "${_TMP_EXEC_WHILE_READ_CURRENT}" ]; then
 			if [ $I -eq 1 ] && [ -n "${_TMP_EXEC_WHILE_READ_DFT}" ]; then
-				echo "No input, set value to default '${_TMP_EXEC_WHILE_READ_DFT}'"
+				echo_text_style "No input, set value to default '${_TMP_EXEC_WHILE_READ_DFT}'"
 				_TMP_EXEC_WHILE_READ_CURRENT="${_TMP_EXEC_WHILE_READ_DFT}"
 			else
 				_TMP_EXEC_WHILE_READ_BREAK_ACTION=true
@@ -4728,12 +4786,12 @@ function exec_while_read()
 	eval ${1}='${_TMP_EXEC_WHILE_READ_NEW_VAL}'
 	
 	if [ -z "${_TMP_EXEC_WHILE_READ_NEW_VAL}" ]; then
-		echo "${red}Items not set${reset}"
+		echo_text_style "<Items not set>"
 		# exit 1
 	fi
 
 	# eval ${1}=`echo "${1}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g"`
-	echo "Final value is '${_TMP_EXEC_WHILE_READ_NEW_VAL}'"
+	echo_text_style "Final value is '${_TMP_EXEC_WHILE_READ_NEW_VAL}'"
 
 	return $?
 }
@@ -4774,14 +4832,14 @@ function exec_while_read_json()
 		_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM} }"
 
 		eval ${1}='$_TMP_EXEC_WHILE_READ_JSON_ITEM'
-		echo "Item of '${red}${_TMP_EXEC_WHILE_READ_JSON_ITEM}${reset}' inputed"
+		echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_JSON_ITEM}> inputed"
 	done
 
 	local _TMP_EXEC_WHILE_READ_JSON_NEW_VAL=`echo "${_TMP_EXEC_WHILE_READ_JSON_ITEM}" | sed 's@}{@}, {@g'`
 	eval ${1}='$_TMP_EXEC_WHILE_READ_JSON_NEW_VAL'
 	
 	if [ -z "${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}" ]; then
-		echo "${red}Items not set, script exit${reset}"
+		echo_text_style "<Items not set, script exit>"
 		exit 1
 	fi
 
@@ -4853,7 +4911,7 @@ function echo_startup_config()
 	echo
     echo ${TMP_SPLITER}
 	if [ ! -f "${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}" ]; then
-		echo "Supervisor：Gen startup config of '${green}${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}${reset}'"
+		echo_text_style "Supervisor：Gen startup config of <${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}>"
 		echo
 		tee ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH} <<-EOF
 [program:${_TMP_STARTUP_SUPERVISOR_NAME}]
@@ -4876,7 +4934,7 @@ stdout_logfile = ${_TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR}/${_TMP_STARTUP_SUPERVIS
 numprocs = 1                                                                           ;
 EOF
 	else
-		echo "Supervisor：The startup config of '${red}${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}${reset}' created"
+		echo_text_style "Supervisor：The startup config of <${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}> created"
 		echo
 		cat ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}
 	fi
@@ -5069,7 +5127,8 @@ EOF
 
 	local _TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT=$(eval ${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS})
 	if [ -n "${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT}" ]; then
-		echo -e "Port ${_TMP_ECHO_SOFT_PORT} for '${_TMP_ECHO_SOFT_PORT_IP:-"all"}' exists。\nGet data \"${red}${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT}${reset}\""
+		echo_text_style "Port <${_TMP_ECHO_SOFT_PORT}> for '${_TMP_ECHO_SOFT_PORT_IP:-"all"}' exists。"
+		echo_text_style "Get data <${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT}>"
 		return $?
 	fi
 	
