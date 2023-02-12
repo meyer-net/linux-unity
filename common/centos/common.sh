@@ -66,7 +66,7 @@ function get_ipv6 () {
 #获取国码
 # 参数1：需要设置的变量名
 function get_country_code () {
-	local _TMP_GET_COUNTRY_CODE_DFT=`eval echo '$'${1}`
+	local _TMP_GET_COUNTRY_CODE_DFT=$(echo_discern_exchange_var "${1}")
 	local _TMP_GET_COUNTRY_CODE_CODE=`echo ${_TMP_GET_COUNTRY_CODE_DFT:-"CN"}`
 	
 	local TMP_LOCAL_IPV4=`curl -s ip.sb`
@@ -102,7 +102,7 @@ function bind_sysdomain() {
 # 参数1：需要设置的变量名，自带YN值
 function bind_exchange_yn_val()
 {
-	local _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL=`eval echo '$'${1}`
+	local _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL=$(echo_discern_exchange_var "${1}")
 	
 	typeset -u _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL
 
@@ -225,7 +225,7 @@ function echo_if_content_not_exists()
 #      item_exists_yn_action "^/etc/docker$" "${_ARR[*]}" "echo 'exists'" "echo 'not exists'"
 function item_exists_yn_action() 
 {
-	local _TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX=`eval echo '$'${1}`
+	local _TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX=$(echo_discern_exchange_var "${1}")
 	if [ "\$${1}" == "${_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX}" ]; then
 		_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX="${1}"
 	fi
@@ -578,7 +578,7 @@ function rand_str() {
 # 参数2：指定清除的字符串，默认空
 function trim_str() {
 	local _TMP_TRIM_STR_VAR_NAME="${1}"
-	local _TMP_TRIM_STR_VAR_VAL=`eval echo '$'${1}`
+	local _TMP_TRIM_STR_VAR_VAL=$(echo_discern_exchange_var "${1}")
     local _TMP_TRIM_STR_CHAR=${2:-"[:space:]"}
 	
 	: "${_TMP_TRIM_STR_VAR_VAL#"${_TMP_TRIM_STR_VAR_VAL%%[!${_TMP_TRIM_STR_CHAR}]*}"}" 
@@ -592,7 +592,7 @@ function trim_str() {
 # 转换路径
 # 参数1：原始路径
 function convert_path () {
-	local _TMP_CONVERT_PATH_SOURCE=`eval echo '$'${1}`
+	local _TMP_CONVERT_PATH_SOURCE=$(echo_discern_exchange_var "${1}")
 	local _TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_SOURCE}"
 
 	# 文件存在的情况
@@ -628,7 +628,7 @@ function convert_path () {
 # 参数1：用于查找的变量
 function symlink_link_path()
 {
-	local _TMP_SYMLINK_TRUE_PATH_SOURCE=`eval echo '$'${1}`
+	local _TMP_SYMLINK_TRUE_PATH_SOURCE=$(echo_discern_exchange_var "${1}")
 	convert_path "_TMP_SYMLINK_TRUE_PATH_SOURCE"
 
 	local _TMP_SYMLINK_TRUE_PATH_CONVERT_VAL=`echo "${_TMP_SYMLINK_TRUE_PATH_SOURCE}" | sed "s@^~@/root@g"`
@@ -736,7 +736,7 @@ function curx_line_insert()
 {
 	get_line "${1}" "${2}" "${3}"
 
-	local _TMP_CURX_LINE_INSERT_CURX_LINE=`eval echo '$'${1}`
+	local _TMP_CURX_LINE_INSERT_CURX_LINE=$(echo_discern_exchange_var "${1}")
 
 	if [ ${#_TMP_CURX_LINE_INSERT_CURX_LINE} -gt 0 ]; then
 		# 插入行内容相同则不插入
@@ -803,7 +803,7 @@ function change_service_user()
 # 参数3：修改的参数节点内容，例 "/usr/src/app"
 function change_json_arg_item()
 {
-	local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=`eval echo '$'${1}`
+	local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo_discern_exchange_var "${1}")
 
     _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}" | jq "${2}=${3}")
     
@@ -819,7 +819,7 @@ function change_json_arg_item()
 # 参数4：内容项目最终修改值
 function change_json_arg_arr()
 {
-	local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=`eval echo '$'${1}`
+	local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo_discern_exchange_var "${1}")
 
 	local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR=($(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${2}" | grep -oP "(?<=^  \").*(?=\",*$)"))
 
@@ -838,42 +838,95 @@ function change_json_arg_arr()
     return $?
 }
 
-# 检测端口占用，并提示交换 ???提取变量识别逻辑
+# 识别并交换var值
+# 参数1：需要识别的变量名、变量值
+# 参数2：识别后执行函数
+# 参数3-N：动态传参
+# 示例：
+#      discern_exchange_var 123
+#      _VAR=123 && discern_exchange_var "_VAR"
+#      discern_exchange_var "abc"
+#      _VAR="abc" && discern_exchange_var "_VAR"
+function discern_exchange_var() {
+	local _TMP_DISCERN_EXCHANGE_VAR_VAR_NAME="${1}"
+	local _TMP_DISCERN_EXCHANGE_VAR_VAR_VAL=$(eval echo '${'"${1}"'}')
+	local _TMP_DISCERN_EXCHANGE_VAR_FUNC="${2}"
+	local _TMP_DISCERN_EXCHANGE_VAR_TEMP=$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')
+	local _TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL=${_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL}
+
+	# 识别直接赋值非变量名的场景
+	if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL}" ]; then
+		_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL=${1}
+		_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL=${1}
+		_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL_${_TMP_DISCERN_EXCHANGE_VAR_TEMP}"
+	fi
+
+	# 预先转变变量赋值
+	eval ${_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL}'
+
+	shift 3
+	local _TMP_DISCERN_EXCHANGE_PARAMS=("${@}")
+	if [ -n "${_TMP_DISCERN_EXCHANGE_VAR_FUNC}" ]; then
+		${_TMP_DISCERN_EXCHANGE_VAR_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_PARAMS[*]}"
+	fi
+
+	return $?
+}
+
+# 识别输出提交的var值
+# 参数1：需要识别的变量名、变量值
+# 示例：
+#      echo_discern_exchange_var 123
+#      _VAR=123 && echo_discern_exchange_var "_VAR"
+#      echo_discern_exchange_var "abc"
+#      _VAR="abc" && echo_discern_exchange_var "_VAR"
+function echo_discern_exchange_var() {
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_NAME="${1}"
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL=$(eval echo '${'"${1}"'}')
+
+	# 识别直接赋值非变量名的场景
+	if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL}" ]; then
+		_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL=${1}
+	fi
+
+	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL}"
+
+	return $?
+}
+
+# 检测端口占用，并提示交换
 # 参数1：需要设置的变量名，或变量
 # 示例：
 #      bind_exchange_port 13000
 #      _PORT_VAR=13000 && bind_exchange_port "_PORT_VAR"
 function bind_exchange_port() {
-	local _TMP_BIND_EXCHANGE_PORT_VAR_NAME="${1}"
-	local _TMP_BIND_EXCHANGE_PORT_VAR_VAL=`eval echo '${'"${1}"'}'`
-	local _TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}
+	function _bind_exchange_port_change()
+	{
+		local _TMP_BIND_EXCHANGE_PORT_VAR_VAL=$(eval echo '${'"${1}"'}')
+		local _TMP_BIND_EXCHANGE_PORT_USING=$(lsof -i:${_TMP_BIND_EXCHANGE_PORT_VAR_VAL} | awk 'NR>1')
+		if [ -n "${_TMP_BIND_EXCHANGE_PORT_USING}" ]; then
+			local _TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}
+			if [ ${#_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT} -lt 5 ]; then
+				rand_val "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" 10000 65535
+			else
+				_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=$((_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT+1))
+			fi
 
-	# 识别直接赋值
-	if [ -z "${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}" ]; then
-		_TMP_BIND_EXCHANGE_PORT_VAR_VAL=${1}
-		_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=${1}
-		_TMP_BIND_EXCHANGE_PORT_VAR_NAME="_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT"
-	fi
-
-	local _TMP_BIND_EXCHANGE_PORT_USING=$(lsof -i:${_TMP_BIND_EXCHANGE_PORT_VAR_VAL} | awk 'NR>1')
-	if [ -n "${_TMP_BIND_EXCHANGE_PORT_USING}" ]; then
-		if [ ${#_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT} -lt 5 ]; then
-			rand_val "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" 10000 65535
-		else
-			_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT=$((_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT+1))
-		fi
-
-		local _TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR=($(echo "${_TMP_BIND_EXCHANGE_PORT_USING}" | cut -d' ' -f1 | uniq))
-		input_if_empty "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" "Checked Port '${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}' is using(<${_TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR[*]}>), please [change] newer one"
-	fi
+			local _TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR=($(echo "${_TMP_BIND_EXCHANGE_PORT_USING}" | cut -d' ' -f1 | uniq))
+			input_if_empty "_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT" "Checked Port '${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}' is using(<${_TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR[*]}>), please [change] newer one"
 	
-	eval ${_TMP_BIND_EXCHANGE_PORT_VAR_NAME}='${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}'
+			# 操作完函数再赋值
+			eval ${1}='${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}'
 
-	# 非绑定变量名时，直接输出结果
-	if [ "${1}" != "${_TMP_BIND_EXCHANGE_PORT_VAR_NAME}" ]; then
-		echo "${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_PORT}"
-	fi
+			# # 非绑定变量名时，直接输出结果
+			# if [ "${1}" != "${_TMP_BIND_EXCHANGE_PORT_VAR_NAME}" ]; then
+			# 	echo "${_TMP_BIND_EXCHANGE_PORT_EXCHANGE_VAL}"
+			# fi
+		fi
+	}
 
+	discern_exchange_var "${1}" "_bind_exchange_port_change" "${@}"
+	
 	return $?
 }
 
@@ -881,7 +934,7 @@ function bind_exchange_port() {
 # 参数1：需要设置的变量名
 function exchange_port_action() {
 	local _TMP_TRIM_STR_VAR_NAME="${1}"
-	local _TMP_TRIM_STR_VAR_VAL=`eval echo '$'${1}`
+	local _TMP_TRIM_STR_VAR_VAL=$(echo_discern_exchange_var "${1}")
 	if [ -f "${SETUP_DIR}/.sys_domain" ]; then
 		_TMP_EXCHANGE_PORT_ACTION_VAL=`cat ${SETUP_DIR}/.sys_domain`
 	fi
@@ -4439,14 +4492,14 @@ function mark_if_choice_action()
 function exec_if_choice_custom()
 {
 	# 非首次运行时，清理命令台
-	if [ "${1}" == "TMP_CHOICE_CTX" ] && [ -n "`eval echo '$'${1}`" ]; then
+	if [ "${1}" == "TMP_CHOICE_CTX" ] && [ -n "$(echo_discern_exchange_var "${1}")" ]; then
 		clear
 	fi
 
 	set_if_choice "${1}" "${2}" ${3} "${4}"
 
 	typeset -l _TMP_EXEC_IF_CHOICE_NEW_VAL
-	local _TMP_EXEC_IF_CHOICE_NEW_VAL=`eval echo '$'${1}`
+	local _TMP_EXEC_IF_CHOICE_NEW_VAL=$(echo_discern_exchange_var "${1}")
 	if [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
 		if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" = "exit" ]; then
 			exit 1
@@ -4586,7 +4639,7 @@ function exec_check_action() {
 	# if [ ${_TMP_EXEC_CHECK_ACTION_SPACE_COUNT} -eq 0 ]; then
 	# 	# 函数名优先
 	# 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then
-	# 		_TMP_EXEC_CHECK_ACTION_SCRIPT=`eval echo '$'${1}`
+	# 		_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_var "${1}")
 	# 	fi
 	# fi
 	
