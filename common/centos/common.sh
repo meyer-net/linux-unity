@@ -930,20 +930,6 @@ function bind_exchange_port() {
 	return $?
 }
 
-# 检测端口占用，并执行脚本
-# 参数1：需要设置的变量名
-function exchange_port_action() {
-	local _TMP_TRIM_STR_VAR_NAME="${1}"
-	local _TMP_TRIM_STR_VAR_VAL=$(echo_discern_exchange_var "${1}")
-	if [ -f "${SETUP_DIR}/.sys_domain" ]; then
-		_TMP_EXCHANGE_PORT_ACTION_VAL=`cat ${SETUP_DIR}/.sys_domain`
-	fi
-
-	eval ${1}='${_TMP_EXCHANGE_PORT_ACTION_VAL}'
-
-	return $?
-}
-
 # 执行休眠
 # 参数1：休眠数值
 # 参数2：休眠等待文字
@@ -1315,7 +1301,7 @@ function exec_text_style()
 	local _TMP_EXEC_TEXT_STYLE_VAR_NAME=${1}
 	local _TMP_EXEC_TEXT_STYLE_VAR_STYLE=${2} #${2:-"${red}"}
 	# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}'`
-	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '$'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}`
+	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=$(echo_discern_exchange_var "${1}")
 
 	function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
 		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
@@ -1388,7 +1374,7 @@ function exec_text_style()
 				local _TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
 				path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_TEXT_STYLE_GUM_FUNC" "_TMP_EXEC_TEXT_STYLE_NORMAL_FUNC"	
 
-				_TMP_EXEC_TEXT_STYLE_VAR_VAL=`echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}}`
+				_TMP_EXEC_TEXT_STYLE_VAR_VAL=$(echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}})
 			fi
 		done
 
@@ -4071,7 +4057,7 @@ function set_if_empty()
 	local _TMP_SET_IF_EMPTY_VAR_NAME=${1}
 	local _TMP_SET_IF_EMPTY_VAR_VAL=${2}
 
-	local _TMP_SET_IF_EMPTY_VAR_DFT=`eval echo '$'${_TMP_SET_IF_EMPTY_VAR_NAME}`
+	local _TMP_SET_IF_EMPTY_VAR_DFT=$(echo_discern_exchange_var "${1}")
 
 	if [ -n "${_TMP_SET_IF_EMPTY_VAR_VAL}" ]; then
 		eval ${1}='$_TMP_SET_IF_EMPTY_VAR_DFT'
@@ -4090,8 +4076,8 @@ function set_if_equals()
 	local _TMP_SET_IF_EQS_COMPARE_VAR_NAME=${2}
 	local _TMP_SET_IF_EQS_SET_VAR_VAL=${3}
 
-	local _TMP_SET_IF_EQS_SOURCE_VAR_VAL=`eval echo '$'${_TMP_SET_IF_EQS_SOURCE_VAR_NAME}`
-	local _TMP_SET_IF_EQS_COMPARE_VAR_VAL=`eval echo '$'${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}`
+	local _TMP_SET_IF_EQS_SOURCE_VAR_VAL=$(echo_discern_exchange_var "${_TMP_SET_IF_EQS_SOURCE_VAR_NAME}")
+	local _TMP_SET_IF_EQS_COMPARE_VAR_VAL=$(echo_discern_exchange_var "${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}")
 
 	if [ -z "${_TMP_SET_IF_EQS_COMPARE_VAR_VAL}" ]; then
 		_TMP_SET_IF_EQS_COMPARE_VAR_VAL="${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}"
@@ -4113,14 +4099,14 @@ function input_if_empty()
 	local _TMP_INPUT_IF_EMPTY_VAR_NAME=${1}
 	local _TMP_INPUT_IF_EMPTY_NOTICE=${2}
 	local _TMP_INPUT_IF_EMPTY_VAR_SEC=${3}
-	local _TMP_INPUT_IF_EMPTY_DFT_VAL=`eval echo '$'$_TMP_INPUT_IF_EMPTY_VAR_NAME`
+	local _TMP_INPUT_IF_EMPTY_DFT_VAL=$(echo_discern_exchange_var "${$_TMP_INPUT_IF_EMPTY_VAR_NAME}")
 	
 	# 自动样式化消息前缀 
 	exec_text_style "_TMP_INPUT_IF_EMPTY_NOTICE"
 	
 	local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
 	function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
-		echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '`eval echo ${_TMP_INPUT_IF_EMPTY_DFT_VAL}`'"
+		echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '${_TMP_INPUT_IF_EMPTY_DFT_VAL}'"
 		read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
 		echo ""
 	}
@@ -4171,7 +4157,7 @@ function set_newer_by_url_list_link_date()
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL=${2}
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS=${3}
 
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_NAME}`
+	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_NAME}")
 
     echo ${TMP_SPLITER}
     echo "Checking the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}'"    
@@ -4214,7 +4200,7 @@ function set_newer_by_url_list_link_text()
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT=$(echo ${3} | grep -o ").*" | sed 's@)\(.*\)@\1@g')
 	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG="(?<=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_LEFT:-^})\d.*(?=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT:-$})"
 	
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_NAME}`
+	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_NAME}")
 
     echo ${TMP_SPLITER}
     echo_text_style "Checking the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}'"
@@ -4257,7 +4243,7 @@ function set_github_soft_releases_newer_version()
 
 	# 提取href中值，如需提取标签内值，则使用： sed 's/="[^"]*[><][^"]*"//g;s/<[^>]*>//g' | awk '{sub("^ *","");sub(" *$","");print}' | awk NR==1
 	
-	local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=`eval echo '$'${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_NAME}`
+	local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${1}")
 
     echo ${TMP_SPLITER}
     echo_text_style "Checking the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>， default val is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
@@ -4306,7 +4292,7 @@ function find_content_list_first_line()
 function fill_right()
 {
 	local _TMP_FILL_RIGHT_VAR_NAME=${1}
-	local _TMP_FILL_RIGHT_VAR_VAL=`eval echo '$'${_TMP_FILL_RIGHT_VAR_NAME}`
+	local _TMP_FILL_RIGHT_VAR_VAL=$(echo_discern_exchange_var "${1}")
 	local _TMP_FILL_RIGHT_FILL_CHR=${2}
 	local _TMP_FILL_RIGHT_TOTAL_LEN=${3}
 
@@ -4654,7 +4640,7 @@ function exec_check_action() {
 				break
 			fi
 
-			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(eval echo '$'${_TMP_EXEC_CHECK_ACTION_SCRIPT})
+			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_var "${_TMP_EXEC_CHECK_ACTION_SCRIPT}")
 		
 			# 变量解析后可能为空，为空则不执行
 			if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
@@ -4938,7 +4924,7 @@ function exec_text_printf()
 {
 	local _TMP_EXEC_TEXT_FORMAT_VAR_NAME=${1}
 	local _TMP_EXEC_TEXT_FORMAT_VAR_FORMAT=${2}
-	local _TMP_EXEC_TEXT_FORMAT_VAR_VAL=`eval echo '$'${_TMP_EXEC_TEXT_FORMAT_VAR_NAME}`
+	local _TMP_EXEC_TEXT_FORMAT_VAR_VAL=$(echo_discern_exchange_var "${_TMP_EXEC_TEXT_FORMAT_VAR_NAME}")
 	
 	# 判断格式化模板是否为空，为空不继续执行
 	if [ -z "${_TMP_EXEC_TEXT_FORMAT_VAR_FORMAT}" ]; then
@@ -4996,7 +4982,7 @@ function exec_while_read()
 	local _TMP_EXEC_WHILE_READ_NOTICE=${2}
 	local _TMP_EXEC_WHILE_READ_FORMAT=${3}
 	local _TMP_EXEC_WHILE_READ_SCRIPTS=${4}
-	local _TMP_EXEC_WHILE_READ_DFT=`eval echo '$'${_TMP_EXEC_WHILE_READ_VAR_NAME}`
+	local _TMP_EXEC_WHILE_READ_DFT=$(echo_discern_exchange_var "${1}")
 
 	local I=1
 	for I in $(seq 99);
@@ -5037,7 +5023,7 @@ function exec_while_read()
 	done
 
 	# TMP_FORMAT_VAL="$TMP_WRAP_CHAR${_TMP_EXEC_WHILE_READ_CURRENT}$TMP_WRAP_CHAR"
-	local _TMP_EXEC_WHILE_READ_NEW_VAL=`eval echo '$'${_TMP_EXEC_WHILE_READ_VAR_NAME}`
+	local _TMP_EXEC_WHILE_READ_NEW_VAL=$(echo_discern_exchange_var "${1}")
 	_TMP_EXEC_WHILE_READ_NEW_VAL=`echo "${_TMP_EXEC_WHILE_READ_NEW_VAL}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g"`
 	eval ${1}='${_TMP_EXEC_WHILE_READ_NEW_VAL}'
 	
