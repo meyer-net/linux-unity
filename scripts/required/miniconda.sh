@@ -249,19 +249,19 @@ function down_ext_miniconda()
     # condabin/conda run -n pyenv36 python --version | grep 'EnvironmentLocationNotFound'
     local TMP_MCD_SETUP_ENV_ARR=($(condabin/conda info -e | cut -d' ' -f1 | grep -v "#" | grep -v "base" | grep -v "^$"))
 
-    action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels conda-forge"
-    action_if_item_not_exists "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels microsoft"
+    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels conda-forge"
+    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNL_ARR[*]}" "condabin/conda config --add channels microsoft"
 
-    action_if_item_not_exists "^pyenv36$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv36 -y python=3.6"
+    item_not_exists_action "^pyenv36$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv36 -y python=3.6"
     # conda activate pyenv36
         
-    action_if_item_not_exists "^pyenv37$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv37 -y python=3.7"
+    item_not_exists_action "^pyenv37$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv37 -y python=3.7"
     # conda activate pyenv37
         
-    action_if_item_not_exists "^pyenv38$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv38 -y python=3.8"
+    item_not_exists_action "^pyenv38$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv38 -y python=3.8"
     # conda activate pyenv38
         
-    action_if_item_not_exists "^pyenv39$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv39 -y python=3.9"
+    item_not_exists_action "^pyenv39$" "${TMP_MCD_SETUP_ENV_ARR[*]}" "condabin/conda create -n pyenv39 -y python=3.9"
     # conda activate pyenv39
 
 	return $?
