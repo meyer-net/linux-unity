@@ -25,76 +25,95 @@ echo 3 > /proc/sys/vm/drop_caches
 #获取IP
 # 参数1：需要设置的变量名
 function get_iplocal () {
-	#  | grep noprefixroute，qcloud无此属性
-	local _TMP_GET_IP_LOCAL_IP=`ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}'`
-    [ -z ${_TMP_GET_IP_LOCAL_IP} ] && _TMP_GET_IP_LOCAL_IP=`ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1`
+	function _get_iplocal()
+	{
+		#  | grep noprefixroute，qcloud无此属性
+		local _TMP_GET_IP_LOCAL_IP=$(ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
+		[ -z ${_TMP_GET_IP_LOCAL_IP} ] && _TMP_GET_IP_LOCAL_IP=$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1)
 
-	if [ -n "$_TMP_GET_IP_LOCAL_IP" ]; then
-		eval ${1}='$_TMP_GET_IP_LOCAL_IP'
-	fi
+		if [ -n "${_TMP_GET_IP_LOCAL_IP}" ]; then
+			eval ${1}='${_TMP_GET_IP_LOCAL_IP}'
+		fi
+	}
 
+	discern_exchange_var_action "${1}" "_get_iplocal" "${@}"
 	return $?
 }
 
 #获取IPv4
 # 参数1：需要设置的变量名
 function get_ipv4 () {
-	#wget -qO- -t1 -T2 ipv4.icanhazip.com
-    local _TMP_GET_IPV4_LOCAL_IPV4=`curl -s -A Mozilla ipv4.icanhazip.com | awk 'NR==1'`
-    [ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=`curl -s -A Mozilla ipinfo.io/ip | awk 'NR==1'`
-    [ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=`curl -s -A Mozilla ip.sb | awk 'NR==1'`
+	function _get_ipv4()
+	{
+		#wget -qO- -t1 -T2 ipv4.icanhazip.com
+		local _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipv4.icanhazip.com | awk 'NR==1')
+		[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipinfo.io/ip | awk 'NR==1')
+		[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ip.sb | awk 'NR==1')
 
-	if [ -n "$_TMP_GET_IPV4_LOCAL_IPV4" ]; then
-		eval ${1}='$_TMP_GET_IPV4_LOCAL_IPV4'
-	fi
+		if [ -n "${_TMP_GET_IPV4_LOCAL_IPV4}" ]; then
+			eval ${1}='${_TMP_GET_IPV4_LOCAL_IPV4}'
+		fi
+	}
 
+	discern_exchange_var_action "${1}" "_get_ipv4" "${@}"
 	return $?
 }
 
 #获取IPv6
 # 参数1：需要设置的变量名
 function get_ipv6 () {
-    local _TMP_GET_IPV6_IP=`curl -s -A Mozilla ipv6.icanhazip.com | awk 'NR==1'`
+	function _get_ipv6() {
+		local _TMP_GET_IPV6_IP=$(curl -s -A Mozilla ipv6.icanhazip.com | awk 'NR==1')
 
-	if [ -n "${_TMP_GET_IPV6_IP}" ]; then
-		eval ${1}='$_TMP_GET_IPV6_IP'
-	fi
+		if [ -n "${_TMP_GET_IPV6_IP}" ]; then
+			eval ${1}='${_TMP_GET_IPV6_IP}'
+		fi
+	}
 
+	discern_exchange_var_action "${1}" "_get_ipv6" "${@}"
 	return $?
 }
 
 #获取国码
 # 参数1：需要设置的变量名
 function get_country_code () {
-	local _TMP_GET_COUNTRY_CODE_DFT=$(echo_discern_exchange_var "${1}")
-	local _TMP_GET_COUNTRY_CODE_CODE=`echo ${_TMP_GET_COUNTRY_CODE_DFT:-"CN"}`
-	
-	local TMP_LOCAL_IPV4=`curl -s ip.sb`
+	function _get_country_code()
+	{
+		local _TMP_GET_COUNTRY_CODE_VAR_VAL=$(eval echo '${'"${1}"'}')
+		local _TMP_GET_COUNTRY_CODE_CODE=$(echo ${_TMP_GET_COUNTRY_CODE_VAR_VAL:-"CN"})
+		
+		local TMP_LOCAL_IPV4=$(curl -s ip.sb)
 
-	# 项目开始判断服务器所在地，未初始化epel时无法安装JQ，故此处不使用JQ
-	local _TMP_GET_COUNTRY_CODE_RESP=`curl -s -A Mozilla https://api.ip.sb/geoip/${TMP_LOCAL_IPV4}`
+		# 项目开始判断服务器所在地，未初始化epel时无法安装JQ，故此处不使用JQ
+		local _TMP_GET_COUNTRY_CODE_RESP=$(curl -s -A Mozilla https://api.ip.sb/geoip/${TMP_LOCAL_IPV4})
 
-	if [ -f "/usr/bin/jq" ]; then
-		_TMP_GET_COUNTRY_CODE_CODE=`echo "${_TMP_GET_COUNTRY_CODE_RESP}" | jq '.country_code' | tr -d '"'`
-	else
-		_TMP_GET_COUNTRY_CODE_CODE=`echo "${_TMP_GET_COUNTRY_CODE_RESP}" | grep -oP "(?<=\"country_code\"\:\").*(?=\",)"`
-	fi
-	
-	eval ${1}='$_TMP_GET_COUNTRY_CODE_CODE'
+		if [ -f "/usr/bin/jq" ]; then
+			_TMP_GET_COUNTRY_CODE_CODE=$(echo "${_TMP_GET_COUNTRY_CODE_RESP}" | jq '.country_code' | tr -d '"')
+		else
+			_TMP_GET_COUNTRY_CODE_CODE=$(echo "${_TMP_GET_COUNTRY_CODE_RESP}" | grep -oP "(?<=\"country_code\"\:\").*(?=\",)")
+		fi
+		
+		eval ${1}='${_TMP_GET_COUNTRY_CODE_CODE}'
+	}
 
+	discern_exchange_var_action "${1}" "_get_country_code" "${@}"
 	return $?
 }
 
 # 绑定系统域名设定
 # 参数1：需要设置的变量名
 function bind_sysdomain() {
-    local _TMP_BIND_SYS_DOMAIN_VAL="mydomain.com"
-	if [ -f "${SETUP_DIR}/.sys_domain" ]; then
-		_TMP_BIND_SYS_DOMAIN_VAL=`cat ${SETUP_DIR}/.sys_domain`
-	fi
+	function _bind_sysdomain()
+	{
+		local _TMP_BIND_SYS_DOMAIN_VAL="mydomain.com"
+		if [ -f "${SETUP_DIR}/.sys_domain" ]; then
+			_TMP_BIND_SYS_DOMAIN_VAL=$(cat ${SETUP_DIR}/.sys_domain)
+		fi
 
-	eval ${1}='${_TMP_BIND_SYS_DOMAIN_VAL}'
+		eval ${1}='${_TMP_BIND_SYS_DOMAIN_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_bind_sysdomain" "${@}"
 	return $?
 }
 
@@ -102,26 +121,30 @@ function bind_sysdomain() {
 # 参数1：需要设置的变量名，自带YN值
 function bind_exchange_yn_val()
 {
-	local _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL=$(echo_discern_exchange_var "${1}")
-	
-	typeset -u _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL
+	function _bind_exchange_yn_val()
+	{
+		local _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL=$(eval echo '${'"${1}"'}')
+		
+		typeset -u _TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL
 
-	case ${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL} in
-		"Y")
-			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
-		;;
-		"YES")
-			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
-		;;
-		"TRUE")
-			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
-		;;
-		*)
-			_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="Y"
-	esac
+		case ${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL} in
+			"Y")
+				_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+			;;
+			"YES")
+				_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+			;;
+			"TRUE")
+				_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="N"
+			;;
+			*)
+				_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL="Y"
+		esac
 
-	eval ${1}='${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL}'
+		eval ${1}='${_TMP_BIND_EXCHANGE_YN_VAL_VAR_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_bind_exchange_yn_val" "${@}"
 	return $?
 }
 
@@ -136,7 +159,7 @@ function exchange_softlink()
 	local _TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE=${3}
 
 	if [ -f ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} ]; then
-		local _TMP_EXCHANGE_SOFT_LINK_CHECK_IS_LINK=`ls -il ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} | grep '\->'`
+		local _TMP_EXCHANGE_SOFT_LINK_CHECK_IS_LINK=$(ls -il ${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} | grep '\->')
 		if [ -z "${_TMP_EXCHANGE_SOFT_LINK_CHECK_IS_LINK}" ]; then
 			exec_check_action "_TMP_EXCHANGE_SOFT_LINK_ACTION_BEFORE"
 
@@ -208,7 +231,7 @@ function echo_if_content_not_exists()
 }
 
 # 执行脚本，选项存在或不存在
-# 参数1：内容正则变量
+# 参数1：内容正则变量名/值
 # 参数2：内容判断数组
 # 参数3：存在执行脚本
 #       参数1：匹配到内容
@@ -225,7 +248,7 @@ function echo_if_content_not_exists()
 #      item_exists_yn_action "^/etc/docker$" "${_ARR[*]}" "echo 'exists'" "echo 'not exists'"
 function item_exists_yn_action() 
 {
-	local _TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX=$(echo_discern_exchange_var "${1}")
+	local _TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX=$(echo_discern_exchange_val "${1}")
 	if [ "\$${1}" == "${_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX}" ]; then
 		_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX="${1}"
 	fi
@@ -544,13 +567,17 @@ function kill_deleted()
 # 参数3：最大值
 #调用：rand_val "TMP_CURR_RAND" 1000 2000
 function rand_val() {
-    local _TMP_RAND_VAL_MIN=${2}
-    local _TMP_RAND_VAL_MID=$((${3}-${_TMP_RAND_VAL_MIN}+1))  
-    # local _TMP_RAND_VAL_CURR=$(cat /proc/sys/kernel/random/uuid | cksum | awk -F ' ' '{print $1}')
+	function _rand_val()
+	{
+		local _TMP_RAND_VAL_MIN=${2}
+		local _TMP_RAND_VAL_MID=$((${3}-${_TMP_RAND_VAL_MIN}+1))  
+		# local _TMP_RAND_VAL_CURR=$(cat /proc/sys/kernel/random/uuid | cksum | awk -F ' ' '{print $1}')
 
-    # eval ${1}=$((${_TMP_RAND_VAL_CURR}%${_TMP_RAND_VAL_MID}+${_TMP_RAND_VAL_MIN}))
-	eval ${1}=$(shuf -i ${2}-${3} -n 1)
+		# eval ${1}=$((${_TMP_RAND_VAL_CURR}%${_TMP_RAND_VAL_MID}+${_TMP_RAND_VAL_MIN}))
+		eval ${1}=$(shuf -i ${2}-${3} -n 1)
+	}
 
+	discern_exchange_var_action "${1}" "_rand_val" "${@}"
 	return $?
 }
 
@@ -559,17 +586,20 @@ function rand_val() {
 # 参数2：指定长度
 #调用：rand_str "TMP_CURR_RAND" 1000 2000
 function rand_str() {
-	local _TMP_RAND_STR_VAR_NAME="${1}"
-    local _TMP_RAND_STR_LEN_VAL=${2} 
-	# random-string()
-	# {
-	# 	cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w ${1:-32} | head -n 1
-	# }
-	# $(random-string 32)
-    local _TMP_RAND_STR_FINAL_VAL=$(cat /dev/urandom | head -n ${_TMP_RAND_STR_LEN_VAL} | md5sum | head -c ${_TMP_RAND_STR_LEN_VAL})
+	function _rand_str()
+	{
+		local _TMP_RAND_STR_LEN_VAL=${2} 
+		# random-string()
+		# {
+		# 	cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w ${1:-32} | head -n 1
+		# }
+		# $(random-string 32)
+		local _TMP_RAND_STR_FINAL_VAL=$(cat /dev/urandom | head -n ${_TMP_RAND_STR_LEN_VAL} | md5sum | head -c ${_TMP_RAND_STR_LEN_VAL})
 
-    eval ${1}='$_TMP_RAND_STR_FINAL_VAL'
+		eval ${1}='${_TMP_RAND_STR_FINAL_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_rand_str" "${@}"
 	return $?
 }
 
@@ -577,82 +607,94 @@ function rand_str() {
 # 参数1：需要存储清除后数据的变量名
 # 参数2：指定清除的字符串，默认空
 function trim_str() {
-	local _TMP_TRIM_STR_VAR_NAME="${1}"
-	local _TMP_TRIM_STR_VAR_VAL=$(echo_discern_exchange_var "${1}")
-    local _TMP_TRIM_STR_CHAR=${2:-"[:space:]"}
-	
-	: "${_TMP_TRIM_STR_VAR_VAL#"${_TMP_TRIM_STR_VAR_VAL%%[!${_TMP_TRIM_STR_CHAR}]*}"}" 
-	: "${_%"${_##*[!${_TMP_TRIM_STR_CHAR}]}"}"
-	
-    eval ${1}='$_'
+	function _trim_str()
+	{
+		local _TMP_TRIM_STR_VAR_NAME="${1}"
+		local _TMP_TRIM_STR_VAR_VAL=$(eval echo '${'"${1}"'}')
+		local _TMP_TRIM_STR_CHAR=${2:-"[:space:]"}
+		
+		: "${_TMP_TRIM_STR_VAR_VAL#"${_TMP_TRIM_STR_VAR_VAL%%[!${_TMP_TRIM_STR_CHAR}]*}"}" 
+		: "${_%"${_##*[!${_TMP_TRIM_STR_CHAR}]}"}"
+		
+		eval ${1}='$_'
+	}
 
+	discern_exchange_var_action "${1}" "_trim_str" "${@}"
 	return $?
 }
 
 # 转换路径
-# 参数1：原始路径
+# 参数1：原始路径变量名/值
 function convert_path () {
-	local _TMP_CONVERT_PATH_SOURCE=$(echo_discern_exchange_var "${1}")
-	local _TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_SOURCE}"
+	function _convert_path()
+	{
+		local _TMP_CONVERT_PATH_SOURCE=$(eval echo '${'"${1}"'}')
+		local _TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_SOURCE}"
 
-	# 文件存在的情况
-	if [ -a "${_TMP_CONVERT_PATH_SOURCE}" ]; then
-		# Linux中第一个字符代表这个文件是目录、文件或链接文件等等。
-		# 当为[ d ]则是目录
-		# 当为[ - ]则是文件；
-		# 若是[ l ]则表示为链接文档(link file)；
-		# 若是[ b ]则表示为装置文件里面的可供储存的接口设备(可随机存取装置)；
-		# 若是[ c ]则表示为装置文件里面的串行端口设备，例如键盘、鼠标(一次性读取装置)。
-		local _TMP_CONVERT_PATH_SOURCE_ATTR=$(ls -l ${_TMP_CONVERT_PATH_SOURCE} | cut -d' ' -f1)
-		case "${_TMP_CONVERT_PATH_SOURCE_ATTR:0:1}" in
-		'd')
-			_TMP_CONVERT_PATH_CONVERT_VAL=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE} && pwd -P")
-		;;
-		*)
-			local _TMP_CONVERT_PATH_SOURCE_DIR=$(dirname ${_TMP_CONVERT_PATH_SOURCE})
-			local _TMP_CONVERT_PATH_SOURCE_FILE=${_TMP_CONVERT_PATH_SOURCE:${#_TMP_CONVERT_PATH_SOURCE_DIR}}
-			local _TMP_CONVERT_PATH_REALLY_DIR=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE_DIR} && pwd -P")
-			_TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_REALLY_DIR}${_TMP_CONVERT_PATH_SOURCE_FILE}"
-		esac
-	else
-		local _TMP_CONVERT_PATH_WHOAMI=$(whoami)
-		_TMP_CONVERT_PATH_CONVERT_VAL=`echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/${_TMP_CONVERT_PATH_WHOAMI}@g"`
-	fi
+		# 文件存在的情况
+		if [ -a "${_TMP_CONVERT_PATH_SOURCE}" ]; then
+			# Linux中第一个字符代表这个文件是目录、文件或链接文件等等。
+			# 当为[ d ]则是目录
+			# 当为[ - ]则是文件；
+			# 若是[ l ]则表示为链接文档(link file)；
+			# 若是[ b ]则表示为装置文件里面的可供储存的接口设备(可随机存取装置)；
+			# 若是[ c ]则表示为装置文件里面的串行端口设备，例如键盘、鼠标(一次性读取装置)。
+			local _TMP_CONVERT_PATH_SOURCE_ATTR=$(ls -l ${_TMP_CONVERT_PATH_SOURCE} | cut -d' ' -f1)
+			case "${_TMP_CONVERT_PATH_SOURCE_ATTR:0:1}" in
+			'd')
+				_TMP_CONVERT_PATH_CONVERT_VAL=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE} && pwd -P")
+			;;
+			*)
+				local _TMP_CONVERT_PATH_SOURCE_DIR=$(dirname ${_TMP_CONVERT_PATH_SOURCE})
+				local _TMP_CONVERT_PATH_SOURCE_FILE=${_TMP_CONVERT_PATH_SOURCE:${#_TMP_CONVERT_PATH_SOURCE_DIR}}
+				local _TMP_CONVERT_PATH_REALLY_DIR=$(su -c "cd ${_TMP_CONVERT_PATH_SOURCE_DIR} && pwd -P")
+				_TMP_CONVERT_PATH_CONVERT_VAL="${_TMP_CONVERT_PATH_REALLY_DIR}${_TMP_CONVERT_PATH_SOURCE_FILE}"
+			esac
+		else
+			local _TMP_CONVERT_PATH_WHOAMI=$(whoami)
+			_TMP_CONVERT_PATH_CONVERT_VAL=$(echo "${_TMP_CONVERT_PATH_SOURCE}" | sed "s@^~@/${_TMP_CONVERT_PATH_WHOAMI}@g")
+		fi
 
-	eval ${1}='$_TMP_CONVERT_PATH_CONVERT_VAL'
+		eval ${1}='${_TMP_CONVERT_PATH_CONVERT_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_convert_path" "${@}"
 	return $?
 }
 
 # 查找软链接真实路径
-# 参数1：用于查找的变量
+# 参数1：用于查找的变量名/值
 function symlink_link_path()
 {
-	local _TMP_SYMLINK_TRUE_PATH_SOURCE=$(echo_discern_exchange_var "${1}")
-	convert_path "_TMP_SYMLINK_TRUE_PATH_SOURCE"
+	function _symlink_link_path()
+	{
+		local _TMP_SYMLINK_TRUE_PATH_SOURCE=$(eval echo '${'"${1}"'}')
+		convert_path "_TMP_SYMLINK_TRUE_PATH_SOURCE"
 
-	local _TMP_SYMLINK_TRUE_PATH_CONVERT_VAL=`echo "${_TMP_SYMLINK_TRUE_PATH_SOURCE}" | sed "s@^~@/root@g"`
+		local _TMP_SYMLINK_TRUE_PATH_CONVERT_VAL=$(echo "${_TMP_SYMLINK_TRUE_PATH_SOURCE}" | sed "s@^~@/root@g")
 
-	# 记录链接层数，有可能是死链
-	local _TMP_SYMLINK_TRUE_PATH_INDEX=0
-	local _TMP_SYMLINK_TRUE_PATH_TMP="${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}"
-	[[ ${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} =~ ^/ ]] && _TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} || _TMP_SYMLINK_TRUE_PATH_TMP=`pwd`/${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}
-	while [ -h ${_TMP_SYMLINK_TRUE_PATH_TMP} ]
-	do
-		local _TMP_SYMLINK_TRUE_PATH_TMP_1=`ls -ld ${_TMP_SYMLINK_TRUE_PATH_TMP} | awk '{print $NF}'`
-		local _TMP_SYMLINK_TRUE_PATH_TMP_2=`ls -ld ${_TMP_SYMLINK_TRUE_PATH_TMP} | awk '{print $(NF-2)}'`
+		# 记录链接层数，有可能是死链
+		local _TMP_SYMLINK_TRUE_PATH_INDEX=0
+		local _TMP_SYMLINK_TRUE_PATH_TMP="${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}"
+		[[ ${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} =~ ^/ ]] && _TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} || _TMP_SYMLINK_TRUE_PATH_TMP=$(pwd)/${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}
+		while [ -h ${_TMP_SYMLINK_TRUE_PATH_TMP} ]
+		do
+			local _TMP_SYMLINK_TRUE_PATH_TMP_1=$(ls -ld ${_TMP_SYMLINK_TRUE_PATH_TMP} | awk '{print $NF}')
+			local _TMP_SYMLINK_TRUE_PATH_TMP_2=$(ls -ld ${_TMP_SYMLINK_TRUE_PATH_TMP} | awk '{print $(NF-2)}')
 
-		[[ $_TMP_SYMLINK_TRUE_PATH_TMP_1 =~ ^/ ]] && _TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_TMP_1} || _TMP_SYMLINK_TRUE_PATH_TMP=`dirname ${_TMP_SYMLINK_TRUE_PATH_TMP_2}`/${_TMP_SYMLINK_TRUE_PATH_TMP_1}
-		
-		_TMP_SYMLINK_TRUE_PATH_INDEX=$((_TMP_SYMLINK_TRUE_PATH_INDEX+1))
-		if [ ${_TMP_SYMLINK_TRUE_PATH_INDEX} -gt 9 ]; then
-			echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, Cannot resolve, please check, system exit."
-			exit
-		fi
-	done
+			[[ ${_TMP_SYMLINK_TRUE_PATH_TMP_1} =~ ^/ ]] && _TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_TMP_1} || _TMP_SYMLINK_TRUE_PATH_TMP=$(dirname ${_TMP_SYMLINK_TRUE_PATH_TMP_2})/${_TMP_SYMLINK_TRUE_PATH_TMP_1}
+			
+			_TMP_SYMLINK_TRUE_PATH_INDEX=$((_TMP_SYMLINK_TRUE_PATH_INDEX+1))
+			if [ ${_TMP_SYMLINK_TRUE_PATH_INDEX} -gt 9 ]; then
+				echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, Cannot resolve, please check, system exit."
+				exit
+			fi
+		done
 
-	eval ${1}='$_TMP_SYMLINK_TRUE_PATH_TMP'
+		eval ${1}='${_TMP_SYMLINK_TRUE_PATH_TMP}'
+	}
 
+	discern_exchange_var_action "${1}" "_symlink_link_path" "${@}"
 	return $?
 }
 
@@ -662,47 +704,51 @@ function symlink_link_path()
 # 参数3：非真实链接时执行脚本，例如 rm -rf %s
 function convert_dirs_truthful_action()
 {
-	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR=(${2})
-	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR=()
+	function _convert_dirs_truthful_action()
+	{
+		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR=(${2})
+		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR=()
 
-	for _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX in ${!_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[@]};  
-	do
-		# 指定链接
-		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX}]}"
+		for _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX in ${!_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[@]};  
+		do
+			# 指定链接
+			local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX}]}"
 
-		# 真实链接
-		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}"
-		symlink_link_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR"
+			# 真实链接
+			local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}"
+			symlink_link_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR"
 
-		# 如果数组中不存在指定链接，则添加
-		# local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX=""
-		function _convert_dirs_truthful_action_record_rel_arr()
-		{
-			if [ -a ${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR} ]; then
-				# 绝对链接
-				local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR=${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}
-				convert_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR"
+			# 如果数组中不存在指定链接，则添加
+			# local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX=""
+			function _convert_dirs_truthful_action_record_rel_arr()
+			{
+				if [ -a ${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR} ]; then
+					# 绝对链接
+					local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR=${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}
+					convert_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR"
 
-				# if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}" ]; then
-				# 	_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX="|"
-				# fi
+					# if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}" ]; then
+					# 	_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX="|"
+					# fi
 
-				echo_text_style "Record really dir of [${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}], marked '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}' -> '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}'"
-				_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[${#_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]}]="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}"
+					echo_text_style "Record really dir of [${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}], marked '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}' -> '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}'"
+					_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[${#_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]}]="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}"
+				fi
+			}
+			
+			item_not_exists_action "^${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}$" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" "_convert_dirs_truthful_action_record_rel_arr"
+
+			# 如果是软链接，直接删除
+			if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}" ]; then
+				exec_check_action "${3}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}"
 			fi
-		}
+		done
 		
-		item_not_exists_action "^${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}$" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" "_convert_dirs_truthful_action_record_rel_arr"
+		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
+		eval ${1}='${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS}'
+	}
 
-		# 如果是软链接，直接删除
-		if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}" ]; then
-			exec_check_action "${3}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}"
-		fi
-	done
-	
-	local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
-	eval ${1}='$_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS'
-
+	discern_exchange_var_action "${1}" "_convert_dirs_truthful_action" "${@}"
 	return $?
 }
 
@@ -715,12 +761,17 @@ function convert_dirs_truthful_action()
 #      -> 10:User=docker -> 10
 function get_line()
 {
-	local _TMP_GET_LINE_FILE_PATH="${2}"
-	local _TMP_GET_LINE_KEY_WORDS="${3}"
+	function _get_line()
+	{
+		local _TMP_GET_LINE_FILE_PATH="${2}"
+		local _TMP_GET_LINE_KEY_WORDS="${3}"
 
-	local TMP_KEY_WORDS_LINE=`cat ${_TMP_GET_LINE_FILE_PATH} | grep -nE "${_TMP_GET_LINE_KEY_WORDS}" | cut -d':' -f1 | awk NR==1`
+		local TMP_KEY_WORDS_LINE=$(cat ${_TMP_GET_LINE_FILE_PATH} | grep -nE "${_TMP_GET_LINE_KEY_WORDS}" | cut -d':' -f1 | awk NR==1)
 
-	eval ${1}='$TMP_KEY_WORDS_LINE'
+		eval ${1}='$TMP_KEY_WORDS_LINE'
+	}
+
+	discern_exchange_var_action "${1}" "_get_line" "${@}"
 
 	return $?
 }
@@ -736,19 +787,23 @@ function curx_line_insert()
 {
 	get_line "${1}" "${2}" "${3}"
 
-	local _TMP_CURX_LINE_INSERT_CURX_LINE=$(echo_discern_exchange_var "${1}")
+	function _curx_line_insert()
+	{
+		local _TMP_CURX_LINE_INSERT_CURX_LINE=$(eval echo '${'"${1}"'}')
 
-	if [ ${#_TMP_CURX_LINE_INSERT_CURX_LINE} -gt 0 ]; then
-		# 插入行内容相同则不插入
-		local _TMP_CURX_LINE_INSERT_LINE=$((_TMP_CURX_LINE_INSERT_CURX_LINE+1))
-		local _TMP_CURX_LINE_INSERT_TEXT=`cat ${2} | awk "NR==${_TMP_CURX_LINE_INSERT_LINE}"`
-		if [ "${_TMP_CURX_LINE_INSERT_TEXT}" != "${4}" ]; then
-			sed -i "${_TMP_CURX_LINE_INSERT_LINE}i ${4}" ${2}
+		if [ ${#_TMP_CURX_LINE_INSERT_CURX_LINE} -gt 0 ]; then
+			# 插入行内容相同则不插入
+			local _TMP_CURX_LINE_INSERT_LINE=$((_TMP_CURX_LINE_INSERT_CURX_LINE+1))
+			local _TMP_CURX_LINE_INSERT_TEXT=$(cat ${2} | awk "NR==${_TMP_CURX_LINE_INSERT_LINE}")
+			if [ "${_TMP_CURX_LINE_INSERT_TEXT}" != "${4}" ]; then
+				sed -i "${_TMP_CURX_LINE_INSERT_LINE}i ${4}" ${2}
+			fi
+		else
+			eval ${1}=$(echo -1)
 		fi
-	else
-		eval ${1}=`echo -1`
-	fi
+	}
 
+	discern_exchange_var_action "${1}" "_curx_line_insert" "${@}"
 	return $?
 }
 
@@ -803,12 +858,16 @@ function change_service_user()
 # 参数3：修改的参数节点内容，例 "/usr/src/app"
 function change_json_arg_item()
 {
-	local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo_discern_exchange_var "${1}")
+	function _change_json_arg_item()
+	{
+		local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(eval echo '${'"${1}"'}')
 
-    _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}" | jq "${2}=${3}")
-    
-	eval ${1}='${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}'
+		_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}" | jq "${2}=${3}")
+		
+		eval ${1}='${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_change_json_arg_item" "${@}"
     return $?
 }
 
@@ -819,77 +878,90 @@ function change_json_arg_item()
 # 参数4：内容项目最终修改值
 function change_json_arg_arr()
 {
-	local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo_discern_exchange_var "${1}")
+	function _change_json_arg_arr()
+	{
+		local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(eval echo '${'"${1}"'}')
 
-	local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR=($(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${2}" | grep -oP "(?<=^  \").*(?=\",*$)"))
+		local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR=($(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${2}" | grep -oP "(?<=^  \").*(?=\",*$)"))
 
-	local _TMP_CHANGE_JSON_ARG_ARR_REG="${2}"
-	local _TMP_CHANGE_JSON_ARG_ARR_REG_ITEM="${3}"
-	local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL="${4}"
-    function _change_json_arg_arr_change()
-    {
-		_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${_TMP_CHANGE_JSON_ARG_ARR_REG}[${2}]=\"${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL}\"")
-    }
+		local _TMP_CHANGE_JSON_ARG_ARR_REG="${2}"
+		local _TMP_CHANGE_JSON_ARG_ARR_REG_ITEM="${3}"
+		local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL="${4}"
+		function _change_json_arg_arr_change()
+		{
+			_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${_TMP_CHANGE_JSON_ARG_ARR_REG}[${2}]=\"${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL}\"")
+		}
 
-	item_change_action "${3}" "${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[*]}" "_change_json_arg_arr_change"
-	    
-	eval ${1}='${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}'
+		item_change_action "${3}" "${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[*]}" "_change_json_arg_arr_change"
+			
+		eval ${1}='${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}'
+	}
 
+	discern_exchange_var_action "${1}" "_change_json_arg_arr" "${@}"
     return $?
 }
 
 # 识别并交换var值
-# 参数1：需要识别的变量名、变量值
+# 参数1：需要识别的变量名/值
 # 参数2：识别后执行函数
 # 参数3-N：动态传参
 # 示例：
-#      discern_exchange_var 123
-#      _VAR=123 && discern_exchange_var "_VAR"
-#      discern_exchange_var "abc"
-#      _VAR="abc" && discern_exchange_var "_VAR"
-function discern_exchange_var() {
-	local _TMP_DISCERN_EXCHANGE_VAR_VAR_NAME="${1}"
-	local _TMP_DISCERN_EXCHANGE_VAR_VAR_VAL=$(eval echo '${'"${1}"'}')
-	local _TMP_DISCERN_EXCHANGE_VAR_FUNC="${2}"
-	local _TMP_DISCERN_EXCHANGE_VAR_TEMP=$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')
-	local _TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL=${_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL}
+#      discern_exchange_var_action 123
+#      _VAR=123 && discern_exchange_var_action "_VAR"
+#      discern_exchange_var_action "abc"
+#      _VAR="abc" && discern_exchange_var_action "_VAR"
+#      discern_exchange_var_action "${1}" "_bind_exchange_port_change" "${@}"
+function discern_exchange_var_action() {
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="${1}"
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=$(eval echo '${'"${1}"'}')
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC="${2}"
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_TEMP=$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}
 
 	# 识别直接赋值非变量名的场景
-	if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL}" ]; then
-		_TMP_DISCERN_EXCHANGE_VAR_VAR_VAL=${1}
-		_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL=${1}
-		_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL_${_TMP_DISCERN_EXCHANGE_VAR_TEMP}"
+	if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}" ]; then
+		# 未定义变量则使用变量本身
+		# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
+		if [ -z $(eval echo '${'"${1}"+x'}') ]; then
+			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=${1}
+			_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${1}
+			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL_${_TMP_DISCERN_EXCHANGE_VAR_ACTION_TEMP}"
+		fi
 	fi
 
 	# 预先转变变量赋值
-	eval ${_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_EXCHANGE_VAL}'
+	eval ${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL}'
 
 	shift 3
-	local _TMP_DISCERN_EXCHANGE_PARAMS=("${@}")
-	if [ -n "${_TMP_DISCERN_EXCHANGE_VAR_FUNC}" ]; then
-		${_TMP_DISCERN_EXCHANGE_VAR_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_PARAMS[*]}"
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS=("${@}")
+	if [ -n "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC}" ]; then
+		${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[*]}"
+		return $?
 	fi
 
 	return $?
 }
 
-# 识别输出提交的var值
+# 识别输出提交的变量实际值
 # 参数1：需要识别的变量名、变量值
 # 示例：
-#      echo_discern_exchange_var 123
-#      _VAR=123 && echo_discern_exchange_var "_VAR"
-#      echo_discern_exchange_var "abc"
-#      _VAR="abc" && echo_discern_exchange_var "_VAR"
-function echo_discern_exchange_var() {
-	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_NAME="${1}"
-	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL=$(eval echo '${'"${1}"'}')
+#      echo_discern_exchange_val 123
+#      _VAR=123 && echo_discern_exchange_val "_VAR"
+#      echo_discern_exchange_val "abc"
+#      _VAR="abc" && echo_discern_exchange_val "_VAR"
+function echo_discern_exchange_val() {
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=$(eval echo '${'"${1}"'}')
 
 	# 识别直接赋值非变量名的场景
-	if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL}" ]; then
-		_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL=${1}
+	if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL}" ]; then
+		# 未定义变量则使用变量本身
+		# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
+		if [ -z $(eval echo '${'"${1}"+x'}') ]; then
+			_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
+		fi
 	fi
 
-	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAR_VAL}"
+	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL}"
 
 	return $?
 }
@@ -925,8 +997,7 @@ function bind_exchange_port() {
 		fi
 	}
 
-	discern_exchange_var "${1}" "_bind_exchange_port_change" "${@}"
-	
+	discern_exchange_var_action "${1}" "_bind_exchange_port_change" "${@}"
 	return $?
 }
 
@@ -991,14 +1062,18 @@ function exec_sleep_until_not_empty()
 # 获取挂载根路径，取第一个挂载的磁盘
 # 参数1：需要设置的变量名
 function get_mount_root() {
-	local _TMP_GET_MOUNT_ROOT=""
-	local _TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR=`lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk 'NR==1{print \${1}}' | xargs -I {} echo '/dev/{}'`
-	if [ -n "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" ]; then
-		_TMP_GET_MOUNT_ROOT=`df -h | grep "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" | awk -F' ' '{print \$NF}'`
-	fi
+	function _get_mount_root()
+	{
+		local _TMP_GET_MOUNT_ROOT=""
+		local _TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk 'NR==1{print \${1}}' | xargs -I {} echo '/dev/{}')
+		if [ -n "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" ]; then
+			_TMP_GET_MOUNT_ROOT=$(df -h | grep "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" | awk -F' ' '{print \$NF}')
+		fi
 
-	eval ${1}='${_TMP_GET_MOUNT_ROOT}'
+		eval ${1}='${_TMP_GET_MOUNT_ROOT}'
+	}
 
+	discern_exchange_var_action "${1}" "_get_mount_root" "${@}"
 	return $?
 }
 
@@ -1012,7 +1087,7 @@ function resolve_unmount_disk () {
 	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX=(${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR//,/ })
 	
 	# 获取当前磁盘的格式，例如sd,vd
-	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=`lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print \${1}}'`
+	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print \${1}}')
 	
 	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT=(${_TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR// / })
 	
@@ -1021,7 +1096,7 @@ function resolve_unmount_disk () {
 		local _TMP_RESOLVE_UNMOUNT_DISK_POINT="/dev/${_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[$I]}"
 
 		# 判断未格式化
-		local _TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT=`fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l`
+		local _TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT=$(fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l)
 
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT} -eq 0 ]; then
 			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
@@ -1048,7 +1123,7 @@ function resolve_unmount_disk () {
 		fi
 
 		# 判断未挂载
-		local _TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT=`df -h | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l`
+		local _TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT=$(df -h | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l)
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT} -eq 0 ]; then
 			echo_text_style "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [no mount]"
 
@@ -1100,7 +1175,7 @@ function cp_nginx_starter()
 	echo "Copy '${__DIR}/templates/nginx/server' To '${_TMP_CP_NGX_STT_CONTAINER_DIR}'"
 	cp -r ${__DIR}/templates/nginx/server ${_TMP_CP_NGX_STT_CONTAINER_DIR}
 	
-	if [ ! -d "$_TMP_CP_NGX_STT_RUNNING_DIR" ]; then
+	if [ ! -d "${_TMP_CP_NGX_STT_RUNNING_DIR}" ]; then
 		echo "Copy '${__DIR}/templates/nginx/template' To '${_TMP_CP_NGX_STT_RUNNING_DIR}'"
 		cp -r ${__DIR}/templates/nginx/template ${_TMP_CP_NGX_STT_RUNNING_DIR}
 	fi
@@ -1123,7 +1198,7 @@ function cp_nginx_starter()
 #生成nginx启动器
 function gen_nginx_starter()
 {
-    local _TMP_GEN_NGX_STT_DATE=`date +%Y%m%d%H%M%S`
+    local _TMP_GEN_NGX_STT_DATE=$(date +%Y%m%d%H%M%S)
 
     local _TMP_GEN_NGX_STT_BOOT_NAME="tmp"
     local _TMP_GEN_NGX_STT_BOOT_PORT=""
@@ -1159,7 +1234,7 @@ function setup_soft_basic()
 		return $?
 	fi
 
-	local _TMP_SETUP_SOFT_BASIC_CURRENT_DIR=`pwd`
+	local _TMP_SETUP_SOFT_BASIC_CURRENT_DIR=$(pwd)
 	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME="${1}"
 
 	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME_LEN=${#_TMP_SETUP_SOFT_BASIC_PRINT_NAME}
@@ -1298,100 +1373,103 @@ function path_exists_yn_action()
 #	echo "The styled text is ‘$TMP_TEST_STYLED_TEXT’"
 function exec_text_style()
 {
-	local _TMP_EXEC_TEXT_STYLE_VAR_NAME=${1}
-	local _TMP_EXEC_TEXT_STYLE_VAR_STYLE=${2} #${2:-"${red}"}
-	# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=`eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}'`
-	local _TMP_EXEC_TEXT_STYLE_VAR_VAL=$(echo_discern_exchange_var "${1}")
+	function _exec_text_style()
+	{
+		local _TMP_EXEC_TEXT_STYLE_VAR_STYLE=${2} #${2:-"${red}"}
+		# local _TMP_EXEC_TEXT_STYLE_VAR_VAL=$(eval echo '${'${_TMP_EXEC_TEXT_STYLE_VAR_NAME}'/ /}')
+		local _TMP_EXEC_TEXT_STYLE_VAR_VAL=$(eval echo '${'"${1}"'}')
 
-	function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=${1}
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE='\'
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}"
+		function _TMP_EXEC_TEXT_STYLE_WRAP_FUNC() {
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT=${1}
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=${1}
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE='\'
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE="${_TMP_EXEC_TEXT_STYLE_VAR_STYLE}"
 
-		function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
-			if [ -z "$(echo ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE} | grep -vE '[0-9]+')" ]; then
-				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=""
-			fi
-
-			_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${red}"}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${reset}"
-
-			return $?
-		}
-		
-		function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
-			# Gum模式存在默认样式，普通模式不存在
-			_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}")
-
-			return $?
-		}
-
-		case ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT} in
-		'[')
-			# 加入转义符
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='['
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=']'
-			# 紫红
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"201"}
-		;;
-		# '{')
-		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='{'
-		# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='}'
-		# ;;
-		'<')
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='<'
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='>'
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
-			# 红色
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"202"}
-		;;
-		'"')
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='"'
-		;;
-		*)
-			_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
-		esac
-
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS=$IFS   # Save current IFS
-		IFS=$'\n'      # Change IFS to new line
-
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}"
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}"
-		local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}[^${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}]+${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
-		# local _TMP_EXEC_TEXT_STYLE_MATCH_PREFIX=`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o '^\[[^]]+\]'`
-		# wrap类型 [] <>
-		local _TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR=(`echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX}"`)
-		for _TMP_EXEC_TEXT_STYLE_MATCH_ITEM in ${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR[@]}; do
-			local _TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}"
-			if [ -n "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}" ]; then
-				# 清除第一个]及其左边字符串
-				# echo "${A/\[reset_os\]/}" 
-				trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}"
-				if [ "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}" != "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}" ]; then
-					trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+			function _TMP_EXEC_TEXT_STYLE_NORMAL_FUNC() {
+				if [ -z "$(echo ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE} | grep -vE '[0-9]+')" ]; then
+					_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=""
 				fi
-				
-				local _TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
-				path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_TEXT_STYLE_GUM_FUNC" "_TMP_EXEC_TEXT_STYLE_NORMAL_FUNC"	
 
-				_TMP_EXEC_TEXT_STYLE_VAR_VAL=$(echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}})
-			fi
-		done
+				_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${red}"}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${reset}"
 
-		IFS=${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS}   # Restore IFS
+				return $?
+			}
+			
+			function _TMP_EXEC_TEXT_STYLE_GUM_FUNC() {
+				# Gum模式存在默认样式，普通模式不存在
+				_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}")
 
-		return $?
+				return $?
+			}
+
+			case ${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT} in
+			'[')
+				# 加入转义符
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='['
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT=']'
+				# 紫红
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"201"}
+			;;
+			# '{')
+			# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='{'
+			# 	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='}'
+			# ;;
+			'<')
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT='<'
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='>'
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
+				# 红色
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_STYLE=${_TMP_EXEC_TEXT_STYLE_VAR_STYLE:-"202"}
+			;;
+			'"')
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT='"'
+			;;
+			*)
+				_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE=''
+			esac
+
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS=$IFS   # Save current IFS
+			IFS=$'\n'      # Change IFS to new line
+
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}"
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_ESCAPE}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}"
+			local _TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}[^${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}]+${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+			# local _TMP_EXEC_TEXT_STYLE_MATCH_PREFIX=$(echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o '^\[[^]]+\]')
+			# wrap类型 [] <>
+			local _TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR=($(echo "${_TMP_EXEC_TEXT_STYLE_VAR_VAL}" | egrep -o "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_REGEX}"))
+			for _TMP_EXEC_TEXT_STYLE_MATCH_ITEM in ${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM_ARR[@]}; do
+				local _TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM="${_TMP_EXEC_TEXT_STYLE_MATCH_ITEM}"
+				if [ -n "${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}" ]; then
+					# 清除第一个]及其左边字符串
+					# echo "${A/\[reset_os\]/}" 
+					trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}"
+					if [ "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_LEFT}" != "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_CHAR_RIGHT}" ]; then
+						trim_str "_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM" "${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+					fi
+					
+					local _TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM="${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_LEFT}${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_ITEM_RIGHT}"
+					path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_TEXT_STYLE_GUM_FUNC" "_TMP_EXEC_TEXT_STYLE_NORMAL_FUNC"	
+
+					_TMP_EXEC_TEXT_STYLE_VAR_VAL=$(echo ${_TMP_EXEC_TEXT_STYLE_VAR_VAL/${_TMP_EXEC_TEXT_STYLE_MATCH_TRIMED_ITEM}/${_TMP_EXEC_TEXT_STYLE_MATCH_STYLE_ITEM}})
+				fi
+			done
+
+			IFS=${_TMP_EXEC_TEXT_STYLE_WRAP_FUNC_SAVEIFS}   # Restore IFS
+
+			return $?
+		}
+
+		# 自动样式化消息
+		_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "["
+		_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "<"
+		_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "'"
+		_TMP_EXEC_TEXT_STYLE_WRAP_FUNC '"'
+		# _TMP_EXEC_TEXT_STYLE_WRAP_FUNC "{"
+
+		eval ${1}='${_TMP_EXEC_TEXT_STYLE_VAR_VAL}'
 	}
 
-	# 自动样式化消息
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "["
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "<"
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC "'"
-	_TMP_EXEC_TEXT_STYLE_WRAP_FUNC '"'
-	# _TMP_EXEC_TEXT_STYLE_WRAP_FUNC "{"
-
-	eval ${_TMP_EXEC_TEXT_STYLE_VAR_NAME}='${_TMP_EXEC_TEXT_STYLE_VAR_VAL}'
-
+	discern_exchange_var_action "${1}" "_exec_text_style" "${@}"
 	return $?
 }
 
@@ -1513,8 +1591,8 @@ function soft_path_restore_confirm_action()
 	
 	function _soft_path_restore_confirm_action_restore_exec()
 	{
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS=`ls ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH} | sort -rV`
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER=`echo "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}" | awk 'NR==1'`
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS=$(ls ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH} | sort -rV)
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER=$(echo "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}" | awk 'NR==1')
 
 		## 提示&选择查找存在备份的最新文件
 		# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
@@ -1617,7 +1695,7 @@ function soft_path_restore_confirm_create()
 #	   soft_path_restore_confirm_copy "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_copy() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1}" ""
 	return $?
 }
 
@@ -1628,7 +1706,7 @@ function soft_path_restore_confirm_copy()
 #	   soft_path_restore_confirm_move "/mountdisk/data/docker_empty" "/var/lib/docker" 
 function soft_path_restore_confirm_move() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && rm -rf ${2} && ln -sf ${1} ${2}" "rm -rf ${2} && ln -sf ${1} ${2}"
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1} && rm -rf ${2} && ln -sf ${1} ${2}" "rm -rf ${2} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -1639,7 +1717,7 @@ function soft_path_restore_confirm_move()
 #	   soft_path_restore_confirm_swap "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_swap() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv `dirname ${1}` && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}"
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -1690,8 +1768,8 @@ function dirs_trail_clear()
 	fi
 
 	# 备份 && 删除文件
-	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME=`date "+%Y-%m-%d %H:%M:%S"`
-	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP=`date -d "${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME}" +%s` 
+	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME=$(date "+%Y-%m-%d %H:%M:%S")
+	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP=$(date -d "${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME}" +%s)
 	local _TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Backup dir <%s> not found'"
 	# local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_DIRS_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
 	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
@@ -2224,7 +2302,7 @@ function docker_snap_create_action()
 
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting 'init' snap create dir:↓"	
-	mkdir -pv `dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}`
+	mkdir -pv $(dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH})
 
 	# 备份容器信息
 	echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
@@ -3306,7 +3384,7 @@ function soft_rpm_check_action()
 	local _TMP_SOFT_RPM_CHECK_ACTION_SOFT=${1}
 	local _TMP_SOFT_RPM_CHECK_ACTION_SCRIPT=${2}
 
-    local _TMP_SOFT_RPM_CHECK_ACTION_RPM_FIND_RESULTS=`rpm -qa | grep ${_TMP_SOFT_RPM_CHECK_ACTION_SOFT}`
+    local _TMP_SOFT_RPM_CHECK_ACTION_RPM_FIND_RESULTS=$(rpm -qa | grep ${_TMP_SOFT_RPM_CHECK_ACTION_SOFT})
 	if [ -z "${_TMP_SOFT_RPM_CHECK_ACTION_RPM_FIND_RESULTS}" ]; then
 		${_TMP_SOFT_RPM_CHECK_ACTION_SCRIPT}
 	else
@@ -3410,7 +3488,7 @@ function soft_npm_check_action()
 	local _TMP_SOFT_NPM_CHECK_ACTION_SOFT_SCRIPT=${2}
 	local _TMP_SOFT_NPM_CHECK_ACTION_MODE=${4}
 
-    local _TMP_SOFT_NPM_CHECK_ACTION_FIND_RESULTS=`npm list --depth=0 ${_TMP_SOFT_NPM_CHECK_ACTION_MODE} | grep ${_TMP_SOFT_NPM_CHECK_ACTION_SOFT}`
+    local _TMP_SOFT_NPM_CHECK_ACTION_FIND_RESULTS=$(npm list --depth=0 ${_TMP_SOFT_NPM_CHECK_ACTION_MODE} | grep ${_TMP_SOFT_NPM_CHECK_ACTION_SOFT})
 	if [ -z "${_TMP_SOFT_NPM_CHECK_ACTION_FIND_RESULTS}" ]; then
 		${_TMP_SOFT_NPM_CHECK_ACTION_SOFT_SCRIPT}
 	else
@@ -3433,13 +3511,13 @@ function wget_unpack_dist()
 		return $?
 	fi
 
-	local _TMP_WGET_UNPACK_DIST_PWD=`pwd`
+	local _TMP_WGET_UNPACK_DIST_PWD=$(pwd)
 	local _TMP_WGET_UNPACK_DIST_URL=${1}
 	local _TMP_WGET_UNPACK_DIST_SOURCE=${2}
 	local _TMP_WGET_UNPACK_DIST_PATH=${3}
 	local _TMP_WGET_UNPACK_DIST_SCRIPT=${4}
 
-	local _TMP_WGET_UNPACK_FILE_NAME=`echo "${_TMP_WGET_UNPACK_DIST_URL}" | awk -F'/' '{print $NF}'`
+	local _TMP_WGET_UNPACK_FILE_NAME=$(echo "${_TMP_WGET_UNPACK_DIST_URL}" | awk -F'/' '{print $NF}')
 
 	mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 
@@ -3447,15 +3525,15 @@ function wget_unpack_dist()
 		wget -c --tries=0 --timeout=60 ${_TMP_WGET_UNPACK_DIST_URL}
 	fi
 
-	local _TMP_WGET_UNPACK_DIST_FILE_EXT=`echo ${_TMP_WGET_UNPACK_FILE_NAME##*.}`
-	if [ "$_TMP_WGET_UNPACK_DIST_FILE_EXT" = "zip" ]; then
-		local _TMP_WGET_UNPACK_DIST_PACK_DIR_LINE=`unzip -v ${_TMP_WGET_UNPACK_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}'`
-		local _TMP_WGET_UNPACK_FILE_NAME_NO_EXTS=`unzip -v ${_TMP_WGET_UNPACK_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_WGET_UNPACK_DIST_PACK_DIR_LINE+1)) | sed s@/@""@g`
+	local _TMP_WGET_UNPACK_DIST_FILE_EXT=$(echo ${_TMP_WGET_UNPACK_FILE_NAME##*.})
+	if [ "${_TMP_WGET_UNPACK_DIST_FILE_EXT}" = "zip" ]; then
+		local _TMP_WGET_UNPACK_DIST_PACK_DIR_LINE=$(unzip -v ${_TMP_WGET_UNPACK_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}')
+		local _TMP_WGET_UNPACK_FILE_NAME_NO_EXTS=$(unzip -v ${_TMP_WGET_UNPACK_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_WGET_UNPACK_DIST_PACK_DIR_LINE+1)) | sed s@/@""@g)
 		if [ ! -d "${_TMP_WGET_UNPACK_FILE_NAME_NO_EXTS}" ]; then
 			unzip -o ${_TMP_WGET_UNPACK_FILE_NAME}
 		fi
 	else
-		local _TMP_WGET_UNPACK_FILE_NAME_NO_EXTS=`tar -tf ${_TMP_WGET_UNPACK_FILE_NAME} | awk 'NR==1{print}' | sed s@/@""@g`
+		local _TMP_WGET_UNPACK_FILE_NAME_NO_EXTS=$(tar -tf ${_TMP_WGET_UNPACK_FILE_NAME} | awk 'NR==1{print}' | sed s@/@""@g)
 		if [ ! -d "${_TMP_WGET_UNPACK_FILE_NAME_NO_EXTS}" ]; then
 			tar -xvf ${_TMP_WGET_UNPACK_FILE_NAME}
 		fi
@@ -3484,29 +3562,29 @@ function while_wget()
 
 	local _TMP_WHILE_WGET_URL=${1}
 	local _TMP_WHILE_WGET_SCRIPT=${2}
-	local _TMP_WHILE_WGET_CURRENT_DIR=`pwd`
+	local _TMP_WHILE_WGET_CURRENT_DIR=$(pwd)
 
 	#包含指定参数
-	local _TMP_WHILE_WGET_FILE_DEST_NAME=`echo "${_TMP_WHILE_WGET_URL}" | awk -F'-O' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | awk -F' ' '{print $1}'`
+	local _TMP_WHILE_WGET_FILE_DEST_NAME=$(echo "${_TMP_WHILE_WGET_URL}" | awk -F'-O' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | awk -F' ' '{print $1}')
 	
 	#原始链接名
-	local _TMP_WHILE_WGET_FILE_SOUR_NAME=`echo "${_TMP_WHILE_WGET_URL}" | awk -F'/' '{print $NF}' | awk -F' ' '{print $NR}'`
+	local _TMP_WHILE_WGET_FILE_SOUR_NAME=$(echo "${_TMP_WHILE_WGET_URL}" | awk -F'/' '{print $NF}' | awk -F' ' '{print $NR}')
 	if [ "${_TMP_WHILE_WGET_FILE_SOUR_NAME}" == "download.rpm" ]; then
-		_TMP_WHILE_WGET_FILE_SOUR_NAME=`echo "${_TMP_WHILE_WGET_URL}" | awk -F'/' '{print $(NF-1)}'`
+		_TMP_WHILE_WGET_FILE_SOUR_NAME=$(echo "${_TMP_WHILE_WGET_URL}" | awk -F'/' '{print $(NF-1)}')
 	fi
 
 	#提取真实URL链接
-	local _TMP_WHILE_WGET_TRUE_URL=`echo "${_TMP_WHILE_WGET_URL}" | grep -oh -E "https?://[a-zA-Z0-9\.\+\/_&=@$%?~#-]*"`
+	local _TMP_WHILE_WGET_TRUE_URL=$(echo "${_TMP_WHILE_WGET_URL}" | grep -oh -E "https?://[a-zA-Z0-9\.\+\/_&=@$%?~#-]*")
 
 	#最终名
 	_TMP_WHILE_WGET_FILE_DEST_NAME=${_TMP_WHILE_WGET_FILE_DEST_NAME:-${_TMP_WHILE_WGET_FILE_SOUR_NAME}}
-	# _TMP_WHILE_WGET_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_WGET_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_WGET_FILE_DEST_NAME" || echo ${_TMP_WHILE_WGET_FILE_SOUR_NAME})
+	# _TMP_WHILE_WGET_FILE_DEST_NAME=$([ -n "${_TMP_WHILE_WGET_FILE_DEST_NAME}" ] && echo "${_TMP_WHILE_WGET_FILE_DEST_NAME}" || echo ${_TMP_WHILE_WGET_FILE_SOUR_NAME})
 	
 	echo "-------------------------------------------------------------------------------------------------------------------"
 	echo_text_style "Starting <get> file from [${_TMP_WHILE_WGET_TRUE_URL}] named '${_TMP_WHILE_WGET_FILE_DEST_NAME}'"
 	echo "-------------------------------------------------------------------------------------------------------------------"
-	echo_text_style "'Current Dir'：`pwd`"
-	local _TMP_WHILE_WGET_DIST_FILE_EXT=`echo ${_TMP_WHILE_WGET_FILE_DEST_NAME##*.}`	
+	echo_text_style "'Current Dir'：$(pwd)"
+	local _TMP_WHILE_WGET_DIST_FILE_EXT=$(echo ${_TMP_WHILE_WGET_FILE_DEST_NAME##*.})
 	case ${_TMP_WHILE_WGET_DIST_FILE_EXT} in
 		"rpm")
 			mkdir -pv ${RPMS_DIR} && cd ${RPMS_DIR}
@@ -3523,7 +3601,7 @@ function while_wget()
 
 	local _TMP_WHILE_WGET_COMMAND="wget -c --tries=0 --timeout=60 ${_TMP_WHILE_WGET_TRUE_URL} -O ${_TMP_WHILE_WGET_FILE_DEST_NAME}"
 	echo_text_style "'Wget Command'：${_TMP_WHILE_WGET_COMMAND}"
-	echo_text_style "'Wget/Current Dir'：`pwd`"
+	echo_text_style "'Wget/Current Dir'：$(pwd)"
 	echo
 
 	# 循环执行wget命令，直到成功
@@ -3532,7 +3610,7 @@ function while_wget()
 		${_TMP_WHILE_WGET_COMMAND}
 
 		# 网络错误大小为0则清空文件
-		local _TMP_WHILE_WGET_FILE_SIZE=`ls -l ${_TMP_WHILE_WGET_FILE_DEST_NAME} | awk '{ print $5 }'`
+		local _TMP_WHILE_WGET_FILE_SIZE=$(ls -l ${_TMP_WHILE_WGET_FILE_DEST_NAME} | awk '{ print $5 }')
 		if [ ${_TMP_WHILE_WGET_FILE_SIZE} -eq 0 ]; then
 			rm -rf ${_TMP_WHILE_WGET_FILE_DEST_NAME}
 		fi
@@ -3560,16 +3638,16 @@ function while_curl()
 
 	local _TMP_WHILE_CURL_URL=${1}
 	local _TMP_WHILE_CURL_SCRIPT=${2}
-	local _TMP_WHILE_CURL_CURRENT_DIR=`pwd`
+	local _TMP_WHILE_CURL_CURRENT_DIR=$(pwd)
 
 	#包含指定参数
-	local _TMP_WHILE_CURL_FILE_DEST_NAME=`echo "${_TMP_WHILE_CURL_URL}" | awk -F'-o' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | awk -F' ' '{print $1}'`
+	local _TMP_WHILE_CURL_FILE_DEST_NAME=$(echo "${_TMP_WHILE_CURL_URL}" | awk -F'-o' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | awk -F' ' '{print $1}')
 
 	#原始链接名
-	local _TMP_WHILE_CURL_FILE_NAME=`echo "${_TMP_WHILE_CURL_URL}" | awk -F'/' '{print $NF}' | awk -F' ' '{print $NR}'`
+	local _TMP_WHILE_CURL_FILE_NAME=$(echo "${_TMP_WHILE_CURL_URL}" | awk -F'/' '{print $NF}' | awk -F' ' '{print $NR}')
 
 	#提取真实URL链接
-	local _TMP_WHILE_CURL_TRUE_URL=`echo "${_TMP_WHILE_CURL_URL}" | grep -oh -E "https?://[a-zA-Z0-9\.\+\/_&=@$%?~#-]*"`
+	local _TMP_WHILE_CURL_TRUE_URL=$(echo "${_TMP_WHILE_CURL_URL}" | grep -oh -E "https?://[a-zA-Z0-9\.\+\/_&=@$%?~#-]*")
 
 	#最终名
 	_TMP_WHILE_CURL_FILE_DEST_NAME=${_TMP_WHILE_CURL_FILE_DEST_NAME:-${_TMP_WHILE_CURL_FILE_NAME}}
@@ -3578,19 +3656,19 @@ function while_curl()
 	echo "-------------------------------------------------------------------------------------------------------------------------"
 	echo_text_style "Starting <curl> file from [${_TMP_WHILE_CURL_TRUE_URL}] named '${_TMP_WHILE_CURL_FILE_DEST_NAME}'"
 	echo "-------------------------------------------------------------------------------------------------------------------------"
-	echo_text_style "'Current Dir'：`pwd`"
+	echo_text_style "'Current Dir'：$(pwd)"
 
 	cd ${CURL_DIR}
 	local _TMP_WHILE_CURL_COMMAND="curl -4sSkL ${_TMP_WHILE_CURL_TRUE_URL} -o ${_TMP_WHILE_CURL_FILE_DEST_NAME}"
 	echo_text_style "'Curl Command'：${_TMP_WHILE_CURL_COMMAND}"
-	echo_text_style "'Curl/Current Dir'：`pwd`"
+	echo_text_style "'Curl/Current Dir'：$(pwd)"
 	echo
 
 	while [ ! -f "${_TMP_WHILE_CURL_FILE_DEST_NAME}" ]; do
 		${_TMP_WHILE_CURL_COMMAND}
 		
 		# 网络错误大小为0则清空文件
-		local _TMP_WHILE_CURL_FILE_SIZE=`ls -l ${_TMP_WHILE_CURL_FILE_DEST_NAME} | awk '{ print $5 }'`
+		local _TMP_WHILE_CURL_FILE_SIZE=$(ls -l ${_TMP_WHILE_CURL_FILE_DEST_NAME} | awk '{ print $5 }')
 		if [ ${_TMP_WHILE_CURL_FILE_SIZE} -eq 0 ]; then
 			rm -rf ${_TMP_WHILE_CURL_FILE_DEST_NAME}
 		fi
@@ -3623,13 +3701,13 @@ function while_exec()
 
 	echo "${TMP_SPLITER}"
 	echo_text_style "Starting exec check script '${_TMP_WHILE_EXEC_CHECK_SCRIPT}'"
-	local _TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
+	local _TMP_WHILE_EXEC_CHECK_RESULT=$(eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}")
 	if [ $I -eq 1 ] && [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" == "1" ]; then
 		echo_text_style "Script is 'running', exec exit"
 		break
 	fi
 
-	echo_text_style "Starting exec script '$_TMP_WHILE_EXEC_SCRIPT'"
+	echo_text_style "Starting exec script '${_TMP_WHILE_EXEC_SCRIPT}'"
 	echo "${TMP_SPLITER}"
 
 	for I in $(seq 99);
@@ -3638,7 +3716,7 @@ function while_exec()
 		echo "${TMP_SPLITER2}"
 		eval "$_TMP_WHILE_EXEC_SCRIPT"
 
-		_TMP_WHILE_EXEC_CHECK_RESULT=`eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}"`
+		_TMP_WHILE_EXEC_CHECK_RESULT=$(eval "${_TMP_WHILE_EXEC_CHECK_SCRIPT}")
 
 		if [ "${_TMP_WHILE_EXEC_CHECK_RESULT}" != "1" ]; then
 			echo_text_style "Execute <failure>, the result response '<${_TMP_WHILE_EXEC_CHECK_RESULT}>', this will wait for 30s to try again"
@@ -3662,15 +3740,15 @@ function while_exec()
 
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
-# 参数2：执行用户，默认`whoami`
+# 参数2：执行用户，默认$(whoami)
 # 例：
 #   su_bash_channel_exec "source /etc/profile && source ~/.bashrc && conda update -y conda"
 function su_bash_channel_exec()
 {
 	local _TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
-    local _TMP_SU_BASH_CHANNEL_EXEC_USER=${2:-`whoami`}
+    local _TMP_SU_BASH_CHANNEL_EXEC_USER=${2:-$(whoami)}
 
-	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd `pwd`"
+	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd $(pwd)"
 	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS}"
 
 	return $?
@@ -3678,7 +3756,7 @@ function su_bash_channel_exec()
 
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
-# 参数2：执行用户，默认`whoami`
+# 参数2：执行用户，默认$(whoami)
 # 例：
 #   su_bash_env_channel_exec "conda update conda"
 function su_bash_env_channel_exec()
@@ -3691,7 +3769,7 @@ function su_bash_env_channel_exec()
 
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
-# 参数2：执行用户，默认`whoami`
+# 参数2：执行用户，默认$(whoami)
 # 例：
 #   su_bash_nvm_channel_exec "conda update conda"
 function su_bash_nvm_channel_exec()
@@ -3705,14 +3783,14 @@ function su_bash_nvm_channel_exec()
 # 通过指定用户，指定conda环境下，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：pyenv环境，默认${PY_ENV}
-# 参数3：执行用户，默认`whoami`
+# 参数3：执行用户，默认$(whoami)
 # 例：
 #	su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_docker_hub_vers.py 'labring/sealos'"
 function su_bash_channel_conda_exec()
 {
 	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS=${1:-"echo"}
     local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV=${2:-"${PY_ENV}"}
-    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-`whoami`}
+    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-$(whoami)}
 
 	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
 	su_bash_env_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS})" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
@@ -3801,16 +3879,16 @@ function setup_soft_wget()
 	if [[ ! -a ${TMP_SOFT_SETUP_PATH} ]]; then
 		local _TMP_SOFT_WGET_FILE_NAME=
 		local _TMP_SOFT_WGET_FILE_DIR="${DOWN_DIR}"
-		while_wget "${_TMP_SOFT_WGET_URL}" '_TMP_SOFT_WGET_FILE_DIR=`pwd` && _TMP_SOFT_WGET_FILE_NAME=${_TMP_SOFT_WGET_FILE_DEST_NAME}'
+		while_wget "${_TMP_SOFT_WGET_URL}" '_TMP_SOFT_WGET_FILE_DIR=$(pwd) && _TMP_SOFT_WGET_FILE_NAME=${_TMP_SOFT_WGET_FILE_DEST_NAME}'
 		
 		# 回到while_wget下载的目录中去
 		cd ${_TMP_SOFT_WGET_FILE_DIR}
 
 		local _TMP_SOFT_WGET_FILE_NAME_NO_EXTS="${DOWN_DIR}/tmp"
-		local _TMP_SOFT_WGET_UNPACK_FILE_EXT=`echo ${_TMP_SOFT_WGET_FILE_NAME##*.}`
+		local _TMP_SOFT_WGET_UNPACK_FILE_EXT=$(echo ${_TMP_SOFT_WGET_FILE_NAME##*.})
 		if [ "${_TMP_SOFT_WGET_UNPACK_FILE_EXT}" = "zip" ]; then
-			_TMP_SOFT_WGET_PACK_DIR_LINE=`unzip -v ${_TMP_SOFT_WGET_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}'`
-			local _TMP_SOFT_WGET_FILE_NAME_UNZIP=`unzip -v ${_TMP_SOFT_WGET_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_SOFT_WGET_PACK_DIR_LINE+1))`
+			_TMP_SOFT_WGET_PACK_DIR_LINE=$(unzip -v ${_TMP_SOFT_WGET_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}')
+			local _TMP_SOFT_WGET_FILE_NAME_UNZIP=$(unzip -v ${_TMP_SOFT_WGET_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_SOFT_WGET_PACK_DIR_LINE+1)))
 			_TMP_SOFT_WGET_FILE_NAME_NO_EXTS=${_TMP_SOFT_WGET_FILE_NAME_UNZIP%/*}
 			
 			# 没有层级的情况
@@ -3825,7 +3903,7 @@ function setup_soft_wget()
 				unzip -o ${_TMP_SOFT_WGET_FILE_NAME} ${_TMP_SOFT_WGET_FILE_NAME_UNZIP_ARGS}
 			fi
 		else
-			_TMP_SOFT_WGET_FILE_NAME_NO_EXTS=`tar -tf ${_TMP_SOFT_WGET_FILE_NAME} | grep '/' | awk 'NR==1{print}' | sed s@/.*@""@g`
+			_TMP_SOFT_WGET_FILE_NAME_NO_EXTS=$(tar -tf ${_TMP_SOFT_WGET_FILE_NAME} | grep '/' | awk 'NR==1{print}' | sed s@/.*@""@g)
 			if [ ! -d "${_TMP_SOFT_WGET_FILE_NAME_NO_EXTS}" ]; then
 				if [ "${_TMP_SOFT_WGET_UNPACK_FILE_EXT}" = "xz" ]; then
 					xz -d ${_TMP_SOFT_WGET_FILE_NAME}
@@ -3874,7 +3952,7 @@ function setup_soft_git()
 
     ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep $_TMP_SOFT_GIT_NAME | grep -v grep
 	if [ $? -ne 0 ]; then
-		local _TMP_SOFT_GIT_FOLDER_NAME=`echo "${_TMP_SOFT_GIT_URL}" | awk -F'/' '{print $NF}'`
+		local _TMP_SOFT_GIT_FOLDER_NAME=$(echo "${_TMP_SOFT_GIT_URL}" | awk -F'/' '{print $NF}')
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
 		if [ ! -f "${_TMP_SOFT_GIT_FOLDER_NAME}" ]; then
@@ -3902,7 +3980,7 @@ function setup_soft_pip()
 		return $?
 	fi
 
-	local _TMP_SOFT_PIP_NAME=`echo "${1}" | awk -F',' '{print $1}'`
+	local _TMP_SOFT_PIP_NAME=$(echo "${1}" | awk -F',' '{print $1}')
 	local _TMP_SOFT_PIP_SETUP_FUNC=${2}
 	local _TMP_SOFT_PIP_VERS=${3:-2}
 	
@@ -3912,14 +3990,14 @@ function setup_soft_pip()
 		pip install --upgrade pip
 		pip install --upgrade setuptools
 		
-		local TMP_PY_DFT_SETUP_PATH=`pip show pip | grep "Location" | awk -F' ' '{print $2}'`
+		local TMP_PY_DFT_SETUP_PATH=$(pip show pip | grep "Location" | awk -F' ' '{print $2}')
 		mv ${TMP_PY_DFT_SETUP_PATH} ${PY_PKGS_SETUP_DIR}
 		ln -sf ${PY_PKGS_SETUP_DIR} ${TMP_PY_DFT_SETUP_PATH}
 	fi
 
 	typeset -l TMP_SOFT_LOWER_NAME
 	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_PIP_NAME}
-	local TMP_SOFT_SETUP_PATH=`pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}"`
+	local TMP_SOFT_SETUP_PATH=$(pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}")
 
 	# pip show supervisor
 	# pip freeze | grep "supervisor=="
@@ -3987,8 +4065,8 @@ function setup_soft_npm()
 		return $?
 	fi
 
-	local _TMP_SOFT_NPM_SETUP_NAME=`echo "${1}" | awk -F',' '{print $1}'`
-	local _TMP_SOFT_NPM_SETUP_PATH=`echo "${1}" | awk -F',' '{print $NF}'`
+	local _TMP_SOFT_NPM_SETUP_NAME=$(echo "${1}" | awk -F',' '{print $1}')
+	local _TMP_SOFT_NPM_SETUP_PATH=$(echo "${1}" | awk -F',' '{print $NF}')
 	local _TMP_SOFT_NPM_SETUP_FUNC=${2}
 	local _TMP_SOFT_NPM_NODE_VERS=${3}
 	
@@ -4006,12 +4084,12 @@ function setup_soft_npm()
 		nvm install ${_TMP_SOFT_NPM_NODE_VERS}
 		nvm use ${_TMP_SOFT_NPM_NODE_VERS}
 	else
-		_TMP_SOFT_NPM_NODE_VERS=`nvm current`
+		_TMP_SOFT_NPM_NODE_VERS=$(nvm current)
 	fi
 
-	local _TMP_SOFT_NPM_SETUP_INFO=`npm list -g --depth 0 | grep -o ${_TMP_SOFT_NPM_SETUP_NAME_LOWER}.*`
+	local _TMP_SOFT_NPM_SETUP_INFO=$(npm list -g --depth 0 | grep -o ${_TMP_SOFT_NPM_SETUP_NAME_LOWER}.*)
 	# 在当前指定安装版本的目录下找是否安装
-	local _TMP_SOFT_NPM_SETUP_DIR=`dirname $(npm config get prefix)`/${_TMP_SOFT_NPM_NODE_VERS}/lib/node_modules/${_TMP_SOFT_NPM_SETUP_NAME_LOWER}
+	local _TMP_SOFT_NPM_SETUP_DIR=$(dirname $(npm config get prefix))/${_TMP_SOFT_NPM_NODE_VERS}/lib/node_modules/${_TMP_SOFT_NPM_SETUP_NAME_LOWER}
 
 	if [ -z "${_TMP_SOFT_NPM_SETUP_INFO}" ]; then
 		npm update
@@ -4049,44 +4127,46 @@ function setup_soft_npm()
 # 	return $?
 # }
 
-#设置变量值函数如果为空
-# 参数1：需要设置的变量名
+# 设置变量值函数如果为空
+# 参数1：需要设置/判断的变量名
 # 参数2：需要设置的变量值
+# 示例：
+#       _VAR= && set_if_empty "_VAR" "1"
 function set_if_empty()
 {
-	local _TMP_SET_IF_EMPTY_VAR_NAME=${1}
-	local _TMP_SET_IF_EMPTY_VAR_VAL=${2}
+	function _set_if_empty()
+	{
+		local _TMP_SET_IF_EMPTY_VAR_VAL=$(eval echo '${'"${1}"'}')
+		if [ -z "${_TMP_SET_IF_EMPTY_VAR_VAL}" ] && [ -n "${2}" ]; then
+			eval ${1}='${2}'
+		fi
+	}
 
-	local _TMP_SET_IF_EMPTY_VAR_DFT=$(echo_discern_exchange_var "${1}")
-
-	if [ -n "${_TMP_SET_IF_EMPTY_VAR_VAL}" ]; then
-		eval ${1}='$_TMP_SET_IF_EMPTY_VAR_DFT'
-	fi
-
+	discern_exchange_var_action "${1}" "_set_if_empty" "${@}"
 	return $?
 }
 
 #设置变量值函数如果相同
-# 参数1：需要对比的原始变量名
-# 参数2：需要对比的变量名/值
-# 参数3：需要对比的变量值
+# 参数1：需要对比的原始变量名1
+# 参数2：需要对比的原始变量名2/值2
+# 参数3：相同时，设置的变量的 名/值
+# 示例：
+#       set_if_equals "_HOST" "127.0.0.1" "192.168.0.1" 
+#       _HOST="127.0.0.1" && _HOST="192.168.0.1" && set_if_equals "_HOST" "127.0.0.1" "LOCAL_HOST" 
 function set_if_equals()
 {
-	local _TMP_SET_IF_EQS_SOURCE_VAR_NAME=${1}
-	local _TMP_SET_IF_EQS_COMPARE_VAR_NAME=${2}
-	local _TMP_SET_IF_EQS_SET_VAR_VAL=${3}
+	local _TMP_SET_IF_EQS_COMPARE_VAR_VAL=$(echo_discern_exchange_val "${2}")
+	local _TMP_SET_IF_EQS_SET_VAR_VAL=$(echo_discern_exchange_val "${3}")
 
-	local _TMP_SET_IF_EQS_SOURCE_VAR_VAL=$(echo_discern_exchange_var "${_TMP_SET_IF_EQS_SOURCE_VAR_NAME}")
-	local _TMP_SET_IF_EQS_COMPARE_VAR_VAL=$(echo_discern_exchange_var "${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}")
+	function _set_if_equals()
+	{
+		local _TMP_SET_IF_EQS_SOURCE_VAR_VAL=$(eval echo '${'"${1}"'}')
+		if [ "${_TMP_SET_IF_EQS_SOURCE_VAR_VAL}" == "${_TMP_SET_IF_EQS_COMPARE_VAR_VAL}" ]; then
+			eval ${1}='${_TMP_SET_IF_EQS_SET_VAR_VAL}'
+		fi		
+	}
 
-	if [ -z "${_TMP_SET_IF_EQS_COMPARE_VAR_VAL}" ]; then
-		_TMP_SET_IF_EQS_COMPARE_VAR_VAL="${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}"
-	fi
-
-	if [ "${_TMP_SET_IF_EQS_SOURCE_VAR_VAL}" = "${_TMP_SET_IF_EQS_COMPARE_VAR_VAL}" ]; then
-		eval ${1}='$_TMP_SET_IF_EQS_SET_VAR_VAL'
-	fi
-
+	discern_exchange_var_action "${1}" "_set_if_equals" "${@}"
 	return $?
 }
 
@@ -4096,46 +4176,49 @@ function set_if_equals()
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
 function input_if_empty()
 {
-	local _TMP_INPUT_IF_EMPTY_VAR_NAME=${1}
-	local _TMP_INPUT_IF_EMPTY_NOTICE=${2}
-	local _TMP_INPUT_IF_EMPTY_VAR_SEC=${3}
-	local _TMP_INPUT_IF_EMPTY_DFT_VAL=$(echo_discern_exchange_var "${$_TMP_INPUT_IF_EMPTY_VAR_NAME}")
-	
-	# 自动样式化消息前缀 
-	exec_text_style "_TMP_INPUT_IF_EMPTY_NOTICE"
-	
-	local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
-	function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
-		echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '${_TMP_INPUT_IF_EMPTY_DFT_VAL}'"
-		read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
-		echo ""
-	}
-	
-	function _TMP_INPUT_IF_EMPTY_GUM_FUNC()	{
-		# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
-		# 必须转义，否则带样式的前提下会解析冲突
-		_TMP_INPUT_IF_EMPTY_NOTICE=${_TMP_INPUT_IF_EMPTY_NOTICE//\"/\\\"}
-		local _TMP_INPUT_IF_EMPTY_GUM_PARAMS="--placeholder '${_TMP_INPUT_IF_EMPTY_DFT_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_NOTICE}, default: \" --value '${_TMP_INPUT_IF_EMPTY_DFT_VAL}'"
+	function _input_if_empty()
+	{
+		local _TMP_INPUT_IF_EMPTY_NOTICE=${2}
+		local _TMP_INPUT_IF_EMPTY_VAR_SEC=${3}
+		local _TMP_INPUT_IF_EMPTY_VAR_VAL=$(echo_discern_exchange_val "${1}")
 		
-		case ${_TMP_INPUT_IF_EMPTY_VAR_SEC} in
-			"y" | "Y")
-			_TMP_INPUT_IF_EMPTY_GUM_PARAMS="${_TMP_INPUT_IF_EMPTY_GUM_PARAMS} --password"
-			;;
-			*)
-			#
-		esac
+		# 自动样式化消息前缀 
+		exec_text_style "_TMP_INPUT_IF_EMPTY_NOTICE"
+		
+		local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
+		function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
+			echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
+			echo ""
+		}
+		
+		function _TMP_INPUT_IF_EMPTY_GUM_FUNC()	{
+			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
+			# 必须转义，否则带样式的前提下会解析冲突
+			_TMP_INPUT_IF_EMPTY_NOTICE=${_TMP_INPUT_IF_EMPTY_NOTICE//\"/\\\"}
+			local _TMP_INPUT_IF_EMPTY_GUM_PARAMS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_NOTICE}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			
+			case ${_TMP_INPUT_IF_EMPTY_VAR_SEC} in
+				"y" | "Y")
+				_TMP_INPUT_IF_EMPTY_GUM_PARAMS="${_TMP_INPUT_IF_EMPTY_GUM_PARAMS} --password"
+				;;
+				*)
+				#
+			esac
 
-		_TMP_INPUT_IF_EMPTY_INPUT_CURRENT=`eval gum input ${_TMP_INPUT_IF_EMPTY_GUM_PARAMS}`
+			_TMP_INPUT_IF_EMPTY_INPUT_CURRENT=$(eval gum input ${_TMP_INPUT_IF_EMPTY_GUM_PARAMS})
 
-		return $?
+			return $?
+		}
+		
+		# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
+		path_exists_yn_action "${GUM_PATH}" "_TMP_INPUT_IF_EMPTY_GUM_FUNC" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
+
+		if [ -n "${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}" ]; then
+			eval ${1}='${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}'
+		fi
 	}
-	
-	# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
-	path_exists_yn_action "${GUM_PATH}" "_TMP_INPUT_IF_EMPTY_GUM_FUNC" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
-
-	if [ -n "${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}" ]; then
-		eval ${1}='${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}'
-	fi
+	discern_exchange_var_action "${1}" "_input_if_empty" "${@}"
 
 	return $?
 }
@@ -4153,31 +4236,32 @@ function input_if_empty()
 # 	set_newer_by_url_list_link_date "TMP_NEWER_LINK" "http://repo.yandex.ru/clickhouse/rpm/stable/x86_64/" "clickhouse-common-static-dbg-.*.x86_64.rpm"
 function set_newer_by_url_list_link_date()
 {
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_NAME=${1}
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL=${2}
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS=${3}
+	function _set_newer_by_url_list_link_date()
+	{
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL=${2}
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS=${3}
 
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_NAME}")
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
-    echo ${TMP_SPLITER}
-    echo "Checking the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}'"    
-	#  | awk '{if (NR>2) {print}}' ，缺失无效行去除的判断
-    local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | awk -F'</a>' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | sed '/^$/d' | awk -F' ' '{print $1}' | awk 'function t_f(t){"date -d \""t"\" +%s" | getline ft; return ft}{print t_f(${1})}' | awk 'BEGIN {max = 0} {if (${1}+0 > max+0) {max=${1} ;content=$0} } END {print content}' | xargs -I {} env LC_ALL=en_US.en date -d@{} "+%d-%h-%Y"`
-    local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}" | sed 's/\(.*\)href="\([^"\n]*\)"\(.*\)/\2/g'`
+		echo ${TMP_SPLITER}
+		echo "Checking the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}'"    
+		#  | awk '{if (NR>2) {print}}' ，缺失无效行去除的判断
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | awk -F'</a>' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | sed '/^$/d' | awk -F' ' '{print $1}' | awk 'function t_f(t){"date -d \""t"\" +%s" | getline ft; return ft}{print t_f(${1})}' | awk 'BEGIN {max = 0} {if (${1}+0 > max+0) {max=${1} ;content=$0} } END {print content}' | xargs -I {} env LC_ALL=en_US.en date -d@{} "+%d-%h-%Y")
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}" | sed 's/\(.*\)href="\([^"\n]*\)"\(.*\)/\2/g')
 
-	if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}" ]; then
-		echo "Upgrade the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'"
+		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}" ]; then
+			echo "Upgrade the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'"
 
-		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
+			input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
 
-		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT'
-	else
-		echo "Cannot check the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>，Some part info"
-		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}"
-	fi
+			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'
+		else
+			echo "Cannot check the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>，Some part info"
+			echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}"
+		fi
+	}
 
-    echo ${TMP_SPLITER}
-
+	discern_exchange_var_action "${1}" "_set_newer_by_url_list_link_date" "${@}"
 	return $?
 }
 
@@ -4191,37 +4275,38 @@ function set_newer_by_url_list_link_date()
 # 	set_newer_by_url_list_link_text "TMP_NEWER_LINK" "https://services.gradle.org/distributions/" "gradle-()-bin.zip"
 function set_newer_by_url_list_link_text()
 {
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_NAME=${1}
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL=${2}
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS=$(echo ${3} | sed 's@()@[0-9.-]*@g')  #‘gradle-()-bin.zip’ -> 'gradle-.*-bin.zip'
-	
-	# 零宽断言，参考两篇即明白：https://segmentfault.com/q/1010000009346369，https://blog.csdn.net/iteye_5616/article/details/81855906
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_LEFT=$(echo ${3} | grep -o ".*(" | sed 's@\(.*\)(@\1@g')
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT=$(echo ${3} | grep -o ").*" | sed 's@)\(.*\)@\1@g')
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG="(?<=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_LEFT:-^})\d.*(?=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT:-$})"
-	
-	local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_NAME}")
-
-    echo ${TMP_SPLITER}
-    echo_text_style "Checking the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}'"
-	# 清除字母开头： | tr -d "a-zA-Z-"
-    local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep -oP "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG}" | sort -rV | awk 'NR==1'`
-	# local TMP_NEWER_FILENAME=$(echo ${3} | sed "s@()@${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}.*@g")
-    # local TMP_NEWER_HREF_LINK_FILENAME=`curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep "${TMP_NEWER_FILENAME}\$" | awk 'NR==1' | sed 's@.*/@@g'`
-
-	if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}" ]; then
-		echo_text_style "Upgrade the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'"
+	function _set_newer_by_url_list_link_date()
+	{
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL=${2}
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS=$(echo ${3} | sed 's@()@[0-9.-]*@g')  #‘gradle-()-bin.zip’ -> 'gradle-.*-bin.zip'
 		
-		input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
+		# 零宽断言，参考两篇即明白：https://segmentfault.com/q/1010000009346369，https://blog.csdn.net/iteye_5616/article/details/81855906
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_LEFT=$(echo ${3} | grep -o ".*(" | sed 's@\(.*\)(@\1@g')
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT=$(echo ${3} | grep -o ").*" | sed 's@)\(.*\)@\1@g')
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG="(?<=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_LEFT:-^})\d.*(?=${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_RIGHT:-$})"
+		
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
-		eval ${1}='$_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS'
-	else
-		echo_text_style "Cannot check the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>，Some part info"
-		echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}"
-	fi
+		echo ${TMP_SPLITER}
+		echo_text_style "Checking the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}'"
+		# 清除字母开头： | tr -d "a-zA-Z-"
+		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep -oP "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG}" | sort -rV | awk 'NR==1')
+		# local TMP_NEWER_FILENAME=$(echo ${3} | sed "s@()@${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}.*@g")
+		# local TMP_NEWER_HREF_LINK_FILENAME=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep "${TMP_NEWER_FILENAME}\$" | awk 'NR==1' | sed 's@.*/@@g')
 
-    echo ${TMP_SPLITER}
+		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}" ]; then
+			echo_text_style "Upgrade the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'"
+			
+			input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
 
+			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'
+		else
+			echo_text_style "Cannot check the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>，Some part info"
+			echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}"
+		fi
+	}
+
+	discern_exchange_var_action "${1}" "_set_newer_by_url_list_link_date" "${@}"
 	return $?
 }
 
@@ -4235,33 +4320,35 @@ function set_newer_by_url_list_link_text()
 # ??? 兼容没有tag标签的情况，类似filebeat
 function set_github_soft_releases_newer_version() 
 {
-	local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_NAME=${1}
-	local _TMP_GITHUB_SOFT_NEWER_VERS_PATH=${2}
+	function _set_newer_by_url_list_link_date()
+	{
+		local _TMP_GITHUB_SOFT_NEWER_VERS_PATH=${2}
 
-	local _TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH="https://github.com/${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases"
-	local _TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH="${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases/tag/"
+		local _TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH="https://github.com/${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases"
+		local _TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH="${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases/tag/"
 
-	# 提取href中值，如需提取标签内值，则使用： sed 's/="[^"]*[><][^"]*"//g;s/<[^>]*>//g' | awk '{sub("^ *","");sub(" *$","");print}' | awk NR==1
-	
-	local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(echo_discern_exchange_var "${1}")
+		# 提取href中值，如需提取标签内值，则使用： sed 's/="[^"]*[><][^"]*"//g;s/<[^>]*>//g' | awk '{sub("^ *","");sub(" *$","");print}' | awk NR==1
+		
+		local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
-    echo ${TMP_SPLITER}
-    echo_text_style "Checking the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>， default val is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
-	# local _TMP_GITHUB_SOFT_NEWER_VERS=`curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1`
-	local _TMP_GITHUB_SOFT_NEWER_VERS=`curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}'`
+		echo ${TMP_SPLITER}
+		echo_text_style "Checking the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, default val is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
+		# local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1)
+		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}')
 
-	if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
-		echo_text_style "Upgrade the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>， release newer version to '${_TMP_GITHUB_SOFT_NEWER_VERS}'"
+		if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
+			echo_text_style "Upgrade the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, release newer version to '${_TMP_GITHUB_SOFT_NEWER_VERS}'"
 
-		input_if_empty "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}'，if u want to change"
+			input_if_empty "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}', if u want to change"
 
-		eval ${1}='$_TMP_GITHUB_SOFT_NEWER_VERS'
-	else
-		echo_text_style "Cannot check the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>，Some part info"
-		echo "${_TMP_GITHUB_SOFT_NEWER_VERS}"
-	fi
-    echo ${TMP_SPLITER}
-	
+			eval ${1}='${_TMP_GITHUB_SOFT_NEWER_VERS}'
+		else
+			echo_text_style "Cannot check the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, Some part info"
+			echo "${_TMP_GITHUB_SOFT_NEWER_VERS}"
+		fi
+	}
+
+	discern_exchange_var_action "${1}" "_set_newer_by_url_list_link_date" "${@}"
 	return $?
 }
 
@@ -4271,16 +4358,20 @@ function set_github_soft_releases_newer_version()
 # 参数3：查找关键字
 function find_content_list_first_line()
 {
-	local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_NAME=${1}
-	local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_FIND_CONTENT=${2}
-	local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_KEY_WORDS=${3}
+	function _find_content_list_first_line()
+	{
+		local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_NAME=${1}
+		local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_FIND_CONTENT=${2}
+		local _TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_KEY_WORDS=${3}
 
-    local _TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE=`echo ${_TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_FIND_CONTENT} | grep "${_TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_KEY_WORDS}" | awk 'NR==1'`
+		local _TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE=$(echo ${_TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_FIND_CONTENT} | grep "${_TMP_FIND_CONTENT_LIST_FIRST_LINE_VAR_KEY_WORDS}" | awk 'NR==1')
 
-	if [ -n "${_TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE}" ]; then
-		eval ${1}='${_TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE}'
-	fi
+		if [ -n "${_TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE}" ]; then
+			eval ${1}='${_TMP_FIND_CONTENT_LIST_FIRST_LINE_MATCH_CONTENT_FIRST_LINE}'
+		fi
+	}
 
+	discern_exchange_var_action "${1}" "_find_content_list_first_line" "${@}"
 	return $?
 }
 
@@ -4291,23 +4382,26 @@ function find_content_list_first_line()
 # 参数4：格式化字符
 function fill_right()
 {
-	local _TMP_FILL_RIGHT_VAR_NAME=${1}
-	local _TMP_FILL_RIGHT_VAR_VAL=$(echo_discern_exchange_var "${1}")
-	local _TMP_FILL_RIGHT_FILL_CHR=${2}
-	local _TMP_FILL_RIGHT_TOTAL_LEN=${3}
+	function _fill_right()
+	{
+		local _TMP_FILL_RIGHT_VAR_VAL=$(eval echo '${'"${1}"'}')
+		local _TMP_FILL_RIGHT_FILL_CHR=${2}
+		local _TMP_FILL_RIGHT_TOTAL_LEN=${3}
 
-	local _TMP_FILL_RIGHT_ITEM_LEN=${#_TMP_FILL_RIGHT_VAR_VAL}
-	local _TMP_FILL_RIGHT_OUTPUT_SPACE_COUNT=$((_TMP_FILL_RIGHT_TOTAL_LEN-_TMP_FILL_RIGHT_ITEM_LEN))	
-	local _TMP_FILL_RIGHT_SPACE_STR=`eval printf %.s'${_TMP_FILL_RIGHT_FILL_CHR}' {1..$_TMP_FILL_RIGHT_OUTPUT_SPACE_COUNT}`
-	
-	local _TMP_FILL_RIGHT_FINAL_STR="${_TMP_FILL_RIGHT_VAR_VAL}${_TMP_FILL_RIGHT_SPACE_STR}"
-	
-	if [ -n "${4}" ]; then
-		_TMP_FILL_RIGHT_FINAL_STR=`echo "${4}" | sed s@%@"${_TMP_FILL_RIGHT_FINAL_STR}"@g`
-	fi
-	
-	eval ${_TMP_FILL_RIGHT_VAR_NAME}='${_TMP_FILL_RIGHT_FINAL_STR}'
-	
+		local _TMP_FILL_RIGHT_ITEM_LEN=${#_TMP_FILL_RIGHT_VAR_VAL}
+		local _TMP_FILL_RIGHT_OUTPUT_SPACE_COUNT=$((_TMP_FILL_RIGHT_TOTAL_LEN-_TMP_FILL_RIGHT_ITEM_LEN))	
+		local _TMP_FILL_RIGHT_SPACE_STR=$(eval printf %.s'${_TMP_FILL_RIGHT_FILL_CHR}' {1..${_TMP_FILL_RIGHT_OUTPUT_SPACE_COUNT}})
+		
+		local _TMP_FILL_RIGHT_FINAL_STR="${_TMP_FILL_RIGHT_VAR_VAL}${_TMP_FILL_RIGHT_SPACE_STR}"
+		
+		if [ -n "${4}" ]; then
+			_TMP_FILL_RIGHT_FINAL_STR=$(echo "${4}" | sed s@%@"${_TMP_FILL_RIGHT_FINAL_STR}"@g)
+		fi
+		
+		eval ${1}='${_TMP_FILL_RIGHT_FINAL_STR}'
+	}
+
+	discern_exchange_var_action "${1}" "_fill_right" "${@}"
 	return $?
 }
 
@@ -4318,124 +4412,127 @@ function fill_right()
 # 参数4：自定义的Spliter
 function set_if_choice()
 {
-	local _TMP_SET_IF_CHOICE_VAR_NAME=${1}
-	local _TMP_SET_IF_CHOICE_NOTICE=${2}
-	local _TMP_SET_IF_CHOICE_CHOICE=${3}
-	
-	exec_text_style "_TMP_SET_IF_CHOICE_NOTICE"
-
-	local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
-	set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
-	local _TMP_CHOICE_SPLITER_LEN=${#_TMP_CHOICE_SPLITER}
-	
-	local _TMP_SET_IF_CHOICE_ARR=(${_TMP_SET_IF_CHOICE_CHOICE//,/ })
-	local _TMP_SET_IF_CHOICE_ARR_LEN=${#_TMP_SET_IF_CHOICE_ARR[@]}
-	
-	# 编号前坠
-	local _TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
-
-	# X退出字符前缀
-	local _TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
-	
-	if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -gt 10 ]; then
-		_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=`eval printf %.s'' {1..$((${#_TMP_SET_IF_CHOICE_ARR_LEN}-1))}`
-		_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN=`eval printf %.s'X' {1..${#_TMP_SET_IF_CHOICE_ARR_LEN}}`
-	fi
-
-	function _TMP_SET_IF_CHOICE_NORMAL_FUNC() {
-		echo ${_TMP_CHOICE_SPLITER}
-
-		for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
-		do
-			local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
-			if [ $(($I%2)) -eq 0 ]; then
-				_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
-			fi
-
-			local _TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
-			local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
-			if [ `echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z'` == "exit" ]; then
-				echo ${_TMP_CHOICE_SPLITER}
-				_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
-			else
-				if [ ${I} -ge 9 ]; then
-					_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
-				fi
-			fi
-			
-			fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
-			
-			echo "${_TMP_SET_IF_CHOICE_ITEM}"
-		done
+	function _set_if_choice()
+	{
+		local _TMP_SET_IF_CHOICE_NOTICE=${2}
+		local _TMP_SET_IF_CHOICE_CHOICE=${3}
 		
-		echo ${_TMP_CHOICE_SPLITER}
+		exec_text_style "_TMP_SET_IF_CHOICE_NOTICE"
 
-		if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
-			echo "${_TMP_SET_IF_CHOICE_NOTICE}, by above keys, then enter it"
-		fi
+		local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
+		set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
+		local _TMP_CHOICE_SPLITER_LEN=${#_TMP_CHOICE_SPLITER}
 		
-		if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -le 10 ]; then
-			read -n 1 KEY
-		else
-			read KEY
+		local _TMP_SET_IF_CHOICE_ARR=(${_TMP_SET_IF_CHOICE_CHOICE//,/ })
+		local _TMP_SET_IF_CHOICE_ARR_LEN=${#_TMP_SET_IF_CHOICE_ARR[@]}
+		
+		# 编号前坠
+		local _TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+
+		# X退出字符前缀
+		local _TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
+		
+		if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -gt 10 ]; then
+			_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=$(eval printf %.s'' {1..$((${#_TMP_SET_IF_CHOICE_ARR_LEN}-1))})
+			_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN=$(eval printf %.s'X' {1..${#_TMP_SET_IF_CHOICE_ARR_LEN}})
 		fi
 
-		_TMP_SET_IF_CHOICE_NEW_VAL=${_TMP_SET_IF_CHOICE_ARR[$((KEY-1))]}
+		function _TMP_SET_IF_CHOICE_NORMAL_FUNC() {
+			echo ${_TMP_CHOICE_SPLITER}
 
-		echo
-
-		return $?
-	}
-	
-	function _TMP_SET_IF_CHOICE_GUM_FUNC() {		
-		for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
-		do
-			local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
-			if [ $(($I%2)) -eq 0 ]; then
-				_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
-			fi
-
-			local _TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
-						
-			local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
-			if [ `echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z'` == "exit" ]; then
-				_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
-			else
-				if [ ${I} -ge 9 ]; then
-					_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+			for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
+			do
+				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
+				if [ $(($I%2)) -eq 0 ]; then
+					_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
 				fi
+
+				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
+				local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
+				if [ $(echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+					echo ${_TMP_CHOICE_SPLITER}
+					_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
+				else
+					if [ ${I} -ge 9 ]; then
+						_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+					fi
+				fi
+				
+				fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
+				
+				echo "${_TMP_SET_IF_CHOICE_ITEM}"
+			done
+			
+			echo ${_TMP_CHOICE_SPLITER}
+
+			if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
+				echo "${_TMP_SET_IF_CHOICE_NOTICE}, by above keys, then enter it"
+			fi
+			
+			if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -le 10 ]; then
+				read -n 1 KEY
+			else
+				read KEY
 			fi
 
-			fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
-			_TMP_SET_IF_CHOICE_ARR[$I]="\"${_TMP_SET_IF_CHOICE_ITEM}\""
-		done
+			_TMP_SET_IF_CHOICE_NEW_VAL=${_TMP_SET_IF_CHOICE_ARR[$((KEY-1))]}
 
-		local _TMP_SET_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_SET_IF_CHOICE_ARR[*]}")
-		if [ -z "${_TMP_SET_IF_CHOICE_ARR_STR}" ]; then
 			echo
-			echo_text_style "'No choice' set, please check your 'str arr'"
 
-			return 0
-		fi
-		local _TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_SET_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
+			return $?
+		}
 		
-		if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
-			echo_text_style "${_TMP_SET_IF_CHOICE_NOTICE}, by 'follow keys', then enter it"
-		fi
-		
-		_TMP_SET_IF_CHOICE_NEW_VAL=`eval ${_TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT}`
+		function _TMP_SET_IF_CHOICE_GUM_FUNC() {		
+			for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
+			do
+				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
+				if [ $(($I%2)) -eq 0 ]; then
+					_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
+				fi
 
-		return $?
+				local _TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
+							
+				local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
+				if [ $(echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+					_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
+				else
+					if [ ${I} -ge 9 ]; then
+						_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+					fi
+				fi
+
+				fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
+				_TMP_SET_IF_CHOICE_ARR[$I]="\"${_TMP_SET_IF_CHOICE_ITEM}\""
+			done
+
+			local _TMP_SET_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_SET_IF_CHOICE_ARR[*]}")
+			if [ -z "${_TMP_SET_IF_CHOICE_ARR_STR}" ]; then
+				echo
+				echo_text_style "'No choice' set, please check your 'str arr'"
+
+				return 0
+			fi
+			local _TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_SET_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
+			
+			if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
+				echo_text_style "${_TMP_SET_IF_CHOICE_NOTICE}, by 'follow keys', then enter it"
+			fi
+			
+			_TMP_SET_IF_CHOICE_NEW_VAL=$(eval ${_TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT})
+
+			return $?
+		}
+
+		local _TMP_SET_IF_CHOICE_NEW_VAL=""
+		
+		path_exists_yn_action "${GUM_PATH}" "_TMP_SET_IF_CHOICE_GUM_FUNC" "_TMP_SET_IF_CHOICE_NORMAL_FUNC"	
+		
+		echo "Choice of '${_TMP_SET_IF_CHOICE_NEW_VAL}' checked"
+
+		eval ${1}=$(echo "${_TMP_SET_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
 	}
 
-	local _TMP_SET_IF_CHOICE_NEW_VAL=""
-	
-	path_exists_yn_action "${GUM_PATH}" "_TMP_SET_IF_CHOICE_GUM_FUNC" "_TMP_SET_IF_CHOICE_NORMAL_FUNC"	
-	
-	echo "Choice of '${_TMP_SET_IF_CHOICE_NEW_VAL}' checked"
-
-	eval ${_TMP_SET_IF_CHOICE_VAR_NAME}=`echo "${_TMP_SET_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g"`
-
+	discern_exchange_var_action "${1}" "_set_if_choice" "${@}"
 	return $?
 }
 
@@ -4468,7 +4565,7 @@ function mark_if_choice_action()
     return $?
 }
 
-#按键选择类型的弹出动态设置变量值函数
+# 按键选择类型的弹出动态设置变量值函数
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：选项参数
@@ -4477,15 +4574,23 @@ function mark_if_choice_action()
 # 参数6：执行脚本后的操作
 function exec_if_choice_custom()
 {
+	local _TMP_EXEC_IF_CHOICE_NEW_VAL=$(echo_discern_exchange_val "${1}")
+
 	# 非首次运行时，清理命令台
-	if [ "${1}" == "TMP_CHOICE_CTX" ] && [ -n "$(echo_discern_exchange_var "${1}")" ]; then
+	if [ "${1}" == "TMP_CHOICE_CTX" ] && [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
 		clear
 	fi
 
-	set_if_choice "${1}" "${2}" ${3} "${4}"
+	function _exec_if_choice_custom()
+	{
+		set_if_choice "${@:1:4}"
+
+		_TMP_EXEC_IF_CHOICE_NEW_VAL=$(eval echo '${'"${1}"'}')
+	}
+
+	discern_exchange_var_action "${1}" "_exec_if_choice_custom" "${@}"
 
 	typeset -l _TMP_EXEC_IF_CHOICE_NEW_VAL
-	local _TMP_EXEC_IF_CHOICE_NEW_VAL=$(echo_discern_exchange_var "${1}")
 	if [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
 		if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" = "exit" ]; then
 			exit 1
@@ -4498,15 +4603,15 @@ function exec_if_choice_custom()
 		if [ -n "$5" ]; then
 			local _TMP_EXEC_IF_CHOICE_SCRIPT_PATH="${5}/${_TMP_EXEC_IF_CHOICE_NEW_VAL}"
 			local _TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR=(${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH})
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[1]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@.@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[2]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@_@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[3]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@-@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[4]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@.@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[5]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@-@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[6]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@_@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[7]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @-@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[8]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @_@g"`
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[9]=`echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @.@g"`
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[1]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@.@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[2]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@_@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[3]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@-@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[4]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@.@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[5]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@-@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[6]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@_@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[7]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @-@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[8]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @_@g")
+			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[9]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @.@g")
 
 			# 识别文件转换
 			for _TMP_EXEC_IF_CHOICE_SCRIPT_PATH in ${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[@]}; do
@@ -4539,7 +4644,6 @@ function exec_if_choice_custom()
 			eval "${6}"
 		fi
 	fi
-
 
 	return $?
 }
@@ -4613,21 +4717,12 @@ function exec_channel_action()
 #     exec_check_action "test_func_var" "1" "2" "3"
 #     exec_check_action "echo 'hello test_func'"
 function exec_check_action() {
-	local _TMP_EXEC_CHECK_ACTION_SCRIPT=${1}
+	local _TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_val "${1}")
 
 	# 为空则不执行
 	if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
 		return $?
 	fi
-	
-	# 空格数等于0的情况，可能是函数名或变量名。
-	# local _TMP_EXEC_CHECK_ACTION_SPACE_COUNT=`echo "${1}" | grep -o ' ' | wc -l`
-	# if [ ${_TMP_EXEC_CHECK_ACTION_SPACE_COUNT} -eq 0 ]; then
-	# 	# 函数名优先
-	# 	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then
-	# 		_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_var "${1}")
-	# 	fi
-	# fi
 	
 	# 空格数等于0的情况，可能是函数名或变量名。
 	# 循环获取到最终的值，有可能是变量名嵌套传递。
@@ -4640,7 +4735,7 @@ function exec_check_action() {
 				break
 			fi
 
-			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_var "${_TMP_EXEC_CHECK_ACTION_SCRIPT}")
+			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_val "${_TMP_EXEC_CHECK_ACTION_SCRIPT}")
 		
 			# 变量解析后可能为空，为空则不执行
 			if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
@@ -4663,9 +4758,9 @@ function exec_check_action() {
 	# 变量传递脚本，有可能变量读取完以后，是执行脚本而非函数，所以此处再判断
 	## 移除第一位选择器
 	shift
-	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" = "function" ] ; then
+	if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" == "function" ] ; then
 		# path_not_exists_link "/opt/docker/bin/docker" "" "/usr/bin/docker" 这种也会被判别为function
-		if [ `echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l` -eq 0 ]; then
+		if [ $(echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o ' ' | wc -l) -eq 0 ]; then
 			${_TMP_EXEC_CHECK_ACTION_SCRIPT} "${@}"
 		else
 			eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
@@ -4721,7 +4816,7 @@ function exec_split_action()
 		# for ((_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX=1;_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX<${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_COUNT};_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PATAMS_COUNT_INDEX++)); do
 		# 	_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS=$(printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS} %s" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}")
 		# done
-        # local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT=`printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT}" ${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS}`
+        # local _TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT=$(printf "${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT}" ${_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_FORMAT_PARAMS})
 		# exec_check_action "_TMP_EXEC_SPLIT_ACTION_EXEC_SCRIPT_CURRENT" "${_TMP_EXEC_SPLIT_ACTION_SPLIT_ITEM}"
 
 		# fix-后 直接将SCRIPT脚本%s进行格式化
@@ -4774,7 +4869,7 @@ function confirm_yn_action()
 {
 	local _TMP_CONFIRM_YN_ACTION_VAR_NAME=${1}
 	typeset -u _TMP_CONFIRM_YN_ACTION_VAR_VAL
-	local _TMP_CONFIRM_YN_ACTION_VAR_VAL=`eval expr '$'${_TMP_CONFIRM_YN_ACTION_VAR_NAME}`
+	local _TMP_CONFIRM_YN_ACTION_VAR_VAL=$(eval expr '$'${_TMP_CONFIRM_YN_ACTION_VAR_NAME})
 	local _TMP_CONFIRM_YN_ACTION_NOTICE=${2}
 	local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${3}
 	local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N=${4}
@@ -4798,7 +4893,7 @@ function confirm_yn_action()
 	
 	function _TMP_CONFIRM_YN_ACTION_GUM_FUNC() {
 		local _TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT=$([[ ${_TMP_CONFIRM_YN_ACTION_VAR_VAL} == "Y" ]] && echo "true" || echo "false")
-		_TMP_CONFIRM_YN_ACTION_Y_N=`gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_NOTICE}?" && echo 'Y' || echo 'N'`
+		_TMP_CONFIRM_YN_ACTION_Y_N=$(gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_NOTICE}?" && echo 'Y' || echo 'N')
 
 		return $?
 	}
@@ -4825,7 +4920,7 @@ function confirm_yn_action()
 	esac
 
 	if [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_NAME}" ]; then
-		eval ${_TMP_CONFIRM_YN_ACTION_VAR_NAME}=`echo "${_TMP_CONFIRM_YN_ACTION_Y_N:-N}"`
+		eval ${_TMP_CONFIRM_YN_ACTION_VAR_NAME}=$(echo "${_TMP_CONFIRM_YN_ACTION_Y_N:-N}")
 	fi
 	
 	# exec_text_style "Checked [${_TMP_CONFIRM_YN_ACTION_Y_N:-'N'}]"
@@ -4836,7 +4931,7 @@ function confirm_yn_action()
 #检测是否值
 function check_yn_action() {
 	local _TMP_CHECK_YN_ACTION_VAR_NAME=${1}
-	local _TMP_CHECK_YN_ACTION_YN_VAL=`eval expr '$'${_TMP_CHECK_YN_ACTION_VAR_NAME}`
+	local _TMP_CHECK_YN_ACTION_YN_VAL=$(eval expr '$'${_TMP_CHECK_YN_ACTION_VAR_NAME})
 	
 	if [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" = false ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" = 0 ]; then
 		return $?
@@ -4845,33 +4940,32 @@ function check_yn_action() {
 	return 1
 }
 
-#按数组循环执行函数
+# 按数组循环执行函数
 # 参数1：需要针对存放的变量名
 # 参数2：循环数组
 # 参数3：循环执行脚本函数
-#exec_repeat_funcs "TMP_EXEC_REPS_RESULT" "1000,2000" "num_sum"
+# 示例：
+#       exec_repeat_funcs "TMP_EXEC_REPS_RESULT" "1000,2000" "num_sum"
 function exec_repeat_funcs()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
+	function _exec_repeat_funcs()
+	{
+		local _TMP_EXEC_REPEAT_FUNCS_ARRAY_STR=${2}
+		
+		local _TMP_EXEC_REPEAT_FUNCS_ARR=(${_TMP_EXEC_REPEAT_FUNCS_ARRAY_STR//,/ })
+		for I in ${!_TMP_EXEC_REPEAT_FUNCS_ARR[@]};  
+		do
+			local _TMP_EXEC_REPEAT_FUNCS_OUTPUT=$(${3} "${_TMP_EXEC_REPEAT_FUNCS_ARR[$I]}")
 
-	local _TMP_EXEC_REPEAT_FUNCS_VAR_NAME=${1}
-	local _TMP_EXEC_REPEAT_FUNCS_ARRAY_STR=${2}
-	local _TMP_EXEC_REPEAT_FUNCS_FORMAT_FUNC=${3}
-	
-	local _TMP_EXEC_REPEAT_FUNCS_ARR=(${_TMP_EXEC_REPEAT_FUNCS_ARRAY_STR//,/ })
-	for I in ${!_TMP_EXEC_REPEAT_FUNCS_ARR[@]};  
-	do
-		local _TMP_EXEC_REPEAT_FUNCS_OUTPUT=`$_TMP_EXEC_REPEAT_FUNCS_FORMAT_FUNC "${_TMP_EXEC_REPEAT_FUNCS_ARR[$I]}"`
+			if [ ${I} -gt 0 ]; then
+				eval ${1}=$(eval expr '$'${1},${_TMP_EXEC_REPEAT_FUNCS_OUTPUT})
+			else
+				eval ${1}='${_TMP_EXEC_REPEAT_FUNCS_OUTPUT}'
+			fi
+		done
+	}
 
-		if [ ${I} -gt 0 ]; then
-			eval ${1}=`eval expr '$'$_TMP_EXEC_REPEAT_FUNCS_VAR_NAME,$_TMP_EXEC_REPEAT_FUNCS_OUTPUT`
-		else
-			eval ${1}='$_TMP_EXEC_REPEAT_FUNCS_OUTPUT'
-		fi
-	done
-
+	discern_exchange_var_action "${1}" "_exec_repeat_funcs" "${@}"
 	return $?
 }
 
@@ -4894,7 +4988,7 @@ function exec_funcs_repeat_until_output()
 	for _TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNC in "$@";
 	do
 		if [ ${_I} -gt 1 ]; then
-			_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_FUNC_PARAMS[${_I}-2]="\"$_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNC\""
+			_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_FUNC_PARAMS[${_I}-2]="\"${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNC}\""
 		fi
 		
 	    let _I++
@@ -4904,7 +4998,7 @@ function exec_funcs_repeat_until_output()
 	for I in ${!_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_ARR[@]};  
 	do
 		local _TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_EXEC="${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_ARR[$I]} ${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_FUNC_PARAMS[*]}"
-		local _TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_OUTPUT=`eval ${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_EXEC}`
+		local _TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_OUTPUT=$(eval ${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_EXEC})
 		if [ -n "${_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_OUTPUT}" ]; then
 			break
 		fi
@@ -4922,22 +5016,25 @@ function exec_funcs_repeat_until_output()
 #	echo "The formated text is ‘$TMP_TEST_FORMATED_TEXT’"
 function exec_text_printf()
 {
-	local _TMP_EXEC_TEXT_FORMAT_VAR_NAME=${1}
-	local _TMP_EXEC_TEXT_FORMAT_VAR_FORMAT=${2}
-	local _TMP_EXEC_TEXT_FORMAT_VAR_VAL=$(echo_discern_exchange_var "${_TMP_EXEC_TEXT_FORMAT_VAR_NAME}")
-	
-	# 判断格式化模板是否为空，为空不继续执行
-	if [ -z "${_TMP_EXEC_TEXT_FORMAT_VAR_FORMAT}" ]; then
-		return $?
-	fi
-	
-	# 附加动态参数
-	local _TMP_EXEC_TEXT_FORMAT_COUNT=$(echo "${_TMP_EXEC_TEXT_FORMAT_VAR_FORMAT}" | grep -o "%" | wc -l)
-	local _TMP_EXEC_TEXT_FORMATED_VAL=`seq -s "{}" $((_TMP_EXEC_TEXT_FORMAT_COUNT+1)) | sed 's@[0-9]@ @g' | sed "s@{}@${_TMP_EXEC_TEXT_FORMAT_VAR_VAL}@g"`
-	local _TMP_EXEC_TEXT_FORMAT_FORMATED_VAL=`printf "${_TMP_EXEC_TEXT_FORMAT_VAR_FORMAT}" ${_TMP_EXEC_TEXT_FORMATED_VAL}`
+	function _exec_text_printf()
+	{
+		local _TMP_EXEC_TEXT_PRINTF_VAR_FORMAT=${2}
+		local _TMP_EXEC_TEXT_PRINTF_VAR_VAL=$(eval echo '${'"${1}"'}')
+		
+		# 判断格式化模板是否为空，为空不继续执行
+		if [ -z "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ]; then
+			return $?
+		fi
+		
+		# 附加动态参数
+		local _TMP_EXEC_TEXT_PRINTF_COUNT=$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" | grep -o "%" | wc -l)
+		local _TMP_EXEC_TEXT_PRINTFED_VAL=$(seq -s "{}" $((_TMP_EXEC_TEXT_PRINTF_COUNT+1)) | sed 's@[0-9]@ @g' | sed "s@{}@${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}@g")
+		local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(printf "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ${_TMP_EXEC_TEXT_PRINTFED_VAL})
 
-	eval ${1}='${_TMP_EXEC_TEXT_FORMAT_FORMATED_VAL:-${_TMP_EXEC_TEXT_FORMAT_VAR_VAL}}'
+		eval ${1}='${_TMP_EXEC_TEXT_PRINTF_FORMATED_VAL:-${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}}'
+	}
 
+	discern_exchange_var_action "${1}" "_exec_text_printf" "${@}"
 	return $?
 }
 
@@ -4955,11 +5052,11 @@ function exec_in_yml_list()
     local _TMP_EXEC_IN_YML_LIST_ITEM_PIPILINE=${4:-"awk -F':' '{print \$NF}'"}
     local _TMP_EXEC_IN_YML_LIST_AFTER_ACTION=$5
     
-    local _TMP_EXEC_IN_YML_LIST_YML_CONTENT=`curl -s -A Mozilla ${_TMP_EXEC_IN_YML_LIST_LOAD_URL}`
+    local _TMP_EXEC_IN_YML_LIST_YML_CONTENT=$(curl -s -A Mozilla ${_TMP_EXEC_IN_YML_LIST_LOAD_URL})
     while read line
     do
-        local _TMP_EXEC_IN_YML_LIST_ITEM_MATCH_LINE=`echo "${_TMP_EXEC_IN_YML_LIST_YML_CONTENT}" | grep "^${line}$" -n | awk -F':' '{print $1}' | awk 'NR==1'`
-        local _TMP_EXEC_IN_YML_LIST_ITEM=`eval "echo \"${_TMP_EXEC_IN_YML_LIST_YML_CONTENT}\" | sed -n \"${_TMP_EXEC_IN_YML_LIST_ITEM_MATCH_LINE}p\" | ${_TMP_EXEC_IN_YML_LIST_ITEM_PIPILINE} | awk '{sub(\"^ *\",\"\");sub(\" *$\",\"\");print}'"`
+        local _TMP_EXEC_IN_YML_LIST_ITEM_MATCH_LINE=$(echo "${_TMP_EXEC_IN_YML_LIST_YML_CONTENT}" | grep "^${line}$" -n | awk -F':' '{print $1}' | awk 'NR==1')
+        local _TMP_EXEC_IN_YML_LIST_ITEM=$(eval "echo \"${_TMP_EXEC_IN_YML_LIST_YML_CONTENT}\" | sed -n \"${_TMP_EXEC_IN_YML_LIST_ITEM_MATCH_LINE}p\" | ${_TMP_EXEC_IN_YML_LIST_ITEM_PIPILINE} | awk '{sub(\"^ *\",\"\");sub(\" *$\",\"\");print}'")
         
         exec_check_action "${_TMP_EXEC_IN_YML_LIST_ACTION}"
     done < <(echo "${_TMP_EXEC_IN_YML_LIST_YML_CONTENT}" | grep -E "${_TMP_EXEC_IN_YML_LIST_ITEM_FEATURE}")
@@ -4978,63 +5075,66 @@ function exec_in_yml_list()
 # 参数4：需执行的脚本
 function exec_while_read() 
 {
-	local _TMP_EXEC_WHILE_READ_VAR_NAME=${1}
-	local _TMP_EXEC_WHILE_READ_NOTICE=${2}
-	local _TMP_EXEC_WHILE_READ_FORMAT=${3}
-	local _TMP_EXEC_WHILE_READ_SCRIPTS=${4}
-	local _TMP_EXEC_WHILE_READ_DFT=$(echo_discern_exchange_var "${1}")
+	function _exec_while_read()
+	{
+		local _TMP_EXEC_WHILE_READ_NOTICE=${2}
+		local _TMP_EXEC_WHILE_READ_FORMAT=${3}
+		local _TMP_EXEC_WHILE_READ_SCRIPTS=${4}
+		local _TMP_EXEC_WHILE_READ_VAR_VAL=$(eval echo '${'"${1}"'}')
 
-	local I=1
-	for I in $(seq 99);
-	do
-		local _TMP_EXEC_WHILE_READ_CURRENT_NOTICE=`eval echo "${_TMP_EXEC_WHILE_READ_NOTICE}"`
-		echo_text_style "${_TMP_EXEC_WHILE_READ_CURRENT_NOTICE} Or 'enter key' To Quit"
-		read -e _TMP_EXEC_WHILE_READ_CURRENT
+		local I=1
+		for I in $(seq 99);
+		do
+			local _TMP_EXEC_WHILE_READ_CURRENT_NOTICE=$(eval echo "${_TMP_EXEC_WHILE_READ_NOTICE}")
+			echo_text_style "${_TMP_EXEC_WHILE_READ_CURRENT_NOTICE} Or 'enter key' To Quit"
+			read -e _TMP_EXEC_WHILE_READ_CURRENT
 
-		echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_CURRENT}> inputed"
-		
-		if [ -z "${_TMP_EXEC_WHILE_READ_CURRENT}" ]; then
-			if [ $I -eq 1 ] && [ -n "${_TMP_EXEC_WHILE_READ_DFT}" ]; then
-				echo_text_style "No input, set value to default '${_TMP_EXEC_WHILE_READ_DFT}'"
-				_TMP_EXEC_WHILE_READ_CURRENT="${_TMP_EXEC_WHILE_READ_DFT}"
-			else
-				_TMP_EXEC_WHILE_READ_BREAK_ACTION=true
-			fi
-		fi
-
-		local _TMP_EXEC_WHILE_READ_FORMAT_CURRENT="${_TMP_EXEC_WHILE_READ_CURRENT}"
-	
-		exec_text_printf "_TMP_EXEC_WHILE_READ_FORMAT_CURRENT" "${_TMP_EXEC_WHILE_READ_FORMAT}"
-
-		if [ -n "${_TMP_EXEC_WHILE_READ_CURRENT}" ]; then
-			if [ $I -gt 1 ]; then
-				eval ${_TMP_EXEC_WHILE_READ_VAR_NAME}=`eval echo '$'${_TMP_EXEC_WHILE_READ_VAR_NAME},${_TMP_EXEC_WHILE_READ_FORMAT_CURRENT}`
-			else
-				eval ${_TMP_EXEC_WHILE_READ_VAR_NAME}="${_TMP_EXEC_WHILE_READ_FORMAT_CURRENT}"
-			fi
+			echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_CURRENT}> inputed"
 			
-			exec_check_action "${_TMP_EXEC_WHILE_READ_SCRIPTS}"
-			echo
+			if [ -z "${_TMP_EXEC_WHILE_READ_CURRENT}" ]; then
+				if [ $I -eq 1 ] && [ -n "${_TMP_EXEC_WHILE_READ_VAR_VAL}" ]; then
+					echo_text_style "No input, set value to default '${_TMP_EXEC_WHILE_READ_VAR_VAL}'"
+					_TMP_EXEC_WHILE_READ_CURRENT="${_TMP_EXEC_WHILE_READ_VAR_VAL}"
+				else
+					_TMP_EXEC_WHILE_READ_BREAK_ACTION=true
+				fi
+			fi
+
+			local _TMP_EXEC_WHILE_READ_FORMAT_CURRENT="${_TMP_EXEC_WHILE_READ_CURRENT}"
+		
+			exec_text_printf "_TMP_EXEC_WHILE_READ_FORMAT_CURRENT" "${_TMP_EXEC_WHILE_READ_FORMAT}"
+
+			if [ -n "${_TMP_EXEC_WHILE_READ_CURRENT}" ]; then
+				if [ $I -gt 1 ]; then
+					eval ${1}=$(eval echo '$'${1},${_TMP_EXEC_WHILE_READ_FORMAT_CURRENT})
+				else
+					eval ${1}="${_TMP_EXEC_WHILE_READ_FORMAT_CURRENT}"
+				fi
+				
+				exec_check_action "${_TMP_EXEC_WHILE_READ_SCRIPTS}"
+				echo
+			fi
+
+			if [ ${_TMP_EXEC_WHILE_READ_BREAK_ACTION} ]; then
+				break
+			fi
+		done
+
+		# TMP_FORMAT_VAL="$TMP_WRAP_CHAR${_TMP_EXEC_WHILE_READ_CURRENT}$TMP_WRAP_CHAR"
+		local _TMP_EXEC_WHILE_READ_NEW_VAL=$(echo_discern_exchange_val "${1}")
+		_TMP_EXEC_WHILE_READ_NEW_VAL=$(echo "${_TMP_EXEC_WHILE_READ_NEW_VAL}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g")
+		eval ${1}='${_TMP_EXEC_WHILE_READ_NEW_VAL}'
+		
+		if [ -z "${_TMP_EXEC_WHILE_READ_NEW_VAL}" ]; then
+			echo_text_style "<Items not set>"
+			# exit 1
 		fi
 
-		if [ ${_TMP_EXEC_WHILE_READ_BREAK_ACTION} ]; then
-			break
-		fi
-	done
+		# eval ${1}=$(echo "${1}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g")
+		echo_text_style "Final 'value' is <${_TMP_EXEC_WHILE_READ_NEW_VAL}>"
+	}
 
-	# TMP_FORMAT_VAL="$TMP_WRAP_CHAR${_TMP_EXEC_WHILE_READ_CURRENT}$TMP_WRAP_CHAR"
-	local _TMP_EXEC_WHILE_READ_NEW_VAL=$(echo_discern_exchange_var "${1}")
-	_TMP_EXEC_WHILE_READ_NEW_VAL=`echo "${_TMP_EXEC_WHILE_READ_NEW_VAL}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g"`
-	eval ${1}='${_TMP_EXEC_WHILE_READ_NEW_VAL}'
-	
-	if [ -z "${_TMP_EXEC_WHILE_READ_NEW_VAL}" ]; then
-		echo_text_style "<Items not set>"
-		# exit 1
-	fi
-
-	# eval ${1}=`echo "${1}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g"`
-	echo_text_style "Final value is '${_TMP_EXEC_WHILE_READ_NEW_VAL}'"
-
+	discern_exchange_var_action "${1}" "_exec_while_read" "${@}"
 	return $?
 }
 
@@ -5044,50 +5144,55 @@ function exec_while_read()
 # 参数3：选项参数
 function exec_while_read_json() 
 {
-	local _TMP_EXEC_WHILE_READ_JSON_VAR_NAME=${1}
-	local _TMP_EXEC_WHILE_READ_JSON_NOTICE=${2}
-	local _TMP_EXEC_WHILE_READ_JSON_ITEMS=${3}
+	function _exec_while_read_json()
+	{
+		local _TMP_EXEC_WHILE_READ_JSON_NOTICE=${2}
+		local _TMP_EXEC_WHILE_READ_JSON_ITEMS=${3}
 
-	local _TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR=(${_TMP_EXEC_WHILE_READ_JSON_ITEMS//,/ })
-	local _TMP_EXEC_WHILE_READ_JSON_ITEMS_LEN=${#_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[@]}
-	
-	for i in $(seq 99);
-	do
-		local _TMP_EXEC_WHILE_READ_JSON_Y_N="N"
-		confirm_yn_action "_TMP_EXEC_WHILE_READ_JSON_Y_N" "Please sure you will input items"
+		local _TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR=(${_TMP_EXEC_WHILE_READ_JSON_ITEMS//,/ })
+		local _TMP_EXEC_WHILE_READ_JSON_ITEMS_LEN=${#_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[@]}
 		
-		if [ "${_TMP_EXEC_WHILE_READ_JSON_Y_N}" != "y" ] || [ "${_TMP_EXEC_WHILE_READ_JSON_Y_N}" != "Y" ]; then
-			break
+		for i in $(seq 99);
+		do
+			local _TMP_EXEC_WHILE_READ_JSON_Y_N="N"
+			confirm_yn_action "_TMP_EXEC_WHILE_READ_JSON_Y_N" "Please sure you will input items"
+			
+			if [ "${_TMP_EXEC_WHILE_READ_JSON_Y_N}" != "y" ] || [ "${_TMP_EXEC_WHILE_READ_JSON_Y_N}" != "Y" ]; then
+				break
+			fi
+
+			local _TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}{ "
+			for I in ${!_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[@]}; do
+				_TMP_EXEC_WHILE_READ_JSON_KEY=${_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[$I]}
+				echo ${_TMP_EXEC_WHILE_READ_JSON_NOTICE} | sed 's@\$i@'$i'@g' | sed 's@\$@'\'${_TMP_EXEC_WHILE_READ_JSON_KEY}\''@g'
+				read -e _TMP_EXEC_WHILE_READ_JSON_CURRENT
+
+				_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}\"${_TMP_EXEC_WHILE_READ_JSON_KEY}\": \"${_TMP_EXEC_WHILE_READ_JSON_CURRENT}\""
+				if [ $((I+1)) -ne ${_TMP_EXEC_WHILE_READ_JSON_ITEM}S_LEN ]; then
+					_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}, "
+				fi
+			done
+			_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM} }"
+
+			eval ${1}='${_TMP_EXEC_WHILE_READ_JSON_ITEM}'
+			echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_JSON_ITEM}> inputed"
+		done
+
+		local _TMP_EXEC_WHILE_READ_JSON_NEW_VAL=$(echo "${_TMP_EXEC_WHILE_READ_JSON_ITEM}" | sed 's@}{@}, {@g')
+		eval ${1}='${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}'
+		
+		if [ -z "${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}" ]; then
+			echo_text_style "<Items not set, script exit>"
+			exit 1
 		fi
 
-		local _TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}{ "
-		for I in ${!_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[@]}; do
-			_TMP_EXEC_WHILE_READ_JSON_KEY=${_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[$I]}
-			echo ${_TMP_EXEC_WHILE_READ_JSON_NOTICE} | sed 's@\$i@'$i'@g' | sed 's@\$@'\'${_TMP_EXEC_WHILE_READ_JSON_KEY}\''@g'
-			read -e _TMP_EXEC_WHILE_READ_JSON_CURRENT
+		# eval ${1}=$(echo "${1}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g")
+		echo "Final value is: "
+		echo "${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}" | jq
+	}
 
-			_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}\"${_TMP_EXEC_WHILE_READ_JSON_KEY}\": \"${_TMP_EXEC_WHILE_READ_JSON_CURRENT}\""
-			if [ $((I+1)) -ne ${_TMP_EXEC_WHILE_READ_JSON_ITEM}S_LEN ]; then
-				_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}, "
-			fi
-		done
-		_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM} }"
-
-		eval ${1}='$_TMP_EXEC_WHILE_READ_JSON_ITEM'
-		echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_JSON_ITEM}> inputed"
-	done
-
-	local _TMP_EXEC_WHILE_READ_JSON_NEW_VAL=`echo "${_TMP_EXEC_WHILE_READ_JSON_ITEM}" | sed 's@}{@}, {@g'`
-	eval ${1}='$_TMP_EXEC_WHILE_READ_JSON_NEW_VAL'
-	
-	if [ -z "${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}" ]; then
-		echo_text_style "<Items not set, script exit>"
-		exit 1
-	fi
-
-	# eval ${1}=`echo "${1}" | sed "s/^[,]\{1,\}//g;s/[,]\{1,\}$//g"`
-	echo "Final value is: "
-	echo "${_TMP_EXEC_WHILE_READ_JSON_NEW_VAL}" | jq
+	discern_exchange_var_action "${1}" "_exec_while_read_json" "${@}"
+	return $?
 }
 
 #生成启动配置文件
@@ -5117,13 +5222,13 @@ function echo_startup_config()
 		_TMP_STARTUP_SUPERVISOR_SOURCE="/etc/profile"
 
 		# 因konga的关系，此处启动暂时注释自动修改环境的操作（建议可自动修改环境变量至当前的npm版本，并取消原始bin环境）
-		# local _TMP_STARTUP_BY_NPM_CHECK=`echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm"`
+		# local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
 		# if [ "${_TMP_STARTUP_BY_NPM_CHECK}" == "npm" ]; then
-		# 	_TMP_STARTUP_SUPERVISOR_SOURCE=`dirname ${NVM_PATH}`
+		# 	_TMP_STARTUP_SUPERVISOR_SOURCE=$(dirname ${NVM_PATH})
 		# fi
 
 		# 上述调整后，解决环境冲突问题
-		local _TMP_STARTUP_BY_NPM_CHECK=`echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm"`
+		local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
 		if [ "${_TMP_STARTUP_BY_NPM_CHECK}" == "npm" ]; then
 			_TMP_STARTUP_SUPERVISOR_DFT_ENV=""
 		fi
@@ -5146,7 +5251,7 @@ function echo_startup_config()
 	local _TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH=${_TMP_STARTUP_SUPERVISOR_CONF_DIR}/${_TMP_STARTUP_SUPERVISOR_FILENAME}
     local _TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
 	
-	path_not_exists_create `dirname ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}`
+	path_not_exists_create $(dirname ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH})
 
 	path_not_exists_create "${_TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR}"
 
@@ -5197,7 +5302,7 @@ EOF
 function echo_web_service_init_scripts()
 {
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_NAME=${1}
-	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME=`echo ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_NAME} | sed 's/[a-z]/\u&/g'`
+	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME=$(echo ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_NAME} | sed 's/[a-z]/\u&/g')
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_DOMAIN=${2}
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT=${3}
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST=${4:-"${LOCAL_HOST}"}
@@ -5223,8 +5328,8 @@ function echo_web_service_init_scripts()
 #  Project init script - for web service or autohttps
 #----------------------------------------------------
 TMP_INIT_WEB_SERVICE_CDY_HOST="${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_CDY_HOST}"
-TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip a | grep inet | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}'\`
-[ -z \${TMP_INIT_WEB_SERVICE_LOCAL_HOST} ] && TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1\`
+TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip a | grep inet | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
+[ -z \${TMP_INIT_WEB_SERVICE_LOCAL_HOST} ] && TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1\)
 
 # 本机未有kong_api直接退出执行
 if [ ! -f "/usr/bin/kong_api" ]; then
@@ -5282,8 +5387,8 @@ EOF
 #----------------------------------------------------
 #  Project init script - for web service or autohttps
 #----------------------------------------------------
-TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip a | grep inet | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print \$2}' | awk -F'/' '{print \$1}' | awk 'END {print}'\`
-[ -z \${TMP_INIT_WEB_SERVICE_LOCAL_HOST} ] && TMP_INIT_WEB_SERVICE_LOCAL_HOST=\`ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1\`
+TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip a | grep inet | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print \$2}' | awk -F'/' '{print \$1}' | awk 'END {print}')
+[ -z \${TMP_INIT_WEB_SERVICE_LOCAL_HOST} ] && TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1)
 
 # 本机未有kong_api直接退出执行
 if [ ! -f "/usr/bin/kong_api" ]; then
@@ -5383,7 +5488,7 @@ EOF
 		service iptables restart
 	fi
 
-	# local TMP_FIREWALL_STATE=`firewall-cmd --state`
+	# local TMP_FIREWALL_STATE=$(firewall-cmd --state)
 	
 	# firewall-cmd --permanent --add-port=${_TMP_ECHO_SOFT_PORT}/tcp
 	# firewall-cmd --permanent --add-port=${_TMP_ECHO_SOFT_PORT}/udp
@@ -5423,7 +5528,7 @@ function proxy_by_ss()
     echo "---------------------------------------------------------------------"
     echo "Shadowsocks: System start check your internet to switch your run mode"
     echo "---------------------------------------------------------------------"
-	local _TMP_PROXY_BY_SS_IS_WANT_CROSS_FIREWALL=`curl -I -m 10 -o /dev/null -s -w %{http_code} https://www.facebook.com`
+	local _TMP_PROXY_BY_SS_IS_WANT_CROSS_FIREWALL=$(curl -I -m 10 -o /dev/null -s -w %{http_code} https://www.facebook.com)
     echo "Shadowsocks: The remote returns '${_TMP_PROXY_BY_SS_IS_WANT_CROSS_FIREWALL}'"
     echo "---------------------------------------------------------------------"
 
@@ -5440,7 +5545,7 @@ function proxy_by_ss()
         fi
 	fi
 
-	if [ ${#_TMP_PROXY_BY_SS_MODE} -eq 0 ] || [ "$_TMP_PROXY_BY_SS_MODE" == "${_TMP_PROXY_BY_SS_MODE_NECESSARY_CHECK}" ]; then
+	if [ ${#_TMP_PROXY_BY_SS_MODE} -eq 0 ] || [ "${_TMP_PROXY_BY_SS_MODE}" == "${_TMP_PROXY_BY_SS_MODE_NECESSARY_CHECK}" ]; then
 		boot_shadowsocks_${_TMP_PROXY_BY_SS_MODE_NECESSARY_CHECK}
 	fi
 
