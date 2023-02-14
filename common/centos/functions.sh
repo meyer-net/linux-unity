@@ -355,7 +355,7 @@ function ssh_transfer()
         nopwd_login "${_TMP_SSH_TRANS_DEST_HOST}" "${_TMP_SSH_TRANS_DEST_USER}" ${_TMP_SSH_TRANS_DEST_HOST_PORT}
     }
 
-    exec_yn_action "_nopwd_login" "${FUNCNAME[0]} Please sure if u want to nopass login in '${_TMP_SSH_TRANS_DEST_USER}@${_TMP_SSH_TRANS_DEST_HOST}'"
+    confirm_y_action "Y" "${FUNCNAME[0]} Please sure if u want to nopass login in '${_TMP_SSH_TRANS_DEST_USER}@${_TMP_SSH_TRANS_DEST_HOST}'" "_nopwd_login"
 
     # -f 后台执行ssh指令
     # -C 允许压缩数据

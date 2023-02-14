@@ -1793,7 +1793,7 @@ function dirs_trail_clear()
 	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
 	function _dirs_trail_clear_exec_backup()
 	{
-		local _TMP_DIRS_TRAIL_CLEAR_SOFT_NOTICE="([${_TMP_DIRS_TRAIL_CLEAR_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
+		local _TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO="([${_TMP_DIRS_TRAIL_CLEAR_NAME}]) Checked the trail dir of '${1}', please sure u will 'backup still or not'"
 
 		local _TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT="${1}"
 		exec_text_printf "_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT" "${_TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT}"
@@ -1802,7 +1802,7 @@ function dirs_trail_clear()
 
 		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
 		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
-		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_NOTICE}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
+		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
 	}
 	
 	# 有记录的情况下才执行
@@ -2747,7 +2747,9 @@ function soft_docker_check_upgrade_action()
 				echo_text_style "Starting 'pull' 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}]"
 				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}" in 
 					"hub")
-						docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS=$(docker images --digests | grep "^${1}" | grep "sha256:" | awk -F' ' '{print $3}')
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256=$(docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER} | grep -oP "(?<=^Digest: ).+")
+						echo_text_style "Image of <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}> pulled, '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}'"
 
 						# 重新定义版本号
 						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" == "latest" ]; then
@@ -2755,8 +2757,9 @@ function soft_docker_check_upgrade_action()
 							docker tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}
 							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest
 						fi
-						
-						exec_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" "image" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
+
+						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
+						item_not_exists_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "exec_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
 					;;
 					*)
 						docker_snap_restore_if_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
@@ -4195,16 +4198,16 @@ function input_if_empty()
 {
 	function _input_if_empty()
 	{
-		local _TMP_INPUT_IF_EMPTY_NOTICE=${2}
+		local _TMP_INPUT_IF_EMPTY_ECHO=${2}
 		local _TMP_INPUT_IF_EMPTY_VAR_SEC=${3}
 		local _TMP_INPUT_IF_EMPTY_VAR_VAL=$(echo_discern_exchange_val "${1}")
 		
 		# 自动样式化消息前缀 
-		exec_text_style "_TMP_INPUT_IF_EMPTY_NOTICE"
+		exec_text_style "_TMP_INPUT_IF_EMPTY_ECHO"
 		
 		local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
 		function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
-			echo "${_TMP_INPUT_IF_EMPTY_NOTICE}, default '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			echo "${_TMP_INPUT_IF_EMPTY_ECHO}, default '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
 			read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
 			echo ""
 		}
@@ -4212,8 +4215,8 @@ function input_if_empty()
 		function _TMP_INPUT_IF_EMPTY_GUM_FUNC()	{
 			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
 			# 必须转义，否则带样式的前提下会解析冲突
-			_TMP_INPUT_IF_EMPTY_NOTICE=${_TMP_INPUT_IF_EMPTY_NOTICE//\"/\\\"}
-			local _TMP_INPUT_IF_EMPTY_GUM_ARGS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_NOTICE}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			_TMP_INPUT_IF_EMPTY_ECHO=${_TMP_INPUT_IF_EMPTY_ECHO//\"/\\\"}
+			local _TMP_INPUT_IF_EMPTY_GUM_ARGS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_ECHO}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
 			
 			case ${_TMP_INPUT_IF_EMPTY_VAR_SEC} in
 				"y" | "Y")
@@ -4431,10 +4434,10 @@ function set_if_choice()
 {
 	function _set_if_choice()
 	{
-		local _TMP_SET_IF_CHOICE_NOTICE=${2}
+		local _TMP_SET_IF_CHOICE_ECHO=${2}
 		local _TMP_SET_IF_CHOICE_CHOICE=${3}
 		
-		exec_text_style "_TMP_SET_IF_CHOICE_NOTICE"
+		exec_text_style "_TMP_SET_IF_CHOICE_ECHO"
 
 		local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
 		set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
@@ -4482,8 +4485,8 @@ function set_if_choice()
 			
 			echo ${_TMP_CHOICE_SPLITER}
 
-			if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
-				echo "${_TMP_SET_IF_CHOICE_NOTICE}, by above keys, then enter it"
+			if [ -n "${_TMP_SET_IF_CHOICE_ECHO}" ]; then
+				echo "${_TMP_SET_IF_CHOICE_ECHO}, by above keys, then enter it"
 			fi
 			
 			if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -le 10 ]; then
@@ -4531,8 +4534,8 @@ function set_if_choice()
 			fi
 			local _TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_SET_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
 			
-			if [ -n "${_TMP_SET_IF_CHOICE_NOTICE}" ]; then
-				echo_text_style "${_TMP_SET_IF_CHOICE_NOTICE}, by 'follow keys', then enter it"
+			if [ -n "${_TMP_SET_IF_CHOICE_ECHO}" ]; then
+				echo_text_style "${_TMP_SET_IF_CHOICE_ECHO}, by 'follow keys', then enter it"
 			fi
 			
 			_TMP_SET_IF_CHOICE_NEW_VAL=$(eval ${_TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT})
@@ -4849,36 +4852,8 @@ function exec_split_action()
 	return $?
 }
 
-# [* 要修改，函数名与逻辑不匹对]执行需要判断的Y/N逻辑函数
-# 参数1：并行逻辑执行参数/脚本
-# 参数2：提示信息
-function exec_yn_action()
-{
-	local _TMP_EXEC_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${1}
-	local _TMP_EXEC_YN_ACTION_NOTICE=${2}
-		
-	function _TMP_EXEC_YN_ACTION_EXEC_FUNC() {
-		local _TMP_EXEC_YN_ACTION_ARR_FUNCS_OR_SCRIPTS=(${_TMP_EXEC_YN_ACTION_FUNCS_OR_SCRIPTS_Y//,/ })
-		#echo ${#_TMP_ARR_FUNCS_OR_SCRIPTS[@]} 
-		for _TMP_EXEC_YN_ACTION_FUNC_ON_Y in ${_TMP_EXEC_YN_ACTION_ARR_FUNCS_OR_SCRIPTS[@]}; do
-			exec_check_action "${_TMP_EXEC_YN_ACTION_FUNC_ON_Y}"
-			local _TMP_EXEC_YN_ACTION_RETURN=$?
-			#返回非0，跳出循环，指导后续请求不再进行
-			if [ ${_TMP_EXEC_YN_ACTION_RETURN} != 0 ]; then
-				return ${_TMP_EXEC_YN_ACTION_RETURN}
-			fi
-		done
-
-		return $?
-	}
-
-	confirm_yn_action "" "${_TMP_EXEC_YN_ACTION_NOTICE}" "_TMP_EXEC_YN_ACTION_EXEC_FUNC"
-
-	return $?
-}
-
 # 执行需要判断的Y/N逻辑函数
-# 参数1：需要针对存放的变量名/值
+# 参数1：需要针对存放的变量名/值，读取默认值
 # 参数2：提示信息
 # 参数3：执行Y时脚本
 # 参数4：执行N时脚本
@@ -4889,21 +4864,21 @@ function confirm_yn_action()
 	{
 		typeset -u _TMP_CONFIRM_YN_ACTION_VAR_VAL
 		local _TMP_CONFIRM_YN_ACTION_VAR_VAL=$(eval expr '$'${1})
-		local _TMP_CONFIRM_YN_ACTION_NOTICE=${2}
+		local _TMP_CONFIRM_YN_ACTION_ECHO=${2}
 		local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${3}
 		local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N=${4}
 		local _TMP_CONFIRM_YN_ACTION_RET=$?
 		
-		exec_text_style "_TMP_CONFIRM_YN_ACTION_NOTICE"
+		exec_text_style "_TMP_CONFIRM_YN_ACTION_ECHO"
 
 		local _TMP_CONFIRM_YN_ACTION_Y_N=""
 		function _TMP_CONFIRM_YN_ACTION_NORMAL_FUNC() {
-			echo_text_style "${_TMP_CONFIRM_YN_ACTION_NOTICE}, by follow key ('yes(y)' or enter key 'no(n)' or 'else')?"
+			echo_text_style "${_TMP_CONFIRM_YN_ACTION_ECHO}, by follow key ('yes(y)' or enter key 'no(n)' or 'else')?"
 			read -n 1 _TMP_CONFIRM_YN_ACTION_Y_N
 			echo ""
 
 			if [ -z "${_TMP_CONFIRM_YN_ACTION_Y_N}" ] && [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_VAL}" ]; then
-				echo_text_style "Cannot find sure val, set confirm val to '${_TMP_CONFIRM_YN_ACTION_VAR_VAL}'"
+				echo_text_style "Cannot find 'sure val', set 'confirm val' to <${_TMP_CONFIRM_YN_ACTION_VAR_VAL}>"
 				_TMP_CONFIRM_YN_ACTION_Y_N="${_TMP_CONFIRM_YN_ACTION_VAR_VAL}"
 			fi
 
@@ -4912,7 +4887,7 @@ function confirm_yn_action()
 		
 		function _TMP_CONFIRM_YN_ACTION_GUM_FUNC() {
 			local _TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT=$([[ ${_TMP_CONFIRM_YN_ACTION_VAR_VAL} == "Y" ]] && echo "true" || echo "false")
-			_TMP_CONFIRM_YN_ACTION_Y_N=$(gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_NOTICE}?" && echo 'Y' || echo 'N')
+			_TMP_CONFIRM_YN_ACTION_Y_N=$(gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_ECHO}?" && echo 'Y' || echo 'N')
 
 			return $?
 		}
@@ -4949,17 +4924,65 @@ function confirm_yn_action()
 	return $?
 }
 
-# 检测是否值
-function check_yn_action() {
-	local _TMP_CHECK_YN_ACTION_YN_VAL=$(echo_discern_exchange_val "${1}")
-	typeset -l _TMP_CHECK_YN_ACTION_YN_VAL
-	
-	if [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == false ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "no" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "n" ] || [ -z "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == 0 ]; then
-		return $?
-	fi
-
-	return 1
+# 执行需要判断的Y/N逻辑函数
+# 参数1：需要针对存放的变量名/值，读取默认值
+# 参数2：提示信息
+# 参数3：执行Y时脚本
+# 参数5：动态参数传递
+function confirm_y_action()
+{
+	confirm_yn_action "${1}" "${2}" "${3}" "" "${@:4}"
 }
+
+# 执行需要判断的Y/N逻辑函数
+# 参数1：需要针对存放的变量名/值，读取默认值
+# 参数2：提示信息
+# 参数3：执行N时脚本
+# 参数4：动态参数传递
+function confirm_n_action()
+{
+	confirm_yn_action "${1}" "${2}" "" "${3}" "${@:4}"
+}
+
+# # [未使用]，函数名与逻辑不匹对]执行需要判断的Y/N逻辑函数
+# # 参数1：并行逻辑执行参数/脚本
+# # 参数2：提示信息
+# function confirm_yn_continuous_action()
+# {
+# 	local _TMP_EXEC_YN_ACTION_Y_SCRIPTS=${1}
+# 	local _TMP_EXEC_YN_ACTION_ECHO=${2}
+		
+# 	function _TMP_EXEC_YN_ACTION_EXEC_FUNC() {
+# 		local _TMP_EXEC_YN_ACTION_ARR_FUNCS_OR_SCRIPTS=(${_TMP_EXEC_YN_ACTION_Y_SCRIPTS//,/ })
+# 		#echo ${#_TMP_ARR_FUNCS_OR_SCRIPTS[@]} 
+# 		for _TMP_EXEC_YN_ACTION_FUNC_ON_Y in ${_TMP_EXEC_YN_ACTION_ARR_FUNCS_OR_SCRIPTS[@]}; do
+# 			exec_check_action "${_TMP_EXEC_YN_ACTION_FUNC_ON_Y}"
+# 			local _TMP_EXEC_YN_ACTION_RETURN=$?
+# 			#返回非0，跳出循环，指导后续请求不再进行
+# 			if [ ${_TMP_EXEC_YN_ACTION_RETURN} != 0 ]; then
+# 				return ${_TMP_EXEC_YN_ACTION_RETURN}
+# 			fi
+# 		done
+
+# 		return $?
+# 	}
+
+# 	confirm_yn_action "" "${_TMP_EXEC_YN_ACTION_ECHO}" "_TMP_EXEC_YN_ACTION_EXEC_FUNC"
+
+# 	return $?
+# }
+
+# [未使用]检测是否值
+# function check_yn_action() {
+# 	local _TMP_CHECK_YN_ACTION_YN_VAL=$(echo_discern_exchange_val "${1}")
+# 	typeset -l _TMP_CHECK_YN_ACTION_YN_VAL
+	
+# 	if [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == false ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "no" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "n" ] || [ -z "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == 0 ]; then
+# 		return $?
+# 	fi
+
+# 	return 1
+# }
 
 # 按数组循环执行函数
 # 参数1：需要针对存放的变量名
@@ -5098,7 +5121,7 @@ function exec_while_read()
 {
 	function _exec_while_read()
 	{
-		local _TMP_EXEC_WHILE_READ_NOTICE=${2}
+		local _TMP_EXEC_WHILE_READ_ECHO=${2}
 		local _TMP_EXEC_WHILE_READ_FORMAT=${3}
 		local _TMP_EXEC_WHILE_READ_SCRIPTS=${4}
 		local _TMP_EXEC_WHILE_READ_VAR_VAL=$(eval echo '${'"${1}"'}')
@@ -5106,8 +5129,8 @@ function exec_while_read()
 		local I=1
 		for I in $(seq 99);
 		do
-			local _TMP_EXEC_WHILE_READ_CURRENT_NOTICE=$(eval echo "${_TMP_EXEC_WHILE_READ_NOTICE}")
-			echo_text_style "${_TMP_EXEC_WHILE_READ_CURRENT_NOTICE} Or 'enter key' To Quit"
+			local _TMP_EXEC_WHILE_READ_CURRENT_ECHO=$(eval echo "${_TMP_EXEC_WHILE_READ_ECHO}")
+			echo_text_style "${_TMP_EXEC_WHILE_READ_CURRENT_ECHO} Or 'enter key' To Quit"
 			read -e _TMP_EXEC_WHILE_READ_CURRENT
 
 			echo_text_style "Item of <${_TMP_EXEC_WHILE_READ_CURRENT}> inputed"
@@ -5167,7 +5190,7 @@ function exec_while_read_json()
 {
 	function _exec_while_read_json()
 	{
-		local _TMP_EXEC_WHILE_READ_JSON_NOTICE=${2}
+		local _TMP_EXEC_WHILE_READ_JSON_ECHO=${2}
 		local _TMP_EXEC_WHILE_READ_JSON_ITEMS=${3}
 
 		local _TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR=(${_TMP_EXEC_WHILE_READ_JSON_ITEMS//,/ })
@@ -5185,7 +5208,7 @@ function exec_while_read_json()
 			local _TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}{ "
 			for I in ${!_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[@]}; do
 				_TMP_EXEC_WHILE_READ_JSON_KEY=${_TMP_EXEC_WHILE_READ_JSON_ITEMS_ARR[$I]}
-				echo ${_TMP_EXEC_WHILE_READ_JSON_NOTICE} | sed 's@\$i@'$i'@g' | sed 's@\$@'\'${_TMP_EXEC_WHILE_READ_JSON_KEY}\''@g'
+				echo ${_TMP_EXEC_WHILE_READ_JSON_ECHO} | sed 's@\$i@'$i'@g' | sed 's@\$@'\'${_TMP_EXEC_WHILE_READ_JSON_KEY}\''@g'
 				read -e _TMP_EXEC_WHILE_READ_JSON_CURRENT
 
 				_TMP_EXEC_WHILE_READ_JSON_ITEM="${_TMP_EXEC_WHILE_READ_JSON_ITEM}\"${_TMP_EXEC_WHILE_READ_JSON_KEY}\": \"${_TMP_EXEC_WHILE_READ_JSON_CURRENT}\""

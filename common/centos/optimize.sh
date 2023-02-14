@@ -187,7 +187,7 @@ EOF
 			echo ${TMP_SPLITER}
 		}
 
-		exec_yn_action "_change_ssh_port" "${FUNCNAME[0]} System find there's 'ssh port is 22 defult', please sure if u want to change"
+		confirm_y_action "Y" "${FUNCNAME[0]} System find there's 'ssh port is 22 defult', please sure if u want to change" "_change_ssh_port"
 	fi
 
 	function _change_root_passwd()
@@ -202,7 +202,7 @@ EOF
 
 	local TMP_IS_PASSWORD_SETED=`egrep "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $NF}'`
 	if [ "${TMP_IS_PASSWORD_SETED}" != "yes" ]; then
-		exec_yn_action "_change_root_passwd" "${FUNCNAME[0]} Sys find there's 'no root password set', please sure if u want to change"
+		confirm_y_action "Y" "${FUNCNAME[0]} Sys find there's 'no root password set', please sure if u want to change" "_change_root_passwd"
 	fi
 
 	semanage port -a -t ssh_port_t -p tcp ${TMP_SSH_NEW_PORT}
@@ -219,7 +219,7 @@ EOF
 	}
 
 	# echo "lnxc7@GCPOS!m" | passwd --stdin oshit
-	exec_yn_action "_change_oshit_passwd" "${FUNCNAME[0]} User of 'oshit' created, please sure the password u want to set"
+	confirm_y_action "N" "${FUNCNAME[0]} User of 'oshit' created, please sure the password u want to set" "_change_oshit_passwd"
 
 	systemctl restart sshd.service
 
