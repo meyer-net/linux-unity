@@ -78,9 +78,9 @@ function reset_os()
         hostnamectl set-hostname ${SYS_NEW_NAME}
     fi
 
-    exec_yn_action "reset_passwd" "[${FUNCNAME[0]}] Please sure you want to 'change Password'"
-    exec_yn_action "reset_dns" "[${FUNCNAME[0]}] Please sure you want to 'change DNS'"
-    exec_yn_action "reset_ip" "[${FUNCNAME[0]}] Please sure you want to 'change local ip'"
+    exec_yn_action "reset_passwd" "[${FUNCNAME[0]}] Please sure if you want to 'change Password'"
+    exec_yn_action "reset_dns" "[${FUNCNAME[0]}] Please sure if you want to 'change DNS'"
+    exec_yn_action "reset_ip" "[${FUNCNAME[0]}] Please sure if you want to 'change local ip'"
 
 	return $?
 }

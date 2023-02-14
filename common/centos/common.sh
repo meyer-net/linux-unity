@@ -915,7 +915,6 @@ function discern_exchange_var_action() {
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="${1}"
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=$(eval echo '${'"${1}"'}')
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC="${2}"
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_TEMP=$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}
 
 	# 识别直接赋值非变量名的场景
@@ -925,17 +924,17 @@ function discern_exchange_var_action() {
 		if [ -z $(eval echo '${'"${1}"+x'}') ]; then
 			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=${1}
 			_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${1}
-			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL_${_TMP_DISCERN_EXCHANGE_VAR_ACTION_TEMP}"
+			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL_$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')"
 		fi
 	fi
 
 	# 预先转变变量赋值
 	eval ${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL}'
 
-	shift 3
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS=("${@}")
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS=("${@:4}")
 	if [ -n "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC}" ]; then
-		${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[*]}"
+		# 传参必须用[@]
+		${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[@]}"
 		return $?
 	fi
 
@@ -950,14 +949,19 @@ function discern_exchange_var_action() {
 #      echo_discern_exchange_val "abc"
 #      _VAR="abc" && echo_discern_exchange_val "_VAR"
 function echo_discern_exchange_val() {
-	local _TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=$(eval echo '${'"${1}"'}')
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
 
-	# 识别直接赋值非变量名的场景
-	if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL}" ]; then
-		# 未定义变量则使用变量本身
-		# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
-		if [ -z $(eval echo '${'"${1}"+x'}') ]; then
-			_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
+	# 必须满足变量定义规范
+	if [ -n "$(echo "${1}" | egrep '^\w+$')" ]; then
+		_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=$(eval echo '${'"${1}"'}')
+		
+		# 识别直接赋值非变量名的场景
+		if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL}" ]; then
+			# 未定义变量则使用变量本身
+			# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
+			if [ -z $(eval echo '${'"${1}"+x'}') ]; then
+				_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
+			fi
 		fi
 	fi
 
@@ -3930,10 +3934,10 @@ function setup_soft_wget()
 	return $?
 }
 
-#安装软件下载模式
+# 安装软件下载模式
 # 参数1：软件安装名称
 # 参数2：软件下载地址
-# 参数3：软件下载后执行函数名称
+# 参数3：软件下载后执行函数/脚本
 # 参数4：软件下载附加参数
 function setup_soft_git() 
 {	
@@ -3941,28 +3945,27 @@ function setup_soft_git()
 		return $?
 	fi
 
-	local _TMP_SOFT_GIT_NAME=${1}
-	local _TMP_SOFT_GIT_URL=${2}
-	local _TMP_SOFT_GIT_SETUP_FUNC=${3}
-	local _TMP_SOFT_GIT_URL_PARAMS=${4}
+	local _TMP_SETUP_SOFT_GIT_URL=${2}
+	local _TMP_SETUP_SOFT_GIT_SETUP_SCRIPTS=${3}
+	local _TMP_SETUP_SOFT_GIT_URL_ARGS=${4}
 	
 	typeset -l TMP_SOFT_LOWER_NAME
-	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_GIT_NAME}
+	local TMP_SOFT_LOWER_NAME=${1}
 	local TMP_SOFT_SETUP_PATH=${SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
 
-    ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep $_TMP_SOFT_GIT_NAME | grep -v grep
+    ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep ${1} | grep -v grep
 	if [ $? -ne 0 ]; then
-		local _TMP_SOFT_GIT_FOLDER_NAME=$(echo "${_TMP_SOFT_GIT_URL}" | awk -F'/' '{print $NF}')
+		local _TMP_SETUP_SOFT_GIT_FOLDER_NAME=$(echo "${_TMP_SETUP_SOFT_GIT_URL}" | awk -F'/' '{print $NF}')
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		if [ ! -f "${_TMP_SOFT_GIT_FOLDER_NAME}" ]; then
-			git clone ${_TMP_SOFT_GIT_URL} ${_TMP_SOFT_GIT_URL_PARAMS}
+		if [ ! -f "${_TMP_SETUP_SOFT_GIT_FOLDER_NAME}" ]; then
+			git clone ${_TMP_SETUP_SOFT_GIT_URL} ${_TMP_SETUP_SOFT_GIT_URL_ARGS}
 		fi
 		
-		cd ${_TMP_SOFT_GIT_FOLDER_NAME}
+		cd ${_TMP_SETUP_SOFT_GIT_FOLDER_NAME}
 
-		#安装函数调用
-		${_TMP_SOFT_GIT_SETUP_FUNC} "${TMP_SOFT_SETUP_PATH}"
+		# 安装函数调用
+		exec_channel_action "${3}" "${TMP_SOFT_SETUP_PATH}"
 	
 		echo "Complete."
 	fi
@@ -4196,17 +4199,17 @@ function input_if_empty()
 			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
 			# 必须转义，否则带样式的前提下会解析冲突
 			_TMP_INPUT_IF_EMPTY_NOTICE=${_TMP_INPUT_IF_EMPTY_NOTICE//\"/\\\"}
-			local _TMP_INPUT_IF_EMPTY_GUM_PARAMS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_NOTICE}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			local _TMP_INPUT_IF_EMPTY_GUM_ARGS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_NOTICE}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
 			
 			case ${_TMP_INPUT_IF_EMPTY_VAR_SEC} in
 				"y" | "Y")
-				_TMP_INPUT_IF_EMPTY_GUM_PARAMS="${_TMP_INPUT_IF_EMPTY_GUM_PARAMS} --password"
+				_TMP_INPUT_IF_EMPTY_GUM_ARGS="${_TMP_INPUT_IF_EMPTY_GUM_ARGS} --password"
 				;;
 				*)
 				#
 			esac
 
-			_TMP_INPUT_IF_EMPTY_INPUT_CURRENT=$(eval gum input ${_TMP_INPUT_IF_EMPTY_GUM_PARAMS})
+			_TMP_INPUT_IF_EMPTY_INPUT_CURRENT=$(eval gum input ${_TMP_INPUT_IF_EMPTY_GUM_ARGS})
 
 			return $?
 		}
@@ -4527,7 +4530,7 @@ function set_if_choice()
 		
 		path_exists_yn_action "${GUM_PATH}" "_TMP_SET_IF_CHOICE_GUM_FUNC" "_TMP_SET_IF_CHOICE_NORMAL_FUNC"	
 		
-		echo "Choice of '${_TMP_SET_IF_CHOICE_NEW_VAL}' checked"
+		echo "Choice of '${_TMP_SET_IF_CHOICE_NEW_VAL//√/}' checked"
 
 		eval ${1}=$(echo "${_TMP_SET_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
 	}
@@ -4692,12 +4695,12 @@ function exec_if_choice_onece()
 #			b
 function exec_channel_action()
 {
-	local _TMP_EXEC_CHANNEL_ACTION_FUNC=${1}
-
-	shift
+	# shift
 	while read _TMP_EXEC_CHANNEL_TEXT_LINE
 	do
-		${_TMP_EXEC_CHANNEL_ACTION_FUNC} "${_TMP_EXEC_CHANNEL_TEXT_LINE}" ${@}
+		# local _TMP_EXEC_CHANNEL_ACTION_FUNC=${1}
+		# ${_TMP_EXEC_CHANNEL_ACTION_FUNC} "${_TMP_EXEC_CHANNEL_TEXT_LINE}" ${@:2}
+		exec_check_action "${1}" "${_TMP_EXEC_CHANNEL_TEXT_LINE}" "${@:2}"
 	done
 }
 
@@ -4717,18 +4720,19 @@ function exec_channel_action()
 #     exec_check_action "test_func_var" "1" "2" "3"
 #     exec_check_action "echo 'hello test_func'"
 function exec_check_action() {
-	local _TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_val "${1}")
-
-	# 为空则不执行
-	if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
-		return $?
+	# 为空不执行
+	if [ -z "${1}" ]; then
+		return 0
 	fi
+
+	local _TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_val "${1}")
 	
 	# 空格数等于0的情况，可能是函数名或变量名。
 	# 循环获取到最终的值，有可能是变量名嵌套传递。
 	local _TMP_EXEC_CHECK_ACTION_PRE_SCRIPT=""
+	## 没有空格，则是函数或者变量
 	while [ $(echo "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" | grep -o '[[:space:]]' | wc -l) -eq 0 ]; do
-		# 函数名优先
+		# 非函数时（未定义的也会检测不到），开始检测
 		if [ "$(type -t ${_TMP_EXEC_CHECK_ACTION_SCRIPT})" != "function" ] ; then	
 			# 解析后结果还是相同，放弃解析，避免死循环
 			if [ -n "${_TMP_EXEC_CHECK_ACTION_PRE_SCRIPT}" ] && [ "${_TMP_EXEC_CHECK_ACTION_PRE_SCRIPT}" == "${_TMP_EXEC_CHECK_ACTION_SCRIPT}" ]; then
@@ -4737,7 +4741,7 @@ function exec_check_action() {
 
 			_TMP_EXEC_CHECK_ACTION_SCRIPT=$(echo_discern_exchange_val "${_TMP_EXEC_CHECK_ACTION_SCRIPT}")
 		
-			# 变量解析后可能为空，为空则不执行
+			# 变量解析后可能为空，为空则不执行(全部将在此跳出)
 			if [ ${#_TMP_EXEC_CHECK_ACTION_SCRIPT} -eq 0 ]; then
 				return 0
 			fi
@@ -4788,19 +4792,19 @@ function command_check_action() {
 
 	local _TMP_CMD_CHECK_ACTION_CMD_WHERE=$(whereis ${_TMP_CMD_CHECK_ACTION_CMD})
 	if [ "${_TMP_CMD_CHECK_ACTION_CMD}:" != "${_TMP_CMD_CHECK_ACTION_CMD_WHERE}" ]; then
-		shift
-		exec_check_action "${@}"
+		exec_check_action "${@:2}"
 		return 1
 	fi
 
 	return $?
 }
 
-#分割并执行动作
-# 参数1：用于分割的字符串
+# 分割并执行动作
+# 参数1：用于分割的数组字符串
 # 参数2：对分割字符串执行脚本
 # 参数x-N：动态参数
-#例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
+# 示例：
+#       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function exec_split_action()
 {
 	local _TMP_EXEC_SPLIT_ACTION_SPLIT_ARR=(${1//,/ })
@@ -4831,7 +4835,7 @@ function exec_split_action()
 	return $?
 }
 
-#执行需要判断的Y/N逻辑函数
+# [* 要修改，函数名与逻辑不匹对]执行需要判断的Y/N逻辑函数
 # 参数1：并行逻辑执行参数/脚本
 # 参数2：提示信息
 function exec_yn_action()
@@ -4859,81 +4863,84 @@ function exec_yn_action()
 	return $?
 }
 
-#执行需要判断的Y/N逻辑函数
-# 参数1：需要针对存放的变量名
+# 执行需要判断的Y/N逻辑函数
+# 参数1：需要针对存放的变量名/值
 # 参数2：提示信息
 # 参数3：执行Y时脚本
 # 参数4：执行N时脚本
 # 参数5：动态参数传递
 function confirm_yn_action()
 {
-	local _TMP_CONFIRM_YN_ACTION_VAR_NAME=${1}
-	typeset -u _TMP_CONFIRM_YN_ACTION_VAR_VAL
-	local _TMP_CONFIRM_YN_ACTION_VAR_VAL=$(eval expr '$'${_TMP_CONFIRM_YN_ACTION_VAR_NAME})
-	local _TMP_CONFIRM_YN_ACTION_NOTICE=${2}
-	local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${3}
-	local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N=${4}
-	local _TMP_CONFIRM_YN_ACTION_RET=$?
-	
-	exec_text_style "_TMP_CONFIRM_YN_ACTION_NOTICE"
+	function _confirm_yn_action()
+	{
+		typeset -u _TMP_CONFIRM_YN_ACTION_VAR_VAL
+		local _TMP_CONFIRM_YN_ACTION_VAR_VAL=$(eval expr '$'${1})
+		local _TMP_CONFIRM_YN_ACTION_NOTICE=${2}
+		local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y=${3}
+		local _TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N=${4}
+		local _TMP_CONFIRM_YN_ACTION_RET=$?
+		
+		exec_text_style "_TMP_CONFIRM_YN_ACTION_NOTICE"
 
-	local _TMP_CONFIRM_YN_ACTION_Y_N=""
-	function _TMP_CONFIRM_YN_ACTION_NORMAL_FUNC() {
-		echo_text_style "${_TMP_CONFIRM_YN_ACTION_NOTICE}, by follow key ('yes(y)' or enter key 'no(n)' or 'else')?"
-		read -n 1 _TMP_CONFIRM_YN_ACTION_Y_N
-		echo ""
+		local _TMP_CONFIRM_YN_ACTION_Y_N=""
+		function _TMP_CONFIRM_YN_ACTION_NORMAL_FUNC() {
+			echo_text_style "${_TMP_CONFIRM_YN_ACTION_NOTICE}, by follow key ('yes(y)' or enter key 'no(n)' or 'else')?"
+			read -n 1 _TMP_CONFIRM_YN_ACTION_Y_N
+			echo ""
 
-		if [ -z "${_TMP_CONFIRM_YN_ACTION_Y_N}" ] && [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_VAL}" ]; then
-			echo_text_style "Cannot find sure val, set confirm val to '${_TMP_CONFIRM_YN_ACTION_VAR_VAL}'"
-			_TMP_CONFIRM_YN_ACTION_Y_N="${_TMP_CONFIRM_YN_ACTION_VAR_VAL}"
-		fi
+			if [ -z "${_TMP_CONFIRM_YN_ACTION_Y_N}" ] && [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_VAL}" ]; then
+				echo_text_style "Cannot find sure val, set confirm val to '${_TMP_CONFIRM_YN_ACTION_VAR_VAL}'"
+				_TMP_CONFIRM_YN_ACTION_Y_N="${_TMP_CONFIRM_YN_ACTION_VAR_VAL}"
+			fi
 
-		return $?
+			return $?
+		}
+		
+		function _TMP_CONFIRM_YN_ACTION_GUM_FUNC() {
+			local _TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT=$([[ ${_TMP_CONFIRM_YN_ACTION_VAR_VAL} == "Y" ]] && echo "true" || echo "false")
+			_TMP_CONFIRM_YN_ACTION_Y_N=$(gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_NOTICE}?" && echo 'Y' || echo 'N')
+
+			return $?
+		}
+		
+		path_exists_yn_action "${GUM_PATH}" "_TMP_CONFIRM_YN_ACTION_GUM_FUNC" "_TMP_CONFIRM_YN_ACTION_NORMAL_FUNC"
+
+		# 移除前面4个参数 
+		# shift 4
+
+		case "${_TMP_CONFIRM_YN_ACTION_Y_N}" in
+		"y" | "Y")
+			if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" ]; then
+				exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" "${@:5}"
+			fi
+		;;
+		*)
+			if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" ]; then
+				exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" "${@:5}"
+			fi
+
+			# 修复错误，否则选择N时，值无法赋上
+			# return 1
+			_TMP_CONFIRM_YN_ACTION_RET=1
+		esac
+
+		eval ${1}="${_TMP_CONFIRM_YN_ACTION_Y_N:-N}"
+		
+		# exec_text_style "Checked [${_TMP_CONFIRM_YN_ACTION_Y_N:-'N'}]"
+
+		return ${_TMP_CONFIRM_YN_ACTION_RET}
 	}
-	
-	function _TMP_CONFIRM_YN_ACTION_GUM_FUNC() {
-		local _TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT=$([[ ${_TMP_CONFIRM_YN_ACTION_VAR_VAL} == "Y" ]] && echo "true" || echo "false")
-		_TMP_CONFIRM_YN_ACTION_Y_N=$(gum confirm --default=${_TMP_CONFIRM_YN_ACTION_VAR_GUM_DEFAULT} "${_TMP_CONFIRM_YN_ACTION_NOTICE}?" && echo 'Y' || echo 'N')
 
-		return $?
-	}
-	
-	path_exists_yn_action "${GUM_PATH}" "_TMP_CONFIRM_YN_ACTION_GUM_FUNC" "_TMP_CONFIRM_YN_ACTION_NORMAL_FUNC"
-
-	# 移除前面4个参数 
-	shift 4
-
-	case "${_TMP_CONFIRM_YN_ACTION_Y_N}" in
-	"y" | "Y")
-		if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" ]; then
-			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_Y}" "${@}"
-		fi
-	;;
-	*)
-		if [ -n "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" ]; then
-			exec_check_action "${_TMP_CONFIRM_YN_ACTION_FUNCS_OR_SCRIPTS_N}" "${@}"
-		fi
-
-		# 修复错误，否则选择N时，值无法赋上
-		# return 1
-		_TMP_CONFIRM_YN_ACTION_RET=1
-	esac
-
-	if [ -n "${_TMP_CONFIRM_YN_ACTION_VAR_NAME}" ]; then
-		eval ${_TMP_CONFIRM_YN_ACTION_VAR_NAME}=$(echo "${_TMP_CONFIRM_YN_ACTION_Y_N:-N}")
-	fi
-	
-	# exec_text_style "Checked [${_TMP_CONFIRM_YN_ACTION_Y_N:-'N'}]"
-
-	return ${_TMP_CONFIRM_YN_ACTION_RET}
+	discern_exchange_var_action "${1}" "_confirm_yn_action" "${@}"
+	return $?
 }
 
-#检测是否值
+# 检测是否值
 function check_yn_action() {
-	local _TMP_CHECK_YN_ACTION_VAR_NAME=${1}
-	local _TMP_CHECK_YN_ACTION_YN_VAL=$(eval expr '$'${_TMP_CHECK_YN_ACTION_VAR_NAME})
+	local _TMP_CHECK_YN_ACTION_YN_VAL=$(echo_discern_exchange_val "${1}")
+	typeset -l _TMP_CHECK_YN_ACTION_YN_VAL
 	
-	if [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" = false ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" = 0 ]; then
+	if [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == false ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "no" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == "n" ] || [ -z "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" ] || [ "${_TMP_CHECK_YN_ACTION_YN_VAL_YN_VAL}" == 0 ]; then
 		return $?
 	fi
 
