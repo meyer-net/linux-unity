@@ -11,6 +11,14 @@
 red=`tput setaf 1`
 green=`tput setaf 2`
 reset=`tput sgr0`
+CL_RED="\033[31m"
+CL_GRN="\033[32m"
+CL_YLW="\033[33m"
+CL_BLU="\033[34m"
+CL_MAG="\033[35m"
+CL_CYN="\033[36m"
+CL_RST="\033[0m"
+
 GUM_PATH="/usr/bin/gum"
 PUP_PATH="/usr/bin/pup"
 export LC_CTYPE="en_US.UTF-8"

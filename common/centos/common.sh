@@ -1240,27 +1240,19 @@ function setup_soft_basic()
 
 	local _TMP_SETUP_SOFT_BASIC_CURRENT_DIR=$(pwd)
 	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME="${1}"
-
-	local _TMP_SETUP_SOFT_BASIC_PRINT_NAME_LEN=${#_TMP_SETUP_SOFT_BASIC_PRINT_NAME}
 	
 	if [ -n "${2}" ]; then
-		local _TMP_SETUP_SOFT_BASIC_SPLITER=""
+		echo_text_wrap_style "Starting 'install' <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}>"
 
-		fill_right "_TMP_SETUP_SOFT_BASIC_SPLITER" "-" $((_TMP_SETUP_SOFT_BASIC_PRINT_NAME_LEN+20))
-		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo_text_style "Starting 'install' <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}>"
-		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-
-		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		echo_text_style "Starting 'execute' scripts('${2}'), args('${1}')"
-		
 		local _TMP_SETUP_SOFT_BASIC_INSTALL_NAME="${1}"
 		typeset -l _TMP_SETUP_SOFT_BASIC_INSTALL_NAME
-		exec_check_action "${2}" "${_TMP_SETUP_SOFT_BASIC_INSTALL_NAME}" "${@:3:}"
 
-		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
-		echo_text_style "Install <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}> completed"
-		echo ${_TMP_SETUP_SOFT_BASIC_SPLITER}
+		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
+		echo_text_style "Starting 'execute' scripts('${2}'), params('${_TMP_SETUP_SOFT_BASIC_INSTALL_NAME} ${@:3}')"
+		
+		exec_check_action "${2}" "${_TMP_SETUP_SOFT_BASIC_INSTALL_NAME}" "${@:3}"
+
+		echo_text_wrap_style "Install <${_TMP_SETUP_SOFT_BASIC_PRINT_NAME}> completed"
 
 		cd ${_TMP_SETUP_SOFT_BASIC_CURRENT_DIR}
 	fi
@@ -1478,15 +1470,37 @@ function exec_text_style()
 }
 
 # 输出文本格式化
-# 参数1：需要格式化的变量名
-# 参数2：格式化字符串规格
+# 参数1：需要格式化的变量名/值
+# 参数2：格式化字符串规格，指定颜色
 # 示例：
 #	TMP_ECHO_TEXT_STYLED_TEXT="[Hello] 'World'"
 #	echo_text_style "TMP_ECHO_TEXT_STYLED_TEXT"
 function echo_text_style() {
-	local _TMP_EXEC_TEXT_STYLE_VAL="${1}"
+	local _TMP_EXEC_TEXT_STYLE_VAL=$(echo_discern_exchange_val "${1}")
 	exec_text_style "_TMP_EXEC_TEXT_STYLE_VAL" "${2}"
 	echo ${_TMP_EXEC_TEXT_STYLE_VAL}
+	
+	return $?
+}
+
+# 输出文本格式化，包裹
+# 参数1：需要格式化的变量名/值
+# 参数2：格式化字符串规格，指定颜色
+# 参数3：输出包裹字符，默认-
+# 示例：
+#	TMP_ECHO_TEXT_WRAP_STYLED_TEXT="[Hello] 'World'"
+#	echo_text_wrap_style "TMP_ECHO_TEXT_WRAP_STYLED_TEXT"
+function echo_text_wrap_style() {
+	local _TMP_EXEC_TEXT_WRAP_STYLE_VAL=$(echo_discern_exchange_val "${1}")
+	local _TMP_EXEC_TEXT_WRAP_STYLE_SPLITER=""
+
+	local _TMP_EXEC_TEXT_WRAP_STYLE_START_SPECIAL_CHAR_COUNT=$(echo "${_TMP_EXEC_TEXT_WRAP_STYLE_VAL}" | grep -oE "]|[\\\"\'\<\>\[]" | wc -l)
+	fill_right "_TMP_EXEC_TEXT_WRAP_STYLE_SPLITER" "${3:--}" $((${#_TMP_EXEC_TEXT_WRAP_STYLE_VAL}-${_TMP_EXEC_TEXT_WRAP_STYLE_START_SPECIAL_CHAR_COUNT}+2))
+
+	echo "${_TMP_EXEC_TEXT_WRAP_STYLE_SPLITER}"
+	exec_text_style "_TMP_EXEC_TEXT_WRAP_STYLE_VAL" "${2}"
+	echo "|${_TMP_EXEC_TEXT_WRAP_STYLE_VAL}|"
+	echo "${_TMP_EXEC_TEXT_WRAP_STYLE_SPLITER}"
 	
 	return $?
 }
@@ -5015,8 +5029,8 @@ function exec_funcs_repeat_until_output()
 }
 
 #执行文本格式化
-# 参数1：需要格式化的变量名
-# 参数2：格式化字符串规格
+# 参数1：需要格式化的变量名/值
+# 参数2：格式化字符串规格变量名/值
 #示例：
 #	TMP_TEST_FORMATED_TEXT="World"
 #	exec_text_printf "TMP_TEST_FORMATED_TEXT" "Hello %s"
@@ -5025,7 +5039,7 @@ function exec_text_printf()
 {
 	function _exec_text_printf()
 	{
-		local _TMP_EXEC_TEXT_PRINTF_VAR_FORMAT=${2}
+		local _TMP_EXEC_TEXT_PRINTF_VAR_FORMAT=$(echo_discern_exchange_val "${2}")
 		local _TMP_EXEC_TEXT_PRINTF_VAR_VAL=$(eval echo '${'"${1}"'}')
 		
 		# 判断格式化模板是否为空，为空不继续执行
