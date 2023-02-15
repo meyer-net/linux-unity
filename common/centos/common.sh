@@ -1063,7 +1063,6 @@ function item_exists_yn_action()
 function item_not_exists_action() 
 {
 	item_exists_yn_action "${1}" "${2}" "" "${3}"
-
 	return $?
 }
 
@@ -1085,7 +1084,6 @@ function item_not_exists_action()
 function item_exists_action() 
 {
 	item_exists_yn_action "${1}" "${2}" "${3}"
-
 	return $?
 }
 
@@ -1128,7 +1126,6 @@ function item_change_action()
 	item_exists_action "${1}" "${2}" "_item_change_action_change"
 	
 	script_check_action "${3}" "${_TMP_ITEM_CHANGE_ACTION_CHANGE_ITEM}" "${_TMP_ITEM_CHANGE_ACTION_ARR_CHANGE_INDEX}"
-
 	return $?
 }
 
@@ -1163,7 +1160,6 @@ function item_change_remove_action()
 	}
 
 	item_change_action "${1}" "${2}" "_item_change_remove_action"
-
 	return $?
 }
 
@@ -1196,7 +1192,6 @@ function item_change_combine_remove_action()
 	}
 
 	item_change_remove_action "${1}" "${_TMP_ITEM_CHANGE_COMBINE_REMOVE_OUTPUT_ARR_STR}" "_item_change_combine_remove_action_combine"
-			
 	return $?
 }
 
@@ -1239,8 +1234,7 @@ function items_change_combine_remove_action()
 		item_change_remove_action "^${1}$" "${_TMP_ITEMS_CHANGE_COMBINE_REMOVE_OUTPUT_ARR_STR}" "_items_change_combine_remove_action_combine"
 	}
 
-	items_split_action "${1}" "_items_change_combine_remove_action_check_exists_item"
-			
+	items_split_action "${1}" "_items_change_combine_remove_action_check_exists_item"		
 	return $?
 }
 
@@ -1389,7 +1383,6 @@ function exchange_softlink()
 		echo "Linked：${_TMP_EXCHANGE_SOFT_LINK_CHECK_PATH} -> ${_TMP_EXCHANGE_SOFT_LINK_TRUE_PATH}"
     fi
 
-
 	return $?
 }
 
@@ -1471,7 +1464,6 @@ function path_not_exists_action()
 	fi
 
 	path_exists_yn_action "${1}" "${_TMP_PATH_NOT_EXISTS_ACTION_E_SCRIPT}" "${_TMP_PATH_NOT_EXISTS_ACTION_NE_SCRIPT}"
-
 	return $?
 }
 
@@ -1540,7 +1532,6 @@ function path_exists_action()
 	fi
 
 	path_exists_yn_action "${1}" "${_TMP_PATH_EXISTS_ACTION_E_SCRIPT}" "${_TMP_PATH_EXISTS_ACTION_PATH_NOT_EXISTS_SCRIPT}"
-
 	return $?
 }
 
@@ -1551,7 +1542,6 @@ function path_exists_action()
 function path_exists_yn_action() 
 {
 	path_exists_confirm_action "${1}" "" "${2}" "" "${3}"
-
 	return $?
 }
 
@@ -1601,7 +1591,7 @@ function path_not_exists_link()
 ##########################################################################################################
 # 数据录入类
 ##########################################################################################################
-# 是否类型的弹出动态设置变量值函数
+# 弹出动态设置变量值函数
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
@@ -1649,8 +1639,24 @@ function bind_if_input()
 			eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
 		fi
 	}
-	discern_exchange_var_action "${1}" "_bind_if_input" "${@}"
 
+	discern_exchange_var_action "${1}" "_bind_if_input" "${@}"
+	return $?
+}
+# 弹出动态设置变量值函数，如果为空
+# 参数1：需要设置的变量名
+# 参数2：提示信息
+# 参数3：是否内容加密（默认：不显示，y/Y：密文）
+function bind_empty_if_input()
+{
+	function _bind_empty_if_input()
+	{
+		if [ -z "${1}" ]; then
+			bind_if_input "${@}"
+		fi
+	}
+
+	discern_exchange_var_action "${1}" "_bind_empty_if_input" "${@}"
 	return $?
 }
 
@@ -1810,7 +1816,6 @@ function mark_if_choice_action()
 	local _TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT=$([[ "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" != "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" ]] && echo 1)
 
 	script_check_action "${3}" "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" "${_TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT}"
-	
     return $?
 }
 
@@ -1906,6 +1911,7 @@ function exec_if_choice_custom()
 function exec_if_choice()
 {
 	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5" 'exec_if_choice "${1}" "${2}" ${3} "${4}" "$5"'
+	return $?
 }
 
 # 按键选择类型的弹出动态设置变量值函数
@@ -1917,6 +1923,7 @@ function exec_if_choice()
 function exec_if_choice_onece()
 {
 	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5"
+	return $?
 }
 
 ##########################################################################################################
@@ -1942,7 +1949,6 @@ function get_line()
 	}
 
 	discern_exchange_var_action "${1}" "_get_line" "${@}"
-
 	return $?
 }
 
@@ -2313,7 +2319,6 @@ function exec_sleep()
 	}
 
 	path_exists_yn_action "${GUM_PATH}" "_TMP_EXEC_SLEEP_GUM_FUNC" "_TMP_EXEC_SLEEP_NORMAL_FUNC"
-
 	return $?
 }
 
@@ -4062,7 +4067,6 @@ function docker_choice_cust_vers_action()
 	}
 
 	mark_if_choice_action  "${_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_VERS}" "${2}" "_docker_choice_cust_vers_action"
-	
     return $?
 }
 
@@ -4080,7 +4084,6 @@ function docker_choice_cust_vers_action()
 function docker_images_choice_vers_action()
 {
 	docker_choice_cust_vers_action "${1}" "${2}" "${3}" "$(echo_docker_images_vers "${1}" "${4}")"
-	
     return $?
 }
 
@@ -4121,8 +4124,7 @@ function docker_snap_create_action()
 	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}
 	# /mountdisk/repo/migrate/snapshot/browserless_chrome/imgver111111_v1670329246
 	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
-	
-		
+			
 	echo_text_style "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
 	
 	# 强制检测如果容器非运行状态，则手动启动容器再继续
@@ -4338,7 +4340,6 @@ EOF
 	
 	# 创建完执行
 	script_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}"
-
 	return $?
 }
 
@@ -4545,7 +4546,6 @@ function docker_snap_restore_action()
     echo_text_style "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_TYPE} snapshot' restored to <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
 
 	script_check_action "${5}" "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}" "${@:3:4}"
-
     return $?
 }
 
@@ -5437,7 +5437,6 @@ function soft_cmd_check_upgrade_action()
 
 	# 检测执行，未安装则运行外部安装脚本（exec_step_conda），已安装则运行内部函数(_soft_cmd_check_upgrade_action_exec)进行安装还原操作
 	soft_cmd_check_action "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CHECK_COMMAND}" "${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_NE_SCRIPT}" "_soft_cmd_check_upgrade_action_exec"
-
 	return $?
 }
 
@@ -5503,7 +5502,6 @@ function soft_yum_check_setup()
 	}
 
 	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'Soft of <%s> has installed by yum'" "_soft_yum_check_setup_echo"
-
 	return $?
 }
 
