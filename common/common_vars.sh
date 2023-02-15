@@ -128,6 +128,7 @@ PY_ENV="pyenv37"
 PY_PKGS_SETUP_DIR=${SETUP_DIR}/python_packages
 PY3_PKGS_SETUP_DIR=${SETUP_DIR}/python3_packages
 SUPERVISOR_ATT_DIR=${ATT_DIR}/supervisor
+DOCKER_NETWORK="cuckoo-network"
 
 #---------- DIR ---------- }
 
