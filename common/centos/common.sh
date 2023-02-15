@@ -344,14 +344,14 @@ function gen_nginx_starter()
     local _TMP_GEN_NGX_STT_BOOT_PORT=""
 	rand_val "_TMP_GEN_NGX_STT_BOOT_PORT" 1024 2048
     
-    input_if_empty "_TMP_GEN_NGX_STT_BOOT_NAME" "NGX_CONF: Please ender application name"
+    bind_if_input "_TMP_GEN_NGX_STT_BOOT_NAME" "NGX_CONF: Please ender application name"
 	set_if_empty "_TMP_GEN_NGX_STT_BOOT_NAME" "prj_${_TMP_GEN_NGX_STT_DATE}"
     
     local _TMP_GEN_NGX_STT_NGX_BOOT_PATH="${NGINX_DIR}/${_TMP_GEN_NGX_STT_BOOT_NAME}"
-    input_if_empty "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "NGX_CONF: Please ender application path"
+    bind_if_input "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "NGX_CONF: Please ender application path"
 	set_if_empty "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "${NGINX_DIR}"
     
-    input_if_empty "_TMP_GEN_NGX_STT_BOOT_PORT" "Please ender application port Like '8080'"
+    bind_if_input "_TMP_GEN_NGX_STT_BOOT_PORT" "Please ender application port Like '8080'"
 	set_if_empty "_TMP_GEN_NGX_STT_BOOT_PORT" "${_TMP_GEN_NGX_STT_NGX_CONF_PORT}"
 
 	cp_nginx_starter "${_TMP_GEN_NGX_STT_BOOT_NAME}" "${_TMP_GEN_NGX_STT_NGX_BOOT_PATH}" "${_TMP_GEN_NGX_STT_BOOT_PORT}"
@@ -1605,184 +1605,183 @@ function path_not_exists_link()
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
-function input_if_empty()
+function bind_if_input()
 {
-	function _input_if_empty()
+	function _bind_if_input()
 	{
-		local _TMP_INPUT_IF_EMPTY_ECHO=${2}
-		local _TMP_INPUT_IF_EMPTY_VAR_SEC=${3}
-		local _TMP_INPUT_IF_EMPTY_VAR_VAL=$(echo_discern_exchange_val "${1}")
+		local _TMP_BIND_IF_INPUT_ECHO=${2}
+		local _TMP_BIND_IF_INPUT_VAR_SEC=${3}
+		local _TMP_BIND_IF_INPUT_VAR_VAL=$(echo_discern_exchange_val "${1}")
 		
 		# 自动样式化消息前缀 
-		exec_text_style "_TMP_INPUT_IF_EMPTY_ECHO"
+		exec_text_style "_TMP_BIND_IF_INPUT_ECHO"
 		
-		local _TMP_INPUT_IF_EMPTY_INPUT_CURRENT=""
-		function _TMP_INPUT_IF_EMPTY_NORMAL_FUNC() {
-			echo "${_TMP_INPUT_IF_EMPTY_ECHO}, default '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
-			read -e _TMP_INPUT_IF_EMPTY_INPUT_CURRENT
+		local _TMP_BIND_IF_INPUT_INPUT_CURRENT=""
+		function _TMP_BIND_IF_INPUT_NORMAL_FUNC() {
+			echo "${_TMP_BIND_IF_INPUT_ECHO}, default '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
+			read -e _TMP_BIND_IF_INPUT_INPUT_CURRENT
 			echo ""
 		}
 		
-		function _TMP_INPUT_IF_EMPTY_GUM_FUNC()	{
+		function _TMP_BIND_IF_INPUT_GUM_FUNC()	{
 			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
 			# 必须转义，否则带样式的前提下会解析冲突
-			_TMP_INPUT_IF_EMPTY_ECHO=${_TMP_INPUT_IF_EMPTY_ECHO//\"/\\\"}
-			local _TMP_INPUT_IF_EMPTY_GUM_ARGS="--placeholder '${_TMP_INPUT_IF_EMPTY_VAR_VAL}' --prompt \"${_TMP_INPUT_IF_EMPTY_ECHO}, default: \" --value '${_TMP_INPUT_IF_EMPTY_VAR_VAL}'"
+			_TMP_BIND_IF_INPUT_ECHO=${_TMP_BIND_IF_INPUT_ECHO//\"/\\\"}
+			local _TMP_BIND_IF_INPUT_GUM_ARGS="--placeholder '${_TMP_BIND_IF_INPUT_VAR_VAL}' --prompt \"${_TMP_BIND_IF_INPUT_ECHO}, default: \" --value '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
 			
-			case ${_TMP_INPUT_IF_EMPTY_VAR_SEC} in
+			case ${_TMP_BIND_IF_INPUT_VAR_SEC} in
 				"y" | "Y")
-				_TMP_INPUT_IF_EMPTY_GUM_ARGS="${_TMP_INPUT_IF_EMPTY_GUM_ARGS} --password"
+				_TMP_BIND_IF_INPUT_GUM_ARGS="${_TMP_BIND_IF_INPUT_GUM_ARGS} --password"
 				;;
 				*)
 				#
 			esac
 
-			_TMP_INPUT_IF_EMPTY_INPUT_CURRENT=$(eval gum input ${_TMP_INPUT_IF_EMPTY_GUM_ARGS})
+			_TMP_BIND_IF_INPUT_INPUT_CURRENT=$(eval gum input ${_TMP_BIND_IF_INPUT_GUM_ARGS})
 
 			return $?
 		}
 		
-		# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
-		path_exists_yn_action "${GUM_PATH}" "_TMP_INPUT_IF_EMPTY_GUM_FUNC" "_TMP_INPUT_IF_EMPTY_NORMAL_FUNC"
+		# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_BIND_IF_INPUT_NORMAL_FUNC"
+		path_exists_yn_action "${GUM_PATH}" "_TMP_BIND_IF_INPUT_GUM_FUNC" "_TMP_BIND_IF_INPUT_NORMAL_FUNC"
 
-		if [ -n "${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}" ]; then
-			eval ${1}='${_TMP_INPUT_IF_EMPTY_INPUT_CURRENT}'
+		if [ -n "${_TMP_BIND_IF_INPUT_INPUT_CURRENT}" ]; then
+			eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
 		fi
 	}
-	discern_exchange_var_action "${1}" "_input_if_empty" "${@}"
+	discern_exchange_var_action "${1}" "_bind_if_input" "${@}"
 
 	return $?
 }
-
 
 # 按键选择类型的弹出动态设置变量值函数
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：选项参数
 # 参数4：自定义的Spliter
-function set_if_choice()
+function bind_if_choice()
 {
-	function _set_if_choice()
+	function _bind_if_choice()
 	{
-		local _TMP_SET_IF_CHOICE_ECHO=${2}
-		local _TMP_SET_IF_CHOICE_CHOICE=${3}
+		local _TMP_BIND_IF_CHOICE_ECHO=${2}
+		local _TMP_BIND_IF_CHOICE_CHOICE=${3}
 		
-		exec_text_style "_TMP_SET_IF_CHOICE_ECHO"
+		exec_text_style "_TMP_BIND_IF_CHOICE_ECHO"
 
 		local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
 		set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
 		local _TMP_CHOICE_SPLITER_LEN=${#_TMP_CHOICE_SPLITER}
 		
-		local _TMP_SET_IF_CHOICE_ARR=(${_TMP_SET_IF_CHOICE_CHOICE//,/ })
-		local _TMP_SET_IF_CHOICE_ARR_LEN=${#_TMP_SET_IF_CHOICE_ARR[@]}
+		local _TMP_BIND_IF_CHOICE_ARR=(${_TMP_BIND_IF_CHOICE_CHOICE//,/ })
+		local _TMP_BIND_IF_CHOICE_ARR_LEN=${#_TMP_BIND_IF_CHOICE_ARR[@]}
 		
 		# 编号前坠
-		local _TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+		local _TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
 
 		# X退出字符前缀
-		local _TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
+		local _TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
 		
-		if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -gt 10 ]; then
-			_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=$(eval printf %.s'' {1..$((${#_TMP_SET_IF_CHOICE_ARR_LEN}-1))})
-			_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN=$(eval printf %.s'X' {1..${#_TMP_SET_IF_CHOICE_ARR_LEN}})
+		if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -gt 10 ]; then
+			_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=$(eval printf %.s'' {1..$((${#_TMP_BIND_IF_CHOICE_ARR_LEN}-1))})
+			_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN=$(eval printf %.s'X' {1..${#_TMP_BIND_IF_CHOICE_ARR_LEN}})
 		fi
 
-		function _TMP_SET_IF_CHOICE_NORMAL_FUNC() {
+		function _TMP_BIND_IF_CHOICE_NORMAL_FUNC() {
 			echo ${_TMP_CHOICE_SPLITER}
 
-			for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
+			for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
 			do
-				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
+				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
 				if [ $(($I%2)) -eq 0 ]; then
-					_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
+					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
 				fi
 
-				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
-				local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
-				if [ $(echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
+				local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
+				if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
 					echo ${_TMP_CHOICE_SPLITER}
-					_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
+					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
 				else
 					if [ ${I} -ge 9 ]; then
-						_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+						_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
 					fi
 				fi
 				
-				fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_SET_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
+				fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
 				
-				echo "${_TMP_SET_IF_CHOICE_ITEM}"
+				echo "${_TMP_BIND_IF_CHOICE_ITEM}"
 			done
 			
 			echo ${_TMP_CHOICE_SPLITER}
 
-			if [ -n "${_TMP_SET_IF_CHOICE_ECHO}" ]; then
-				echo "${_TMP_SET_IF_CHOICE_ECHO}, by above keys, then enter it"
+			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
+				echo "${_TMP_BIND_IF_CHOICE_ECHO}, by above keys, then enter it"
 			fi
 			
-			if [ ${_TMP_SET_IF_CHOICE_ARR_LEN} -le 10 ]; then
+			if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -le 10 ]; then
 				read -n 1 KEY
 			else
 				read KEY
 			fi
 
-			_TMP_SET_IF_CHOICE_NEW_VAL=${_TMP_SET_IF_CHOICE_ARR[$((KEY-1))]}
+			_TMP_BIND_IF_CHOICE_NEW_VAL=${_TMP_BIND_IF_CHOICE_ARR[$((KEY-1))]}
 
 			echo
 
 			return $?
 		}
 		
-		function _TMP_SET_IF_CHOICE_GUM_FUNC() {		
-			for I in ${!_TMP_SET_IF_CHOICE_ARR[@]};  
+		function _TMP_BIND_IF_CHOICE_GUM_FUNC() {		
+			for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
 			do
-				local _TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
+				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
 				if [ $(($I%2)) -eq 0 ]; then
-					_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
+					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
 				fi
 
-				local _TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
+				local _TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
 							
-				local _TMP_SET_IF_CHOICE_ITEM=${_TMP_SET_IF_CHOICE_ARR[$I]}
-				if [ $(echo "${_TMP_SET_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
-					_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_SET_IF_CHOICE_TMP_SQ_EXIT_SIGN}
+				local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
+				if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+					_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
 				else
 					if [ ${I} -ge 9 ]; then
-						_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX=""
+						_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
 					fi
 				fi
 
-				fill_right "_TMP_SET_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_SET_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_SET_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_SET_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
-				_TMP_SET_IF_CHOICE_ARR[$I]="\"${_TMP_SET_IF_CHOICE_ITEM}\""
+				fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
+				_TMP_BIND_IF_CHOICE_ARR[$I]="\"${_TMP_BIND_IF_CHOICE_ITEM}\""
 			done
 
-			local _TMP_SET_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_SET_IF_CHOICE_ARR[*]}")
-			if [ -z "${_TMP_SET_IF_CHOICE_ARR_STR}" ]; then
+			local _TMP_BIND_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_BIND_IF_CHOICE_ARR[*]}")
+			if [ -z "${_TMP_BIND_IF_CHOICE_ARR_STR}" ]; then
 				echo
 				echo_text_style "'No choice' set, please check your 'str arr'"
 
 				return 0
 			fi
-			local _TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_SET_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
+			local _TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_BIND_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
 			
-			if [ -n "${_TMP_SET_IF_CHOICE_ECHO}" ]; then
-				echo_text_style "${_TMP_SET_IF_CHOICE_ECHO}, by 'follow keys', then enter it"
+			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
+				echo_text_style "${_TMP_BIND_IF_CHOICE_ECHO}, by 'follow keys', then enter it"
 			fi
 			
-			_TMP_SET_IF_CHOICE_NEW_VAL=$(eval ${_TMP_SET_IF_CHOICE_GUM_CHOICE_SCRIPT})
+			_TMP_BIND_IF_CHOICE_NEW_VAL=$(eval ${_TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT})
 
 			return $?
 		}
 
-		local _TMP_SET_IF_CHOICE_NEW_VAL=""
+		local _TMP_BIND_IF_CHOICE_NEW_VAL=""
 		
-		path_exists_yn_action "${GUM_PATH}" "_TMP_SET_IF_CHOICE_GUM_FUNC" "_TMP_SET_IF_CHOICE_NORMAL_FUNC"	
+		path_exists_yn_action "${GUM_PATH}" "_TMP_BIND_IF_CHOICE_GUM_FUNC" "_TMP_BIND_IF_CHOICE_NORMAL_FUNC"	
 		
-		echo "Choice of '${_TMP_SET_IF_CHOICE_NEW_VAL//√/}' checked"
+		echo "Choice of '${_TMP_BIND_IF_CHOICE_NEW_VAL//√/}' checked"
 
-		eval ${1}=$(echo "${_TMP_SET_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
+		eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
 	}
 
-	discern_exchange_var_action "${1}" "_set_if_choice" "${@}"
+	discern_exchange_var_action "${1}" "_bind_if_choice" "${@}"
 	return $?
 }
 
@@ -1802,7 +1801,7 @@ function mark_if_choice_action()
 	# 有多个版本时，才提供选择操作
 	if [ ${_TMP_MARK_IF_CHOICE_ACTION_ITEMS_COUNT} -gt 1 ]; then
 		echo "${TMP_SPLITER2}"
-		set_if_choice "_TMP_MARK_IF_CHOICE_ACTION_ITEM" "${2}" "${1}"
+		bind_if_choice "_TMP_MARK_IF_CHOICE_ACTION_ITEM" "${2}" "${1}"
 	else
 		_TMP_MARK_IF_CHOICE_ACTION_ITEM="${1}"
 	fi
@@ -1833,7 +1832,7 @@ function exec_if_choice_custom()
 
 	function _exec_if_choice_custom()
 	{
-		set_if_choice "${@:1:4}"
+		bind_if_choice "${@:1:4}"
 
 		_TMP_EXEC_IF_CHOICE_NEW_VAL=$(eval echo '${'"${1}"'}')
 	}
@@ -2270,11 +2269,11 @@ function bind_exchange_port() {
 
 			# 重新确定变量
 			local _TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR=($(echo "${_TMP_BIND_EXCHANGE_PORT_USING}" | cut -d' ' -f1 | uniq))
-			input_if_empty "${_TMP_BIND_EXCHANGE_PORT_VAR_NEWER_NAME}" "Checked Port '${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}' is using(<${_TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR[*]}>), please [change] newer one"
+			bind_if_input "${_TMP_BIND_EXCHANGE_PORT_VAR_NEWER_NAME}" "Checked Port '${_TMP_BIND_EXCHANGE_PORT_VAR_VAL}' is using(<${_TMP_BIND_EXCHANGE_PORT_USING_PRGS_ARR[*]}>), please [change] newer one"
 			
 			# 内循环，端口再次占用时，继续
 			_bind_exchange_port_change "${_TMP_BIND_EXCHANGE_PORT_VAR_NEWER_NAME}"
-			
+
 			# 将递归赋值拿到
 			_TMP_BIND_EXCHANGE_PORT_NEWER_VAL=$(eval echo '${'"${_TMP_BIND_EXCHANGE_PORT_VAR_NEWER_NAME}"'}')
 		fi
@@ -2423,7 +2422,7 @@ function resolve_unmount_disk () {
 			# 2：数组不为空，多余的略过
 			local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=""
 			if [ ${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR} -eq 0 ]; then
-				input_if_empty "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads'"
+				bind_if_input "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads'"
 			else
 				_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX[${I}]}
 				# [ ${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_LEN} -gt $((I+1)) ];
@@ -2815,7 +2814,7 @@ function set_newer_by_url_list_link_date()
 		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}" ]; then
 			echo "Upgrade the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'"
 
-			input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
+			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
 
 			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'
 		else
@@ -2860,7 +2859,7 @@ function set_newer_by_url_list_link_text()
 		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}" ]; then
 			echo_text_style "Upgrade the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'"
 			
-			input_if_empty "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
+			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
 
 			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'
 		else
@@ -2902,7 +2901,7 @@ function set_github_soft_releases_newer_version()
 		if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
 			echo_text_style "Upgrade the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, release newer version to '${_TMP_GITHUB_SOFT_NEWER_VERS}'"
 
-			input_if_empty "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}', if u want to change"
+			bind_if_input "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}', if u want to change"
 
 			eval ${1}='${_TMP_GITHUB_SOFT_NEWER_VERS}'
 		else
@@ -3616,7 +3615,7 @@ function soft_path_restore_confirm_action()
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
 			{
-				set_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
+				bind_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
 
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER}"
 
@@ -4418,7 +4417,7 @@ function docker_snap_restore_choice_action()
 			local _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES="Image,Container,Dockerfile"
 
 			echo "${TMP_SPLITER2}"
-			set_if_choice "_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES}"
+			bind_if_choice "_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE" "Please sure 'which type' u want to [restore] of the snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES}"
 			typeset -l _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE
 
 			# 快照存储类型已被重新加载

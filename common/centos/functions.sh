@@ -197,25 +197,25 @@ function gen_ngx_conf()
 function gen_sup_conf()
 {
 	local _TMP_GEN_SUP_CONF_NAME="test"
-    input_if_empty "_TMP_GEN_SUP_CONF_NAME" "${FUNCNAME[0]} Please ender 'the program name'"
+    bind_if_input "_TMP_GEN_SUP_CONF_NAME" "${FUNCNAME[0]} Please ender 'the program name'"
 
 	local _TMP_GEN_SUP_CONF_BOOT_DIR="${SETUP_DIR}"
-    input_if_empty "_TMP_GEN_SUP_CONF_BOOT_DIR" "${FUNCNAME[0]} Please ender 'the program boot dir'"
+    bind_if_input "_TMP_GEN_SUP_CONF_BOOT_DIR" "${FUNCNAME[0]} Please ender 'the program boot dir'"
 
 	local _TMP_GEN_SUP_CONF_COMMAND=""
-    input_if_empty "_TMP_GEN_SUP_CONF_COMMAND" "${FUNCNAME[0]} Please ender 'the boot command'"
+    bind_if_input "_TMP_GEN_SUP_CONF_COMMAND" "${FUNCNAME[0]} Please ender 'the boot command'"
 
 	local _TMP_GEN_SUP_CONF_ENV=""
-    input_if_empty "_TMP_GEN_SUP_CONF_ENV" "${FUNCNAME[0]} Please ender 'the dependency of env var'"
+    bind_if_input "_TMP_GEN_SUP_CONF_ENV" "${FUNCNAME[0]} Please ender 'the dependency of env var'"
 
 	local _TMP_GEN_SUP_CONF_PRIORITY=99
-    input_if_empty "_TMP_GEN_SUP_CONF_PRIORITY" "${FUNCNAME[0]} Please ender 'the boot priority' of your program"
+    bind_if_input "_TMP_GEN_SUP_CONF_PRIORITY" "${FUNCNAME[0]} Please ender 'the boot priority' of your program"
 
 	local _TMP_GEN_SUP_CONF_SOURCE="/etc/profile"
-    input_if_empty "_TMP_GEN_SUP_CONF_SOURCE" "${FUNCNAME[0]} Please ender 'the dependency of env source file'"
+    bind_if_input "_TMP_GEN_SUP_CONF_SOURCE" "${FUNCNAME[0]} Please ender 'the dependency of env source file'"
 
 	local _TMP_GEN_SUP_CONF_USER="root"
-    input_if_empty "_TMP_GEN_SUP_CONF_USER" "${FUNCNAME[0]} Please ender 'the boot user of your program'"
+    bind_if_input "_TMP_GEN_SUP_CONF_USER" "${FUNCNAME[0]} Please ender 'the boot user of your program'"
 
     # 授权
     create_user_if_not_exists "${_TMP_GEN_SUP_CONF_USER}" "${_TMP_GEN_SUP_CONF_USER}"
@@ -242,10 +242,10 @@ function share_dir()
 function share_dir_server()
 {
     local _TMP_SHARE_DIR_SVR_LCL_DIR="${PRJ_DIR}"
-    input_if_empty "_TMP_SHARE_DIR_SVR_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to share"
+    bind_if_input "_TMP_SHARE_DIR_SVR_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to share"
 
     local _TMP_SHARE_DIR_SVR_ALLOWS=`echo ${LOCAL_HOST} | sed "s@\.${LOCAL_ID}$@.0/24@G"`
-    input_if_empty "_TMP_SHARE_DIR_SVR_ALLOWS" "${FUNCNAME[0]} Please ender 'the host network area' which u allows to share"
+    bind_if_input "_TMP_SHARE_DIR_SVR_ALLOWS" "${FUNCNAME[0]} Please ender 'the host network area' which u allows to share"
 
     local _TMP_SHARE_DIR_SVR_PERS="rw,no_root_squash"
     local _TMP_SHARE_DIR_SVR_PERS_NOTICE="${FUNCNAME[0]} Please ender 'the permissions' for ref clients(${_TMP_SHARE_DIR_SVR_ALLOWS})
@@ -259,7 +259,7 @@ function share_dir_server()
     # sync：资料同步写入存储器中  \
     # async：资料会先暂时存放在内存中，不会直接写入硬盘  \
     # insecure：允许从这台机器过来的非授权访问"
-    input_if_empty "_TMP_SHARE_DIR_SVR_PERS" "${_TMP_SHARE_DIR_SVR_PERS_NOTICE}"
+    bind_if_input "_TMP_SHARE_DIR_SVR_PERS" "${_TMP_SHARE_DIR_SVR_PERS_NOTICE}"
 
     echo "${_TMP_SHARE_DIR_SVR_LCL_DIR} ${_TMP_SHARE_DIR_SVR_ALLOWS}(${_TMP_SHARE_DIR_SVR_PERS})" >> /etc/exports
     exportfs -rv
@@ -281,15 +281,15 @@ function share_dir_server()
 function share_dir_client()
 {
     local _TMP_SHARE_DIR_CLT_SVR_HOST="${LOCAL_HOST}"
-    input_if_empty "_TMP_SHARE_DIR_CLT_SVR_HOST" "${FUNCNAME[0]} Please ender 'the host' which u want to mount dir"
+    bind_if_input "_TMP_SHARE_DIR_CLT_SVR_HOST" "${FUNCNAME[0]} Please ender 'the host' which u want to mount dir"
     
     showmount -e ${_TMP_SHARE_DIR_CLT_SVR_HOST}
     
     local _TMP_SHARE_DIR_CLT_SVR_DIR="${PRJ_DIR}"
-    input_if_empty "_TMP_SHARE_DIR_CLT_SVR_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to mount from '${_TMP_SHARE_DIR_CLT_SVR_HOST}'"
+    bind_if_input "_TMP_SHARE_DIR_CLT_SVR_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to mount from '${_TMP_SHARE_DIR_CLT_SVR_HOST}'"
 
     local _TMP_SHARE_DIR_CLT_LCL_DIR="${HTML_DIR}"
-    input_if_empty "_TMP_SHARE_DIR_CLT_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to display on local from '${_TMP_SHARE_DIR_CLT_SVR_HOST}(${_TMP_SHARE_DIR_CLT_SVR_DIR})'"
+    bind_if_input "_TMP_SHARE_DIR_CLT_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to display on local from '${_TMP_SHARE_DIR_CLT_SVR_HOST}(${_TMP_SHARE_DIR_CLT_SVR_DIR})'"
 
     # mount -t nfs ${_TMP_SHARE_DIR_CLT_SVR_HOST}:${_TMP_SHARE_DIR_CLT_SVR_DIR} ${_TMP_SHARE_DIR_CLT_LCL_DIR}
     echo "${_TMP_SHARE_DIR_CLT_SVR_HOST}:${_TMP_SHARE_DIR_CLT_SVR_DIR} ${_TMP_SHARE_DIR_CLT_LCL_DIR} nfs defaults 0 0" >> /etc/fstab
@@ -312,7 +312,7 @@ function ssh_transfer()
     # 正向：ssh -fCNL 0.0.0.0:22000:localhost:22 root@2.2.2.2 -p 22，监听本地22000，互通远程22
     typeset -u _TMP_SSH_TRANS_TUNNEL_MODE
     local _TMP_SSH_TRANS_TUNNEL_MODE="L"
-    input_if_empty "_TMP_SSH_TRANS_TUNNEL_MODE" "${FUNCNAME[0]} Please ender 'the tunnel mode(Local/L、Remote/R、Dynamic/D)'?"
+    bind_if_input "_TMP_SSH_TRANS_TUNNEL_MODE" "${FUNCNAME[0]} Please ender 'the tunnel mode(Local/L、Remote/R、Dynamic/D)'?"
 
     local _TMP_SSH_TRANS_TUNNEL_MODE_NAME_LOWER="dynamic"
     local _TMP_SSH_TRANS_TUNNEL_MODE_NAME_OPPOSITE_LOWER="dynamic"
@@ -330,25 +330,25 @@ function ssh_transfer()
 	esac
         
     local _TMP_SSH_TRANS_DEST_HOST="xyz.ipssh.net"
-    input_if_empty "_TMP_SSH_TRANS_DEST_HOST" "${FUNCNAME[0]} Please ender 'which dest address' you want to login on remote"
+    bind_if_input "_TMP_SSH_TRANS_DEST_HOST" "${FUNCNAME[0]} Please ender 'which dest address' you want to login on remote"
     
     local _TMP_SSH_TRANS_DEST_HOST_PORT="22"
-    input_if_empty "_TMP_SSH_TRANS_DEST_HOST_PORT" "${FUNCNAME[0]} Please ender 'which port of dest(${_TMP_SSH_TRANS_DEST_HOST})' you want to login on remote"
+    bind_if_input "_TMP_SSH_TRANS_DEST_HOST_PORT" "${FUNCNAME[0]} Please ender 'which port of dest(${_TMP_SSH_TRANS_DEST_HOST})' you want to login on remote"
 
     local _TMP_SSH_TRANS_DEST_USER="root"
-    input_if_empty "_TMP_SSH_TRANS_DEST_USER" "${FUNCNAME[0]} Please ender 'which user of dest(${_TMP_SSH_TRANS_DEST_HOST})' on remote by ssh to login"
+    bind_if_input "_TMP_SSH_TRANS_DEST_USER" "${FUNCNAME[0]} Please ender 'which user of dest(${_TMP_SSH_TRANS_DEST_HOST})' on remote by ssh to login"
 
     local _TMP_SSH_TRANS_TUNNEL_HOST1="localhost" 
-    input_if_empty "_TMP_SSH_TRANS_TUNNEL_HOST1" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_LOWER} address' you want to listen"
+    bind_if_input "_TMP_SSH_TRANS_TUNNEL_HOST1" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_LOWER} address' you want to listen"
     
     local _TMP_SSH_TRANS_TUNNEL_PORT1="80"
-    input_if_empty "_TMP_SSH_TRANS_TUNNEL_PORT1" "${FUNCNAME[0]} Please ender 'the port' u want to listener on ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_LOWER}"
+    bind_if_input "_TMP_SSH_TRANS_TUNNEL_PORT1" "${FUNCNAME[0]} Please ender 'the port' u want to listener on ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_LOWER}"
         
     local _TMP_SSH_TRANS_TUNNEL_HOST2="localhost" 
-    input_if_empty "_TMP_SSH_TRANS_TUNNEL_HOST2" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_OPPOSITE_LOWER} address' you want to listen"
+    bind_if_input "_TMP_SSH_TRANS_TUNNEL_HOST2" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_OPPOSITE_LOWER} address' you want to listen"
     
     local _TMP_SSH_TRANS_TUNNEL_PORT2="${_TMP_SSH_TRANS_TUNNEL_PORT1}"
-    input_if_empty "_TMP_SSH_TRANS_TUNNEL_PORT2" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_OPPOSITE_LOWER} address port' you want to listen"
+    bind_if_input "_TMP_SSH_TRANS_TUNNEL_PORT2" "${FUNCNAME[0]} Please ender 'which ${_TMP_SSH_TRANS_TUNNEL_MODE_NAME_OPPOSITE_LOWER} address port' you want to listen"
 
     function _nopwd_login()
     {

@@ -164,7 +164,7 @@ EOF
 
 	#安装软件设定
 	if [ ! -f "${SETUP_DIR}/.sys_domain" ]; then
-		input_if_empty "SYS_DOMAIN" "[${FUNCNAME[0]}]: Please ender 'system domain' like 'myvnc.com' or else"
+		bind_if_inputty "SYS_DOMAIN" "[${FUNCNAME[0]}]: Please ender 'system domain' like 'myvnc.com' or else"
 		echo "${SYS_DOMAIN}" > ${SETUP_DIR}/.sys_domain
 	fi
 	
