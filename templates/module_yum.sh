@@ -285,4 +285,4 @@ function check_setup_$soft_name()
 ##########################################################################################################
 
 # 安装主体
-setup_soft_basic "$title_name" "check_setup_$soft_name"
+soft_setup_basic "$title_name" "check_setup_$soft_name"

@@ -272,7 +272,7 @@ function down_$soft_name()
 	# echo "$title_name: The newer stable version is ${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
     # local TMP_$soft_upper_short_name_SETUP_NEWER="${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
 
-	# setup_soft_git "$setup_name" "https://github.com/${git_repo}" "exec_step_$soft_name"
+	# soft_setup_git "$setup_name" "https://github.com/${git_repo}" "exec_step_$soft_name"
 	local TMP_$soft_upper_short_name_SETUP_NEWER="1.0.0"
 	set_github_soft_releases_newer_version "TMP_$soft_upper_short_name_SETUP_NEWER" "${git_repo}"
 	exec_text_printf "TMP_$soft_upper_short_name_SETUP_NEWER" "https://www.xxx.com/downloads/$setup_name-%s.tar.gz"
@@ -282,7 +282,7 @@ function down_$soft_name()
 	# exec_text_printf "TMP_$soft_upper_short_name_SETUP_NEWER" "${TMP_$soft_upper_short_name_DOWN_URL_BASE}%s"
 	# soft_cmd_check_confirm_git_action "$setup_name" "${git_repo}" "https://github.com/${git_repo}/releases/download/v%s/$setup_name_v%s_linux_amd64.zip" "0.4.0" "unzip $setup_name_v%s_linux_amd64.zip && mv pup /usr/bin/" "reinstall"
 	# soft_cmd_check_upgrade_action "$setup_name" "exec_step_$soft_name" "$setup_name update $setup_name"
-    setup_soft_wget "$setup_name" "${TMP_$soft_upper_short_name_SETUP_NEWER}" "exec_step_$soft_name"
+    soft_setup_wget "$setup_name" "${TMP_$soft_upper_short_name_SETUP_NEWER}" "exec_step_$soft_name"
 
 	return $?
 }
@@ -290,4 +290,4 @@ function down_$soft_name()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "$title_name" "down_$soft_name"
+soft_setup_basic "$title_name" "down_$soft_name"

@@ -278,12 +278,12 @@ function setup_ext_miniconda()
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
     echo ${TMP_SPLITER2}
-    setup_soft_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
+    soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
     echo_text_style "Plugin 'playwright'@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}
-    setup_soft_conda_pip "runlike" "whereis runlike"
+    soft_setup_conda_pip "runlike" "whereis runlike"
     echo ${TMP_SPLITER2}
-    setup_soft_conda_pip "whaler" "whereis whaler"
+    soft_setup_conda_pip "whaler" "whereis whaler"
  
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
@@ -518,4 +518,4 @@ function check_setup_miniconda()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "MiniConda" "check_setup_miniconda"
+soft_setup_basic "MiniConda" "check_setup_miniconda"

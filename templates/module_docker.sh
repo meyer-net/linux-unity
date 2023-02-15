@@ -189,7 +189,7 @@ function check_setup_dc_$soft_name()
 	# echo "$title_name: The newer stable version is ${TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
     # local TMP_DC_$soft_upper_short_name_SETUP_NEWER="${TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
 
-	# setup_soft_git "$setup_name" "https://github.com/${git_repo}" "exec_step_$soft_name"
+	# soft_setup_git "$setup_name" "https://github.com/${git_repo}" "exec_step_$soft_name"
 	local TMP_DC_$soft_upper_short_name_SETUP_NEWER="1.0.0"
 	set_github_soft_releases_newer_version "TMP_DC_$soft_upper_short_name_SETUP_NEWER" "${git_repo}"
 	exec_text_printf "TMP_DC_$soft_upper_short_name_SETUP_NEWER" "https://www.xxx.com/downloads/$setup_name-%s.tar.gz"
@@ -197,7 +197,7 @@ function check_setup_dc_$soft_name()
 	# set_newer_by_url_list_link_date "TMP_DC_$soft_upper_short_name_SETUP_NEWER" "${TMP_DC_$soft_upper_short_name_DOWN_URL_BASE}" "$setup_name-.*.tar.gz"
 	# set_newer_by_url_list_link_text "TMP_DC_$soft_upper_short_name_SETUP_NEWER" "${TMP_DC_$soft_upper_short_name_DOWN_URL_BASE}" "$setup_name-().tar.gz"
 	# exec_text_printf "TMP_DC_$soft_upper_short_name_SETUP_NEWER" "${TMP_DC_$soft_upper_short_name_DOWN_URL_BASE}%s"
-    setup_soft_wget "$setup_name" "${TMP_DC_$soft_upper_short_name_SETUP_NEWER}" "exec_step_$soft_name"
+    soft_setup_wget "$setup_name" "${TMP_DC_$soft_upper_short_name_SETUP_NEWER}" "exec_step_$soft_name"
 
     soft_${SYS_SETUP_COMMAND}_check_action "$setup_name" "exec_step_$soft_name" "$title_name was installed"
 
@@ -207,4 +207,4 @@ function check_setup_dc_$soft_name()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "$title_name" "check_setup_dc_$soft_name"
+soft_setup_basic "$title_name" "check_setup_dc_$soft_name"

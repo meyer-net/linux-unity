@@ -369,7 +369,7 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_PRE_ARG_CMD=""
 
     # 开始启动
-    soft_docker_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_PRE_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
+    docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_PRE_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
 
     return $?
 }
@@ -389,4 +389,4 @@ function check_setup_dc_browserless_chrome() {
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "browserless/chrome" "check_setup_dc_browserless_chrome"
+soft_setup_basic "browserless/chrome" "check_setup_dc_browserless_chrome"

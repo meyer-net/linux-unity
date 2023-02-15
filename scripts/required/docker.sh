@@ -117,7 +117,7 @@ function special_backup_docker()
         # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
         echo "${TMP_SPLITER2}"
         echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
-        echo "${TMP_DOCKER_SETUP_CTNS}" | eval "exec_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+        echo "${TMP_DOCKER_SETUP_CTNS}" | eval "script_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
         echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
     }
 
@@ -274,7 +274,7 @@ function test_docker()
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
 
-    exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_if_choice_action"
+    exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action"
 
 	return $?
 }
@@ -378,7 +378,7 @@ function setup_ext_docker()
     # }
 
     # local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
-    # soft_docker_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
+    # docker_image_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
     
     local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
     source ${__TMP_DIR}/docker/*.sh
@@ -451,4 +451,4 @@ function check_setup_docker()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "Docker" "check_setup_docker"
+soft_setup_basic "Docker" "check_setup_docker"

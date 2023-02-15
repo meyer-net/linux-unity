@@ -331,4 +331,4 @@ read -e TTTT
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "Nvm" "check_setup_nvm"
+soft_setup_basic "Nvm" "check_setup_nvm"

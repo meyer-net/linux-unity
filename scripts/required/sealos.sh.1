@@ -224,7 +224,7 @@ function down_sealos()
 	local TMP_SLS_SETUP_NEWER="4.1.3"
 	set_github_soft_releases_newer_version "TMP_SLS_SETUP_NEWER" "labring/sealos"
 	exec_text_printf "TMP_SLS_SETUP_NEWER" "https://github.com/labring/sealos/releases/download/v%s/sealos_%s_linux_amd64.tar.gz"
-    setup_soft_wget "sealos" "${TMP_SLS_SETUP_NEWER}" "exec_step_sealos"
+    soft_setup_wget "sealos" "${TMP_SLS_SETUP_NEWER}" "exec_step_sealos"
 
 	return $?
 }
@@ -232,4 +232,4 @@ function down_sealos()
 ##########################################################################################################
 
 #安装主体
-setup_soft_basic "Sealos" "down_sealos"
+soft_setup_basic "Sealos" "down_sealos"
