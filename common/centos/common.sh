@@ -3518,23 +3518,23 @@ function docker_soft_trail_clear()
 
 	typeset -u _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE=${2:-"N"}
-	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR=($(su_bash_channel_conda_exec "runlike ${1}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | sort | tr -d '\r'))
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR=($(su_bash_channel_conda_exec "runlike ${1}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | sort | tr -d '\r'))
 	
 	# 合并重复
-	item_not_exists_action "^${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
-	item_not_exists_action "^${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
-	item_not_exists_action "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
-	item_not_exists_action "^${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR}]=${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	item_not_exists_action "^${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR}]=${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	item_not_exists_action "^${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR}]=${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	item_not_exists_action "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR}]=${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
+	item_not_exists_action "^${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}$" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[\${#_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR}]=${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
 
 	# 容器移除
 	function _docker_soft_trail_clear_ctn_remove()
 	{
+		echo_text_style "Starting 'stop&remove' 'containers' from 'image'(<${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}>:[${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}])"
 		docker stop ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
 		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
-		docker rmi ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_ID}
 	}
 	
-	dirs_trail_clear "${1}" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
+	dirs_trail_clear "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
 
 	return $?
 }
@@ -5580,8 +5580,15 @@ function soft_docker_check_upgrade_action()
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG="${1}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_MARK_NAME="${1/\//_}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT=${2}
+	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP=$(docker images | grep "^${1}")
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}\""
+
+	function _soft_docker_check_upgrade_action_print_image()
+	{
+		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2==\"${1}\"){print}}"
+	}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS}\" | eval script_channel_action '_soft_docker_check_upgrade_action_print_image'"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT=${3:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT}}
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC=${4:-"install"}
 
@@ -5593,7 +5600,58 @@ function soft_docker_check_upgrade_action()
 		function _soft_docker_check_upgrade_action_choice_action()
 		{
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER="${2}"
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER="${2}"
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE="${3}"
+
+			# 确认重装
+			function _soft_docker_check_upgrade_action_confrim_reinstall()
+			{
+				# 重装
+				function _soft_docker_check_upgrade_action_reinstall()
+				{
+					# 有镜像，没容器
+					# 有容器则备份数据，有镜像直接重装
+					echo_text_style "Starting 're${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
+										
+					# # 执行备份后自定义命令
+					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}"
+
+					# # 执行安装			
+					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "was re"
+					function _soft_docker_check_upgrade_action_ctn_remove()
+					{						
+						# 重装先确认备份，默认备份
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
+						confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the 'docker soft' of 'container'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]('${1}')) u will [backup check] 'still or not'"
+
+						# 是否强制删除这里取反，docker_soft_trail_clear参数需要
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_BACKUP_Y_N}"
+						bind_exchange_yn_val "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N"
+
+						# # 卸载容器前检测，备份残留或NO
+						docker_soft_trail_clear "${1}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
+					}
+
+					function _soft_docker_check_upgrade_action_img_remove()
+					{
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2==\"${1}\"){ print \$1}}")
+						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS}" "_soft_docker_check_upgrade_action_ctn_remove"
+										
+						echo_text_style "Starting 'remove' from 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${1}])"
+						docker rmi ${1}
+					}
+
+					# 查找当前镜像的ID
+					local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}\"){print \$3}}")
+					items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS}" "_soft_docker_check_upgrade_action_img_remove"
+					
+					_soft_docker_check_upgrade_action_install
+					# docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "_soft_docker_check_upgrade_action_install && script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${2}' '${3}'"
+				}
+
+				# 已经存在版本，安装该版本可以走快照
+				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) was exists, please sure u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}'"
+			}
 
 			function _soft_docker_check_upgrade_action_install()
 			{
@@ -5606,32 +5664,21 @@ function soft_docker_check_upgrade_action()
 
 						# 重新定义版本号
 						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" == "latest" ]; then
-							_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest | awk -F' ' 'NR==2{print $3}')
-							docker tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}
+							_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest | awk -F' ' 'NR==2{print $3}')
+							docker tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}
 							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest
 						fi
 
 						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
-						item_not_exists_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
+						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
 					;;
 					*)
-						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
+						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
 				esac
 			}
 
 			if [ -n "${1}" ]; then
-				# ？？？重装及备份数据
-				function _soft_docker_check_upgrade_action_reinstall()
-				{
-					# 有镜像，没容器
-					# 有容器则备份数据，有镜像直接重装
-					echo_text_style "Starting 're${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
-					# _soft_docker_check_upgrade_action_install
-					# docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "_soft_docker_check_upgrade_action_install && script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${2}' '${3}'"
-				}
-
-				# 已经存在版本，安装该版本可以走快照
-				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${2}]) was exists, please sure u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${2}'"
+				_soft_docker_check_upgrade_action_confrim_reinstall
 			else
 				_soft_docker_check_upgrade_action_install
 			fi
@@ -5640,8 +5687,6 @@ function soft_docker_check_upgrade_action()
 		docker_images_choice_vers_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "Please sure 'which version' u want to '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' of 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>" "_soft_docker_check_upgrade_action_choice_action"
 	}
 
-	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS}" ]; then
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL="N"
 		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>) was got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS//[[:space:]]/,}]), please sure u will [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT"
