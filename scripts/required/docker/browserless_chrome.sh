@@ -101,8 +101,13 @@ function formal_dc_browserless_chrome() {
     soft_path_restore_confirm_pcreate "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}" "_formal_dc_browserless_chrome_cp_data"
 
     ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### ETC目录规范
+    #### /mountdisk/data/docker/containers/${CTN_ID}
+    local TMP_DC_BLC_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_BLC_SETUP_CTN_ID}"
+    #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container
+    local TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/container"
     #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111
-    # function _formal_dc_browserless_chrome_cp_etc() {
+    function _formal_dc_browserless_chrome_cp_etc() {
     #     echo "${TMP_SPLITER2}"
     #     echo_text_style "View the 'etc copy'↓:"
 
@@ -114,17 +119,11 @@ function formal_dc_browserless_chrome() {
     
     #     # 移除本地配置目录(挂载)
     #     rm -rf ${TMP_DC_BLC_SETUP_WORK_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
-    # }
+        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container
+        soft_path_restore_confirm_swap "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_BLC_SETUP_CTN_DIR}"
+    }
     soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}" "_formal_dc_browserless_chrome_cp_etc"
-
-    ### ETC目录规范
-    #### /mountdisk/data/docker/containers/${CTN_ID}
-    local TMP_DC_BLC_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_BLC_SETUP_CTN_ID}"
-    #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container
-    local TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container
-    soft_path_restore_confirm_swap "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_BLC_SETUP_CTN_DIR}"
-    
+   
     ### 迁移ETC下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
     ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/browserless_chrome/imgver111111/docker_output/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
@@ -150,7 +149,8 @@ function formal_dc_browserless_chrome() {
     path_not_exists_link "${TMP_DC_BLC_SETUP_ETC_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}"
     #### /opt/docker/etc/browserless_chrome/imgver111111 -> /mountdisk/etc/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_VER}" "" "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}"
-
+    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container
+    path_not_exists_link "${TMP_DC_BLC_SETUP_CTN_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}"
 
     # 预实验部分        
     ## 目录调整完修改启动参数
