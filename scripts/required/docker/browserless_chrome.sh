@@ -173,7 +173,7 @@ function formal_dc_browserless_chrome() {
     {
         # （废弃）修复日志路径在软链情况下，docker就开始跑乱不识别的问题
         # change_docker_container_inspect_arg "${1}" ".LogPath" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${1}-json.log"
-
+        # docker volume create "${TMP_DC_BLC_SETUP_IMG_MARK_NAME}_" 
         # 挂载目录
         change_docker_container_inspect_mounts "${1}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
     }
@@ -362,9 +362,10 @@ function boot_build_dc_browserless_chrome() {
     
     # 标准启动参数
     local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
+    local TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
-    local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} --restart always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
+    local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
     
     local TMP_DC_BLC_SETUP_PRE_ARG_CMD=""
 

@@ -149,6 +149,8 @@ function setup_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
     # 开始安装
+    ## 创建自有内部网络
+    docker network create ${DOCKER_NETWORK}
 
 	return $?
 }
