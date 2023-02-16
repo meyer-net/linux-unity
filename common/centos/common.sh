@@ -1231,8 +1231,8 @@ function item_change_remove_action()
 #      _OUTPUT_ARR[4]="/var/lib/docker"
 #      _OUTPUT_ARR[5]="/var/log/docker"
 #      _OUTPUT_ARR[6]="/etc/docker"
-#      items_change_combine_remove_action "${_CHECK_ARR[*]}" "${_OUTPUT_ARR[*]}" '_OUTPUT_ARR_STR="${3}" && echo "after remove arr str：${@:1:2}" && echo "${_OUTPUT_ARR_STR}"'
 #      items_change_combine_remove_action "${_CHECK_ARR[*]}" "${_OUTPUT_ARR[*]}" '_OUTPUT_ARR=(${3}) && echo "after remove arr str：${@:1:2}" && echo "${_OUTPUT_ARR[*]}"'
+#      items_change_combine_remove_action "${_CHECK_ARR[*]}" "${_OUTPUT_ARR[*]}" '_OUTPUT_ARR_STR="${3}" && echo "after remove arr str：${@:1:2}" && echo "${_OUTPUT_ARR_STR}"'
 function items_change_combine_remove_action()
 {
 	local _TMP_ITEMS_CHANGE_COMBINE_REMOVE_OUTPUT_ARR_STR="${2}"
@@ -1242,6 +1242,8 @@ function items_change_combine_remove_action()
 	{
 		function _items_change_combine_remove_action_combine()
 		{
+			# 处于循环体中，不能删除，否则引用会失效
+			_TMP_ITEMS_CHANGE_COMBINE_REMOVE_OUTPUT_ARR_STR="${3}"
 			script_check_action "_TMP_ITEMS_CHANGE_COMBINE_REMOVE_AFTER_REMOVE_SCRIPTS" "${1}" "${2}" "${3}"
 		}
 
