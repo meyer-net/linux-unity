@@ -5931,7 +5931,7 @@ function soft_docker_check_upgrade_action()
 
 					function _soft_docker_check_upgrade_action_img_trail()
 					{
-						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2==\"${1}\"){ print \$1}}")
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2~\"${1}\"){ print \$1}}")
 						echo_text_style "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS:-none}])"
 						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS}" "_soft_docker_check_upgrade_action_ctn_trail"
 						
