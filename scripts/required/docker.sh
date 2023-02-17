@@ -179,6 +179,7 @@ function formal_docker()
 	## 日志
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
 	## 数据
+    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     ## soft_path_restore_confirm_action "/etc/docker"
@@ -315,9 +316,22 @@ function boot_docker()
     echo "${TMP_SPLITER2}"	
     echo_text_style "View the 'version'↓:"
     docker -v
+
     echo "${TMP_SPLITER2}"	
     echo_text_style "View the 'info'↓:"
     docker info
+    
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'images'↓:"
+    docker images
+    
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'images df'↓:"
+    docker images df
+    
+    echo "${TMP_SPLITER2}"
+    echo_text_style "View the 'containers'↓:"
+    docker ps -a
 
     # 结束
     exec_sleep 10 "Boot <docker> over, please checking the setup log, this will stay 10 secs to exit"
@@ -441,7 +455,8 @@ function check_setup_docker()
 
 	# 安装后的真实路径
     local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/logs
-    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data
+    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/main
+    local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/apps
 	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
 
     # 重装/更新/安装

@@ -496,40 +496,49 @@ function set_if_equals()
 	return $?
 }
 
-# 识别并交换var值
+# 识别并交换var值 ??? 传递空数组时，会变成变量名。有地方被引用
 # 参数1：需要识别的变量名/值
 # 参数2：识别后执行函数
 # 参数3-N：动态传参
 # 示例：
 #      discern_exchange_var_action 123
-#      _VAR=123 && discern_exchange_var_action "_VAR"
+#      _VAR=123 && discern_exchange_var_action "_VAR" "_child_func"
 #      discern_exchange_var_action "abc"
 #      _VAR="abc" && discern_exchange_var_action "_VAR"
 #      discern_exchange_var_action "${1}" "_child_func" "${@}"
 function discern_exchange_var_action() {
+	
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="${1}"
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=$(eval echo '${'"${1}"'}')
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC="${2}"
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL="${1}"
 
-	# 识别直接赋值非变量名的场景
-	if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}" ]; then
-		# 未定义变量则使用变量本身
-		# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
-		if [ -z $(eval echo '${'"${1}"+x'}') ]; then
-			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=${1}
-			_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL=${1}
-			_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL_$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')"
+	# 必须满足变量定义规范
+	if [ -n "$(echo "${1}" | egrep '^\w+$')" ]; then
+		_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=$(eval echo '${'"${1}"'}')
+
+		# 识别直接赋值非变量名的场景
+		if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}" ]; then
+			# 判断是否是数组定义，非0则被定义了别的变量
+			eval "unset ${1}[0]" >& /dev/null
+			local _TMP_DISCERN_EXCHANGE_VAR_ACTION_ARR_DEFINE=$?
+
+			# 判断是否是其它变量定义
+			# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
+			local _TMP_DISCERN_EXCHANGE_VAR_ACTION_ELSE_DEFINE=$(eval echo '${'"${1}"+x'}')
+			if [ -z "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_ELSE_DEFINE}" ] && [ ${_TMP_DISCERN_EXCHANGE_VAR_ACTION_ARR_DEFINE} -eq 0 ]; then
+				# 未定义变量则使用变量本身
+				_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL=${1}
+				_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL_$(cat /proc/sys/kernel/random/uuid | sed 's@-@_@g')"
+			fi
 		fi
 	fi
 
 	# 预先转变变量赋值
-	eval ${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_ACTION_EXCHANGE_VAL}'
+	eval ${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}='${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_VAL}'
 
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS=("${@:4}")
-	if [ -n "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC}" ]; then
+	if [ -n "${2}" ]; then
 		# 传参必须用[@]
-		${_TMP_DISCERN_EXCHANGE_VAR_ACTION_FUNC} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[@]}"
+		${2} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[@]}"
 		return $?
 	fi
 
@@ -543,6 +552,7 @@ function discern_exchange_var_action() {
 #      _VAR=123 && echo_discern_exchange_val "_VAR"
 #      echo_discern_exchange_val "abc"
 #      _VAR="abc" && echo_discern_exchange_val "_VAR"
+#      echo_discern_exchange_val "abc"
 function echo_discern_exchange_val() {
 	local _TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
 
@@ -552,9 +562,14 @@ function echo_discern_exchange_val() {
 		
 		# 识别直接赋值非变量名的场景
 		if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL}" ]; then
+			# 判断是否是数组定义，非0则被定义了别的变量
+			eval "unset ${1}[0]" >& /dev/null
+			local _TMP_ECHO_DISCERN_EXCHANGE_VAL_ARR_DEFINE=$?
+
 			# 未定义变量则使用变量本身
 			# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
-			if [ -z $(eval echo '${'"${1}"+x'}') ]; then
+			local _TMP_ECHO_DISCERN_EXCHANGE_VAL_ELSE_DEFINE=$(eval echo '${'"${1}"+x'}')
+			if [ -z "${_TMP_ECHO_DISCERN_EXCHANGE_VAL_ELSE_DEFINE}" ] && [ ${_TMP_ECHO_DISCERN_EXCHANGE_VAL_ARR_DEFINE} -eq 0 ]; then
 				_TMP_ECHO_DISCERN_EXCHANGE_VAL_VAR_VAL=${1}
 			fi
 		fi
@@ -1284,6 +1299,7 @@ function item_change_append_action()
 			_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR[${2}]=${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM}
 
 			script_check_action "${_TMP_ITEM_CHANGE_APPEND_ACTION_AFTER_APPEND_SCRIPTS}" "${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM}" "${2}" "${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR[*]}"
+			return $?
 		fi
 	}
 
@@ -1308,21 +1324,25 @@ function item_change_append_bind()
 {
 	local _TMP_ITEM_CHANGE_APPEND_BIND_REGEX="${2}"
 	local _TMP_ITEM_CHANGE_APPEND_BIND_ITEM="${3}"
+	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE=$(check_var_type "${1}")
 
 	function _item_change_append_bind()
 	{
 		local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME=${1}
 		local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
- 		local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE=$(check_var_type "${1}")
 		if [ "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE}" == "array" ]; then
 			_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
 		fi
 		
 		function _item_change_append_bind_re()
 		{
-			_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="${3}"
+			# _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="${3}"
 			if [ "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE}" == "array" ]; then
-				eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${3})'
+				if [ -z "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL}" ]; then
+					eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${1})'
+				else
+					eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${3})'
+				fi
 			else
 				eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='${3}'
 			fi
@@ -1347,36 +1367,43 @@ function item_change_append_bind()
 #       _ARR[1]="/var/lib/docker"
 #       _ARR[2]="/var/log/docker"
 #       _ARR[3]="/etc/docker"
-#       local _CHECK_ITEM="^/etc/docker$"
-#       item_change_append_ignore_prefix_bind "_ARR" "/opt/docker/logs" && echo "${_ARR[*]}"
-#       item_change_append_ignore_prefix_bind "${_ARR[*]}" "/etc/docker"
+#       item_change_append_ignore_prefix_bind "_ARR" "/opt/docker/logs" && echo "(${_ARR[*]}):${#_ARR[@]}"
+#       item_change_append_ignore_prefix_bind "_ARR" "/opt/docker1/logs" && echo "(${_ARR[*]}):${#_ARR[@]}"
+#       item_change_append_ignore_prefix_bind "_ARR" "/opt/docker2/logs" "/" && echo "(${_ARR[*]}):${#_ARR[@]}"
+#       item_change_append_ignore_prefix_bind "_ARR" "/opt/newer" && echo "(${_ARR[*]}):${#_ARR[@]}"
+#       item_change_append_ignore_prefix_bind "${_ARR[*]}" "/etc/docker"  ??? 不兼容
 function item_change_append_ignore_prefix_bind()
 {
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME="${1}"
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE=$(check_var_type "${1}")
 	function _item_change_append_ignore_prefix_bind()
 	{
 		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
 		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM="${2}"
 		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER="${3}"
- 		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE=$(check_var_type "${1}")
 		if [ "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE}" == "array" ]; then
 			_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
 		fi
 
-		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=0
+		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=""
 		function _item_change_append_ignore_prefix_bind_filter()
 		{
 			# 前置不存在
 			echo "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM}" | egrep "^${1}${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER}" >& /dev/null
 			if [ $? -eq 0 ]; then
-				_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=1
+				_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=0
 				break
 			fi
 		}
+		
 		items_split_action "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL}" "_item_change_append_ignore_prefix_bind_filter"
 
-		if [ ${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET} -eq 0 ]; then
-			item_change_append_bind "${1}" "^${2}$" "${2}"
+		if [ -z "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}" ]; then
+			item_change_append_bind "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME}" "^${2}$" "${2}"
+			return $?
 		fi
+		
+		return ${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}
 	}
 
 	discern_exchange_var_action "${1}" "_item_change_append_ignore_prefix_bind" "${@}"
@@ -1489,7 +1516,7 @@ function symlink_link_path()
 			
 			_TMP_SYMLINK_TRUE_PATH_INDEX=$((_TMP_SYMLINK_TRUE_PATH_INDEX+1))
 			if [ ${_TMP_SYMLINK_TRUE_PATH_INDEX} -gt 9 ]; then
-				echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, Cannot resolve, please check, system exit."
+				echo_text_style "The symlink of '${_TMP_SYMLINK_TRUE_PATH_TMP}' linked too much more depth, cannot resolve, please check, system exit."
 				exit
 			fi
 		done
@@ -1542,59 +1569,70 @@ function exchange_softlink()
 #       _SOURCE_DIR_ARR[1]="/opt/docker/data"
 #       _SOURCE_DIR_ARR[2]="/opt/docker/etc"
 #       _SOURCE_DIR_ARR[2]="/opt/docker"
-#       convert_dirs_truthful_action "_REALLY_DIRS" "${_SOURCE_DIR_ARR[*]}" "rm -rf %s"
-function convert_dirs_truthful_action()
+#       dirs_convert_truthful_action "_REALLY_DIRS" "${_SOURCE_DIR_ARR[*]}" "rm -rf %s"
+function dirs_convert_truthful_action()
 {
-	function _convert_dirs_truthful_action()
+	function _dirs_convert_truthful_action()
 	{
-		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR=(${2})
-		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR=()
+		local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SOURCE_DIR_ARR=(${2})
+		local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_NT_SCRIPTS=${3}
+		local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR=()
 
-		for _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX in ${!_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[@]};  
-		do
+		function _dirs_convert_truthful_action_record()
+		{
 			# 指定链接
-			local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SOURCE_DIR_ARR[${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_DIR_INDEX}]}"
+			local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR="${1}"
 
 			# 真实链接
-			local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}"
-			symlink_link_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR"
+			local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR="${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}"
+			symlink_link_path "_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR"
+			
+			# 如果是软链接，直接删除
+			local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT=""
+			if [ "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}" ]; then
+				_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT=", marked '${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}' → '${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}'"
+				script_check_action "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_NT_SCRIPTS}" "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}" "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}"
+			fi
 
 			# 如果数组中不存在指定链接，则添加
-			# local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX=""
-			function _convert_dirs_truthful_action_record_rel_arr()
+			# local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_PREFIX=""
+			function _dirs_convert_truthful_action_record_rel_arr()
 			{
-				if [ -a ${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR} ]; then
+				if [ -a ${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR} ]; then
+					# 插入前长度
+					local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR_LEN=${#_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]}
+
 					# 绝对链接
-					local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR=${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}
-					convert_path "_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR"
+					local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR=${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}
+					convert_path "_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR"
 
-					# if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}" ]; then
-					# 	_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_PREFIX="|"
-					# fi
-
-					local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_MARK_TEXT=""
-					if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}" ]; then
-						_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_MARK_TEXT=", marked '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}' -> '${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}'"
+					# 因 item_change_append_ignore_prefix_bind 不支持空数组，所以固定写一个/???
+					if [ ${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR_LEN} -eq 0 ]; then
+						_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[0]="${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}"
+					else
+						item_change_append_ignore_prefix_bind "_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR" "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}" "/"
 					fi
 
-					echo_text_style "Record really dir of [${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}]${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_MARK_TEXT}"
-					_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[${#_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]}]="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_ABS_DIR}"
+					if [ ${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR_LEN} -ne ${#_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]} ]; then
+						echo_text_style "Record <really> dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}'${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT})"
+					else
+						echo_text_style "Ignore [really] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}'${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT})"
+					fi
+				else
+					echo_text_style "Ignore [not exists] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}' → [${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}])"
 				fi
 			}
 			
-			item_not_exists_action "^${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}$" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" "_convert_dirs_truthful_action_record_rel_arr"
+			item_not_exists_action "^${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}$" "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" "_dirs_convert_truthful_action_record_rel_arr"
+		}
 
-			# 如果是软链接，直接删除
-			if [ "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" != "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}" ]; then
-				script_check_action "${3}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_SYM_DIR}" "${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_LNK_DIR}"
-			fi
-		done
+		items_split_action "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SOURCE_DIR_ARR[*]}" "_dirs_convert_truthful_action_record"
 		
-		local _TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
-		eval ${1}='${_TMP_CONVERT_DIRS_TRUTHFUL_ACTION_REALLY_DIRS}'
+		local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
+		eval ${1}='${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIRS}'
 	}
 
-	discern_exchange_var_action "${1}" "_convert_dirs_truthful_action" "${@}"
+	discern_exchange_var_action "${1}" "_dirs_convert_truthful_action" "${@}"
 	return $?
 }
 
@@ -3530,24 +3568,23 @@ function dirs_trail_clear()
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
 	echo "${TMP_SPLITER3}"
-	echo_text_style "Starting 'resolve the dirs' of soft <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+	echo_text_style "Starting 'resolve dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
 
 	function _dirs_trail_clear_remove_sym_dir()
 	{
-		echo_text_style "'|'Checked a really dir <${2}>, symlink of '${1}' was deleted."
-		echo 
+		echo_text_style "'|'Found <really> dir [${2}], symlink '${1}' was deleted."
 		rm -rf ${1}
 	}
 
 	# 转换为真实目录，防止不识别
 	local _TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS=""
-	convert_dirs_truthful_action "_TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS" "${_TMP_DIRS_TRAIL_CLEAR_SOURCE_DIR_ARR[*]}" "_dirs_trail_clear_remove_sym_dir"
+	dirs_convert_truthful_action "_TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS" "${_TMP_DIRS_TRAIL_CLEAR_SOURCE_DIR_ARR[*]}" "_dirs_trail_clear_remove_sym_dir"
 	local _TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR=(${_TMP_DIRS_TRAIL_CLEAR_REALLY_DIRS})
 	
 	if [ ${#_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[@]} -gt 0 ]; then
-		echo_text_style "The 'soft dirs' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was resolved"
+		echo_text_style "The 'dirs' from soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>) was resolved"
 	else
-		echo_text_style "None 'soft dirs found for trail' in <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+		echo_text_style "None 'dirs found' for 'trail' in soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
 	fi
 
 	# 备份 && 删除文件
@@ -3555,7 +3592,7 @@ function dirs_trail_clear()
 	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP=$(date -d "${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME}" +%s)
 	local _TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Backup dir <%s> not found'"
 	# local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_DIRS_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
-	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was [force deleted]。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
+	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was [force deleted]。if u want to <restore>，please find it by yourself to <${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_text_style 'Force delete dir <%s> not found'"
 	function _dirs_trail_clear_exec_backup()
 	{
 		local _TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO="([${_TMP_DIRS_TRAIL_CLEAR_NAME}]) Checked the trail dir of '${1}', please sure u will <backup> 'still or not'"
@@ -3567,13 +3604,13 @@ function dirs_trail_clear()
 
 		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
 		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
-		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Do nothing for dir <${1}>'" "Y"
+		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Dir of <${1}> not found" "Y"
 	}
 	
 	# 有记录的情况下才执行
 	if [ ${#_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[@]} -gt 0 ]; then
 		echo "${TMP_SPLITER3}"
-		echo_text_style "Starting 'trail' the soft dirs of <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
+		echo_text_style "Starting 'trail' the dirs of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>）"
 		if [ "${_TMP_DIRS_TRAIL_CLEAR_FORCE}" == "N" ]; then
 			## 具备特殊性质的备份，优先执行
 			local _TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_DIRS_TRAIL_CLEAR_MARK_NAME}"
@@ -3593,7 +3630,7 @@ function dirs_trail_clear()
 			items_split_action "${_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[*]}" "${_TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT}"
 		fi
 
-		echo_text_style "The 'soft dirs trail' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was executed"
+		echo_text_style "The 'dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>) was trailed"
 	fi
 
 	return $?
@@ -3668,6 +3705,7 @@ function docker_soft_trail_clear()
 	# browserless_chrome/imgver111111
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR="${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_MARK_NAME}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_VER}"
 
+	# 真实路径 - 基础四大路径
 	typeset -u _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_FORCE=${2:-"N"}
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR=()
@@ -3675,19 +3713,38 @@ function docker_soft_trail_clear()
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[1]="${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[2]="${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[3]="${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-
-	# 虚拟目录
-	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}"
 	
+	# 真实路径 - 挂载路径
 	# 父目录存在的情况则不添加，例如:
 	# 已知目录：/opt/docker_apps/browserless_chrome/054dce166530，则类似/opt/docker_apps/browserless_chrome/054dce166530/work不添加
 	function _docker_soft_trail_clear_combine_filter()
 	{
-		item_change_append_ignore_prefix_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "${1}" "/"
+		if [ -z "$(docker volume ls | grep "${1}")" ]; then	
+			item_change_append_ignore_prefix_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "${1}" "/"
+		else
+			item_change_append_ignore_prefix_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")" "/"
+		fi
 	}
 	su_bash_channel_conda_exec "runlike ${1}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort | eval script_channel_action '_docker_soft_trail_clear_combine_filter'
+	
+	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
+	# 虚拟目录 - Docker目录
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/app_data/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/app_data/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}"
+
+	# 虚拟目录 - 容器安装目录
+	if [ -a "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}" ]; then
+		local _TMP_DOCKER_SOFT_TRAIL_CLEAR_APP_DIRS="$(ls -l ${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}/ | awk -F' ' '{print $9}' | awk '$1=$1')"
+		function _docker_soft_trail_clear_combine_append_setup()
+		{
+			item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}/${1}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}/${1}"
+		}
+
+		items_split_action "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_APP_DIRS}" "_docker_soft_trail_clear_combine_append_setup"
+	fi
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"	
 
 	# 容器移除
 	function _docker_soft_trail_clear_ctn_remove()
@@ -3697,7 +3754,7 @@ function docker_soft_trail_clear()
 		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
 	}
 	
-	dirs_trail_clear "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
+	dirs_trail_clear "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}('${1}')" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
 
 	return $?
 }
@@ -3723,7 +3780,7 @@ function soft_path_restore_confirm_action()
 	fi
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH="${1}"
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked a 'backup path' for <${1}>, please sure u want to 'restore still or not'"}"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO="${2:-"([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked a 'backup path' for <${1}>, please sure u want to <restore> 'still or not'"}"
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS=${3}
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
@@ -3735,7 +3792,7 @@ function soft_path_restore_confirm_action()
 	function _soft_path_restore_confirm_action_force_exec()
 	{
 		# 移动到备份，再覆盖
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was force deleted。if u want to restore，please find it by yourself to <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_text_style 'Force delete dir of <%s> not found'"
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_text_style \"Dir of '%s' was <force deleted>。if u want to <restore>，please find it by yourself from <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_text_style 'Force delete dir of <%s> not found'"
 
 		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
 		exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
@@ -3808,13 +3865,13 @@ function soft_path_restore_confirm_action()
 
 			# 还原目标路径本身存在，移至强行删除目录中（如果是走安装程序过来，会被提前备份，不会触发此段）
 			# 走到这步，已选择还原备份（是否覆盖还原/强制还原的过程，强制还原始终执行覆盖还原的逻辑）
-			path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "_soft_path_restore_confirm_action_force_exec" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "N"
+			path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "_soft_path_restore_confirm_action_restore_choice_force_exec" "_soft_path_restore_confirm_action_restore_choice_cover_exec" "N"
 		}
 		
 		path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER:-"none"}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_CONFIRM_ECHO}" "_soft_path_restore_confirm_action_restore_choice_exec" "_soft_path_restore_confirm_action_newer_exec" "_soft_path_restore_confirm_action_newer_exec" "Y"
 	}
 	
-	# 没有备份时执行
+	# 新装，或没有备份时执行
 	# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
 	function _soft_path_restore_confirm_action_newer_exec()
 	{
@@ -3936,17 +3993,17 @@ function fetch_docker_hub_release_ver_digests()
 # 参数1：容器ID
 # 参数2：中间执行脚本
 # 示例：
-#       change_docker_container_inspect_wrap "e75f9b427730" "change_docker_container_inspect_arg 'e75f9b427730' '.Config.WorkingDir' '/usr/src/app'"
-function change_docker_container_inspect_wrap()
+#       docker_change_container_inspect_wrap "e75f9b427730" "docker_change_container_inspect_arg 'e75f9b427730' '.Config.WorkingDir' '/usr/src/app'"
+function docker_change_container_inspect_wrap()
 {
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS=""
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_DC_STATUS=$(systemctl status docker | grep -oP "(?<=^   Active: )[^\s]+")
-	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_DC_STATUS}" != "inactive" ]; then
-		_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS=""
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_DC_STATUS=$(systemctl status docker | grep -oP "(?<=^   Active: )[^\s]+")
+	if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_DC_STATUS}" != "inactive" ]; then
+		_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
 		## 重新启动并构建新容器
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting 'stop' all 'running containers'(<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}>) & docker 'service', hold on please"
-		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container stop
+		echo_text_style "Starting 'stop' all 'running containers'(<${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}>) & docker 'service', hold on please"
+		echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container stop
 		systemctl stop docker.socket
 		systemctl stop docker.service
 	fi
@@ -3957,16 +4014,16 @@ function change_docker_container_inspect_wrap()
 	echo_text_style "Starting 'boot' docker 'service', hold on please"
 	systemctl start docker
 	
-	if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" ]; then
+	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}" ]; then
 		# 启动容器
 		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting 'boot' all 'stopped containers'(<${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}>), hold on please"
-		echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container start
+		echo_text_style "Starting 'boot' all 'stopped containers'(<${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}>), hold on please"
+		echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container start
 	fi
 
 	# 挂载可能产生等待
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
-	if [ -n "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_WRAP_PORT}" ]; then
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" ]; then
 		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
 	fi
 
@@ -3978,16 +4035,16 @@ function change_docker_container_inspect_wrap()
 # 参数2：修改的参数节点，例 .Config.WorkingDir
 # 参数3：修改的参数节点内容，例 /usr/src/app
 # 示例：
-#       change_docker_container_inspect_arg "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
-function change_docker_container_inspect_arg()
+#       docker_change_container_inspect_arg "e75f9b427730" ".Config.WorkingDir" "/usr/src/app"
+function docker_change_container_inspect_arg()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_DATA_PATH}/config.v2.json"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH})
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_DATA_PATH}/config.v2.json"
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH})
 	
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2" "${2}" "\"${3}\""
+    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2" "${2}" "\"${3}\""
 
-    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2}" | jq > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ARG_CONFV2_PATH}
+    echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2}" | jq > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH}
 
     return $?
 }
@@ -3997,16 +4054,16 @@ function change_docker_container_inspect_arg()
 # 参数2：环境变量名，例 LANG
 # 参数3：环境变量值，例 C.UTF-8
 # 示例：
-#       change_docker_container_inspect_env "e75f9b427730" "LANG" "C.UTF-8"
-function change_docker_container_inspect_env()
+#       docker_change_container_inspect_env "e75f9b427730" "LANG" "C.UTF-8"
+function docker_change_container_inspect_env()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_DATA_PATH}/config.v2.json"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH})
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_DATA_PATH}/config.v2.json"
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH})
     
-	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "${2}=${3}"
+	change_json_arg_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "${2}=${3}"
     
-    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_ENV_CONFV2_PATH}
+    echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2}" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH}
 
     return $?
 }
@@ -4016,15 +4073,15 @@ function change_docker_container_inspect_env()
 # 参数2：挂载路径，例 /opt/docker_apps/browserless_chrome/imgver111111
 # 参数3：容器路径 /usr/src/app
 # 示例：
-#       change_docker_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111" "/usr/src/app"
-function change_docker_container_inspect_mount()
+#       docker_change_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111" "/usr/src/app"
+function docker_change_container_inspect_mount()
 {
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH}/config.v2.json"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH})
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_DATA_PATH}/config.v2.json"
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_PATH})
 	
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_DATA_PATH}/hostconfig.json"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH})
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_DATA_PATH}/hostconfig.json"
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH})
     
     # {
     #     "Source": "/etc/localtime",
@@ -4041,69 +4098,143 @@ function change_docker_container_inspect_mount()
     #     },
     #     "SkipMountpointCreation": false
     # }
+	# "/tmp/test": {
+	# 	  "Source": "/mountdisk/data/docker/volumes/test/_data",
+	# 	  "Destination": "/tmp/test",
+	# 	  "RW": true,
+	# 	  "Name": "test",
+	# 	  "Driver": "local",
+	# 	  "Type": "volume",
+	# 	  "Relabel": "z",
+	# 	  "ID": "b086f05646ed02699b5059e60fbf7e2f9a4d56959600e1ff9e1f5d032868640c",
+	# 	  "Spec": {
+	# 	  	"Type": "volume",
+	# 	  	"Source": "test",
+	# 	  	"Target": "/tmp/test"
+	# 	  },
+	# 	  "SkipMountpointCreation": false
+    # }
 	# 修改 config.v2.json
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST=$(echo ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2} | jq ".MountPoints.\"${3}\"")
-    if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" == "null" ]; then
-        _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST='{ "RW": true, "Name": "", "Driver": "", "Type": "bind", "Propagation": "rprivate", "Spec": { "Type": "bind" }, "SkipMountpointCreation": false }'
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST=$(echo ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2} | jq ".MountPoints.\"${3}\"")
+    if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" == "null" ]; then
+		# BIND
+		_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST='{ "RW": true, "Name": "", "Driver": "", "Type": "bind", "Propagation": "rprivate", "Spec": { "Type": "bind" }, "SkipMountpointCreation": false }'
     fi
 
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
+	# VOL
+	if [ -z "$(echo "${2}" | grep -o "^/")" ]; then
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".NAME" "\"${2}\""
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${DOCKER_DATA_DIR}/volumes/${2}/_data\""
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Driver" "\"local\""
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Type" "\"volume\""
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Relabel" "\"z\""
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Type" "\"volume\""
+	else
+		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
+	fi
 
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
-    change_json_arg_item "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
+    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
+
+    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
+    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
 
     # argjson相关参考：https://www.jianshu.com/p/e05a5940f833
-    echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
+    echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
 
 	# 修改 hostconfig.json
-	change_json_arg_arr "_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "${2}:${3}"
+	change_json_arg_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "${2}:${3}"
 
-	echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
+	echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
     
     return $?
+}
+
+# 修改DOCKER容器挂载卷信息
+# 参数1：容器ID
+# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app 
+# 参数3：创建迁移后执行函数
+# 示例：
+#       docker_change_container_volume_migrate "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app"
+function docker_change_container_volume_migrate()
+{	
+	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID="${1}"
+	# imgver111111
+	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_IMG="$(docker ps -a --no-trunc | grep "^${1}" | awk -F' ' '{print $2}')"
+	
+	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
+	function _docker_change_container_volume_migrate_create()
+	{
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}_$(echo -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}" | md5sum | cut -d ' ' -f1)"
+		if [ -z "$(docker volume ls | grep "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}")" ]; then
+			docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
+
+			# 迁移源目录到新目录下
+			rm -rf ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data			
+			path_not_exists_link "${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}"	
+		fi
+
+		# 修改源字符串为新的替代字符串
+		_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS/${1}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}}"
+	}
+	
+	# 过滤
+	items_split_action "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" "_docker_change_container_volume_migrate_create"
+
+	function _docker_change_container_volume_migrate_mount()
+	{
+		# latest 版本修改会出问题
+		docker_change_container_inspect_arg "${1}" ".Config.Image" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_IMG}"
+
+		# 挂载目录(必须停止服务才能修改，否则会无效)
+		docker_change_container_inspect_mounts "${1}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}"
+	}
+
+	# 挂载
+	docker_change_container_inspect_wrap "${TMP_DC_BLC_SETUP_CTN_ID}" "_docker_change_container_volume_migrate_mount"
 }
 
 # 修改DOCKER容器挂载信息
 # 参数1：容器ID
 # 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app 
 # 示例：
-#       change_docker_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app"
-function change_docker_container_inspect_mounts()
+#       docker_change_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app"
+function docker_change_container_inspect_mounts()
 {
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID="${1}"
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID="${1}"
 	
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH="${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_DATA_PATH}/hostconfig.json"
-    local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF=$(cat ${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH})
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_DATA_PATH}/hostconfig.json"
+    local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH})
 
-    # local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"[,]*$)" | sort)
-	local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
+    # local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"[,]*$)" | sort)
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 
-	if [ "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" ]; then
+	if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" ]; then
 		function formal_dc_browserless_chrome_ctn_bind()
 		{
 			# 检测倒未绑定对象
-			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
-			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
-			local _TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR=$(echo "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" | grep -oE "[^:]+:${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}$")
-			if [ -z "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then				
-				echo_text_style "Mounting newer pair → '${1}'"	
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" | grep -oE "[^:]+:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}$")
+			if [ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then				
+				echo_text_style "'Mounting' newer pair → '${1}'"	
 
-				change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+				docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 			else
-				if [ "${1}" != "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then
-					echo_text_style "Mounting change pair → '${1}'(${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR})"	
+				if [ "${1}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then
+					echo_text_style "'Mounting' change pair → '${1}'(${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR})"	
 
-					change_docker_container_inspect_mount "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+					docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 				else
-					echo_text_style "Keep mount pair → '${1}'"	
+					echo_text_style "'Keep' mount pair → '${1}'"	
 				fi
 			fi
 		}
 
-		items_split_action "${_TMP_CHANGE_DOCKER_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
+		items_split_action "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
 	fi
 
     return $?
@@ -4637,7 +4768,7 @@ function docker_snap_restore_choice_action()
 		echo_text_style "Cannot found the 'snapshot' <${1}>, based '${MIGRATE_DIR}'"
 
 		if [ -n "${4}" ]; then
-			echo_text_style "Starting 'execute' scripts('${4}'), args('${1}')"
+			echo_text_style "Starting <execute> 'scripts'([${4}]), args([${1}])"
 			script_check_action "${4}" "${1}"
 		fi
 	fi
@@ -5085,7 +5216,8 @@ function soft_setup_basic()
 		typeset -l _TMP_SOFT_SETUP_BASIC_INSTALL_NAME
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		echo_text_style "Starting 'execute' scripts('${2}'), params('${_TMP_SOFT_SETUP_BASIC_INSTALL_NAME} ${@:3}')"
+		local _TMP_SOFT_SETUP_BASIC_PRINT_PARAMS=$(echo "${_TMP_SOFT_SETUP_BASIC_INSTALL_NAME} ${@:3}" | awk '$1=$1')
+		echo_text_style "Starting <execute> 'scripts'([${2}]), params('${_TMP_SOFT_SETUP_BASIC_PRINT_PARAMS}')"
 		
 		script_check_action "${2}" "${_TMP_SOFT_SETUP_BASIC_INSTALL_NAME}" "${@:3}"
 
@@ -5776,14 +5908,14 @@ function soft_docker_check_upgrade_action()
 				{
 					# 有镜像，没容器
 					# 有容器则备份数据，有镜像直接重装
-					echo_text_style "Starting 're${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}' 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
+					echo_text_style "Starting <re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}> 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
 										
 					# # 执行备份后自定义命令
 					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}"
 
 					# # 执行安装			
 					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "was re"
-					function _soft_docker_check_upgrade_action_ctn_remove()
+					function _soft_docker_check_upgrade_action_ctn_trail()
 					{						
 						# 重装先确认备份，默认备份
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
@@ -5797,25 +5929,27 @@ function soft_docker_check_upgrade_action()
 						docker_soft_trail_clear "${1}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
 					}
 
-					function _soft_docker_check_upgrade_action_img_remove()
+					function _soft_docker_check_upgrade_action_img_trail()
 					{
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2==\"${1}\"){ print \$1}}")
-						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS}" "_soft_docker_check_upgrade_action_ctn_remove"
-										
-						echo_text_style "Starting 'remove' from 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${1}])"
+						echo_text_style "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS:-none}])"
+						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CTN_IDS}" "_soft_docker_check_upgrade_action_ctn_trail"
+						
+						echo_text_style "Starting <remove> 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${1}])"
 						docker rmi ${1}
 					}
 
 					# 查找当前镜像的ID
 					local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}\"){print \$3}}")
-					items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS}" "_soft_docker_check_upgrade_action_img_remove"
+					echo_text_style "Starting <trail> exists 'images'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS:-none}])"
+					items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_IDS}" "_soft_docker_check_upgrade_action_img_trail"
 					
 					_soft_docker_check_upgrade_action_install
 					# docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "_soft_docker_check_upgrade_action_install && script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${2}' '${3}'"
 				}
 
 				# 已经存在版本，安装该版本可以走快照
-				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) was exists, please sure u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}'"
+				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS:-none}]), please sure u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}'"
 			}
 
 			function _soft_docker_check_upgrade_action_install()
@@ -5835,7 +5969,7 @@ function soft_docker_check_upgrade_action()
 						# 重新定义版本号
 						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" == "latest" ]; then
 							_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest | awk -F' ' 'NR==2{print $3}')
-							docker tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}
+							docker image tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}
 							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest
 						fi
 

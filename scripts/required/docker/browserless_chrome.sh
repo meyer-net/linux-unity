@@ -144,6 +144,8 @@ function formal_dc_browserless_chrome() {
     ### 数据
     #### /opt/docker_apps/browserless_chrome/imgver111111/workspace -> /mountdisk/data/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${TMP_DC_BLC_SETUP_DATA_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}"
+    #### /opt/docker/data/apps/browserless_chrome/imgver111111 -> /mountdisk/data/docker_apps/browserless_chrome/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_VER}" "" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}"
     ### ETC
     #### /opt/docker_apps/browserless_chrome/imgver111111/etc -> /mountdisk/etc/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${TMP_DC_BLC_SETUP_ETC_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_ETC_DIR}"
@@ -169,16 +171,8 @@ function formal_dc_browserless_chrome() {
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting 'inspect change', hold on please"
 
-    function _formal_dc_browserless_chrome_change_inspect()
-    {
-        # （废弃）修复日志路径在软链情况下，docker就开始跑乱不识别的问题
-        # change_docker_container_inspect_arg "${1}" ".LogPath" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${1}-json.log"
-        # docker volume create "${TMP_DC_BLC_SETUP_IMG_MARK_NAME}_" 
-        # 挂载目录
-        change_docker_container_inspect_mounts "${1}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
-    }
-
-    change_docker_container_inspect_wrap "${TMP_DC_BLC_SETUP_CTN_ID}" "_formal_dc_browserless_chrome_change_inspect"
+    # 挂载目录(必须停止服务才能修改，否则会无效)
+    docker_change_container_volume_migrate "${TMP_DC_BLC_SETUP_CTN_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
     # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
