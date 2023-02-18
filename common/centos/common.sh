@@ -1628,8 +1628,11 @@ function dirs_convert_truthful_action()
 
 		items_split_action "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SOURCE_DIR_ARR[*]}" "_dirs_convert_truthful_action_record"
 		
-		local _TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIRS="${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
-		eval ${1}='${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIRS}'
+		echo "${TMP_SPLITER3}"
+		echo_text_style "Finally truthful really dirs got follows:↓"
+		echo "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
+
+		eval ${1}='${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}'
 	}
 
 	discern_exchange_var_action "${1}" "_dirs_convert_truthful_action" "${@}"
@@ -3604,7 +3607,8 @@ function dirs_trail_clear()
 
 		# [docker]Checked the trail dir of '/mountdisk/data/docker', please sure u will 'backup still or not'?
 		# Dir of </mountdisk/data/docker> backuped to </tmp/backup/mountdisk/data/docker/1669793077>
-		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Dir of <${1}> not found" "Y"
+
+		path_exists_confirm_action "${1}" "${_TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_BACKUP_SCRIPT}" "${_TMP_DIRS_TRAIL_CLEAR_PRINTF_FORCE_SCRIPT}" "echo_text_style 'Dir of <${1}> not found'" "Y"
 	}
 	
 	# 有记录的情况下才执行
@@ -3689,9 +3693,9 @@ function soft_trail_clear()
 function docker_soft_trail_clear() 
 {
 	# 完整的PSID
-	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
 	# 完整的容器inspect
-	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID})
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID})
 	# e75f9b427730
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_ID=$(echo "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 	# browserless/chrome:imgver111111
@@ -3730,9 +3734,9 @@ function docker_soft_trail_clear()
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
 	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/app_data/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/app_data/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
 	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}"
 
 	# 虚拟目录 - 容器安装目录
 	if [ -a "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}" ]; then
@@ -3749,9 +3753,9 @@ function docker_soft_trail_clear()
 	# 容器移除
 	function _docker_soft_trail_clear_ctn_remove()
 	{
-		echo_text_style "Starting 'stop&remove' 'containers' from 'image'(<${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}>:[${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}])"
-		docker stop ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
-		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_PS_ID}
+		echo_text_style "Starting 'stop&remove' 'containers' from 'image'(<${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}>:[${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}])"
+		docker stop ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}
+		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}
 	}
 	
 	dirs_trail_clear "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}('${1}')" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
@@ -3842,8 +3846,15 @@ function soft_path_restore_confirm_action()
 			# 参数1：操作目录，例如：/opt/docker
 			function _soft_path_restore_confirm_action_restore_choice_cover_exec()
 			{
-				bind_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
-
+				# 有多个版本时，才提供选择操作
+				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS_COUNT=$(echo "{_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}" | wc -w)
+				if [ ${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS_COUNT} -gt 1 ]; then
+					echo "${TMP_SPLITER2}"
+					bind_if_choice "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER" "([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Please sure 'which version' of the path of '${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}' u want to [restore]" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
+				else
+					_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VERS}"
+				fi
+				
 				local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_PATH="${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH}/${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_RESTORE_BACKUP_VER}"
 
 				echo
@@ -4166,7 +4177,7 @@ function docker_change_container_volume_migrate()
 	{
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
-		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}_$(echo -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}" | md5sum | cut -d ' ' -f1)"
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME="$(echo_docker_volume_name "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}")"
 		if [ -z "$(docker volume ls | grep "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}")" ]; then
 			docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
 
@@ -4238,6 +4249,18 @@ function docker_change_container_inspect_mounts()
 	fi
 
     return $?
+}
+
+# 输出Docker挂载卷名称
+# 参数1：容器ID
+# 参数2：挂载本地路径
+# 示例：
+#       echo_docker_volume_name "verctnid" "/opt/docker/data"
+function echo_docker_volume_name()
+{
+	echo "${1:0:12}_$(echo -n "${2}" | md5sum | cut -d ' ' -f1)"
+
+	return $?
 }
 
 # 输出Docker镜像已存在版本集合
@@ -4434,7 +4457,7 @@ function docker_snap_create_action()
 
 			echo "${TMP_SPLITER3}"
 			echo_text_style "Running 'containers'↓:"
-			docker ps -a | grep "${1}" | cut -d' ' -f1
+			docker ps -a | grep "^${1}" | cut -d' ' -f1
 
 			echo "${TMP_SPLITER3}"
 			echo_text_style "Please <boot the container> then 'press any keys' to go on..."
@@ -4892,11 +4915,11 @@ function docker_image_boot_print()
 		fi
 	}
 	
-	local _TMP_DOCKER_IMG_BOOT_PRINT_PS=$(docker ps -a | grep "${1}")
+	local _TMP_DOCKER_IMG_BOOT_PRINT_PS=$(docker ps -a --no-trunc | awk -F' ' "{if(\$2~\"${1}:\"){print}}")
 	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" ]; then
 		echo "${TMP_SPLITER2}"
-		echo_text_style "View the 'exists containers' <${1}>'↓:"
-		docker ps -a | awk 'NR==1'
+		echo_text_style "View the 'exists containers no-trunc' <${1}>'↓:"
+		docker ps -a --no-trunc | awk 'NR==1'
 		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}"
 	fi
 	
@@ -4946,7 +4969,7 @@ function docker_image_boot_print()
 	# 确认是否构建新容器
 	## 容器不存在
 	local _TMP_DOCKER_IMG_BOOT_PRINT_MARK_VER="${_TMP_DOCKER_IMG_BOOT_PRINT_VER}"
-    local _TMP_DOCKER_IMG_BOOT_PRINT_PS_ID=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" | grep "${_TMP_DOCKER_IMG_BOOT_PRINT_VER}" | cut -d' ' -f1)
+    local _TMP_DOCKER_IMG_BOOT_PRINT_PS_ID=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" | grep ":${_TMP_DOCKER_IMG_BOOT_PRINT_VER}" | cut -d' ' -f1)
     if [ -z "${_TMP_DOCKER_IMG_BOOT_PRINT_PS_ID}" ]; then
 		echo "${TMP_SPLITER2}"
 		echo_text_style "Cannot found 'created container' from 'image'(<${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]), start to [build] it"
@@ -5969,6 +5992,8 @@ function soft_docker_check_upgrade_action()
 						# 重新定义版本号
 						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}" == "latest" ]; then
 							_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest | awk -F' ' 'NR==2{print $3}')
+
+							echo_text_style "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>) ver marked '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}', system remarked to 'image id'([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}])"
 							docker image tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}
 							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:latest
 						fi

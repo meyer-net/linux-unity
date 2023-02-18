@@ -40,7 +40,7 @@ function setup_dc_browserless_chrome() {
         echo_text_style "View the 'workingdir copy'↓:"
 
         # 拷贝应用目录
-        docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app ${1}
+        docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app ${1} >& /dev/null
         
         # 查看列表
         ls -lia ${1}
@@ -76,8 +76,8 @@ function formal_dc_browserless_chrome() {
     #     # 拷贝日志目录
     #     ## /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/app_output
     #     # mkdir -pv ${1}/app_output
-    #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app_output
-    #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK} ${1}/app_output
+    #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app_output >& /dev/null
+    #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK} ${1}/app_output >& /dev/null
     #
     #     # 查看列表
     #     ls -lia ${1}
@@ -92,8 +92,8 @@ function formal_dc_browserless_chrome() {
 
         # 拷贝日志目录
         # mkdir -pv ${1}
-        # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK} ${1}
-        docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK} ${1}
+        # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK} ${1} >& /dev/null
+        docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK} ${1} >& /dev/null
         
         # 查看列表
         ls -lia ${1}
@@ -113,8 +113,8 @@ function formal_dc_browserless_chrome() {
 
     #     # 拷贝日志目录
     #     ## /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/app
-    #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK} ${1}/app
-    #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/etc/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app
+    #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK} ${1}/app >& /dev/null
+    #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/etc/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app >& /dev/null
     #     ls -lia ${1}
     
     #     # 移除本地配置目录(挂载)
