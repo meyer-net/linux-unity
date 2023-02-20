@@ -149,8 +149,6 @@ function setup_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
     # 开始安装
-    ## 创建自有内部网络
-    docker network create ${DOCKER_NETWORK}
 
 	return $?
 }
@@ -167,6 +165,9 @@ function formal_docker()
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
+    
+    ## 创建自有内部网络
+    docker network create ${DOCKER_NETWORK}
     
     # 停止服务，否则运行时修改会引起未知错误
     # 不执行会出警告：
@@ -277,7 +278,7 @@ function test_docker()
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
 
-    exec_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action"
+    items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action"
 
 	return $?
 }
@@ -326,8 +327,8 @@ function boot_docker()
     docker images
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'images df'↓:"
-    docker images df
+    echo_text_style "View the 'system df'↓:"
+    docker system df
     
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'containers'↓:"

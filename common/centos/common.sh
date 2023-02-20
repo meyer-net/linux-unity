@@ -1616,10 +1616,10 @@ function dirs_convert_truthful_action()
 					if [ ${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR_LEN} -ne ${#_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[@]} ]; then
 						echo_text_style "Record <really> dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}'${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT})"
 					else
-						echo_text_style "Ignore [really] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}'${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT})"
+						echo_text_style "':'Ignore [really] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_ABS_DIR}'${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT})"
 					fi
 				else
-					echo_text_style "Ignore [not exists] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}' → [${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}])"
+					echo_text_style "':'Ignore [not exists] dir('${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}' → [${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR}])"
 				fi
 			}
 			
@@ -1629,8 +1629,8 @@ function dirs_convert_truthful_action()
 		items_split_action "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_SOURCE_DIR_ARR[*]}" "_dirs_convert_truthful_action_record"
 		
 		echo "${TMP_SPLITER3}"
-		echo_text_style "Finally truthful really dirs got follows:↓"
-		echo "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}"
+		echo_text_style "Finally truthful <really> dirs got 'follows':↓"
+		echo "${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}" | sed 's@ @\n@g' | sort
 
 		eval ${1}='${_TMP_DIRS_CONVERT_TRUTHFUL_ACTION_REALLY_DIR_ARR[*]}'
 	}
@@ -1694,7 +1694,7 @@ function path_exists_confirm_action()
 				script_check_action "_TMP_PATH_EXISTS_CONFIRM_ACTION_PATH_Y_N_SCRIPT" ${_TMP_PATH_EXISTS_CONFIRM_ACTION_PATH}
 			}
 
-			confirm_yn_action "_TMP_PATH_EXISTS_CONFIRM_ACTION_YN_VAL" "${_TMP_PATH_EXISTS_CONFIRM_ACTION_ECHO:-"The path of '${_TMP_PATH_EXISTS_CONFIRM_ACTION_PATH}' exists, please sure u will exec action 'still or not'"}" "" "_path_exists_confirm_action_exec_yn"
+			confirm_yn_action "_TMP_PATH_EXISTS_CONFIRM_ACTION_YN_VAL" "${_TMP_PATH_EXISTS_CONFIRM_ACTION_ECHO:-"The path of '${_TMP_PATH_EXISTS_CONFIRM_ACTION_PATH}' exists, please sure u will <action> 'still or not'"}" "" "_path_exists_confirm_action_exec_yn"
 		fi
 
 		_path_exists_confirm_action_exec
@@ -3002,19 +3002,19 @@ function set_newer_by_url_list_link_date()
 		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
 		echo ${TMP_SPLITER}
-		echo "Checking the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}'"    
+		echo_text_style "Checking the soft 'version' by 'link date' in <url>(${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}), default 'val' is [${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_VERS_VAR_YET_VAL}]"
 		#  | awk '{if (NR>2) {print}}' ，缺失无效行去除的判断
 		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | awk -F'</a>' '{print $2}' | awk '{sub("^ *","");sub(" *$","");print}' | sed '/^$/d' | awk -F' ' '{print $1}' | awk 'function t_f(t){"date -d \""t"\" +%s" | getline ft; return ft}{print t_f(${1})}' | awk 'BEGIN {max = 0} {if (${1}+0 > max+0) {max=${1} ;content=$0} } END {print content}' | xargs -I {} env LC_ALL=en_US.en date -d@{} "+%d-%h-%Y")
 		local _TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL} | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_KEY_WORDS}" | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}" | sed 's/\(.*\)href="\([^"\n]*\)"\(.*\)/\2/g')
 
 		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}" ]; then
-			echo "Upgrade the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'"
+			echo_text_style "Upgrade the soft 'version' by 'link date' in <url>(${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}), release 'newer version' to [${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}]"
 
-			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft version by link date newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'，if u want to change"
+			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT" "Please sure the checked soft 'version' by 'link date' <newer>('${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}')，if u want to change"
 
 			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE_TEXT}'
 		else
-			echo "Cannot check the soft version by link date in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}>，Some part info"
+			echo_text_style "Cannot check the soft 'version' by 'link date' in <url>('${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_VAR_FIND_URL}'), some part info"
 			echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_DATE_NEWER_LINK_DATE}"
 		fi
 	}
@@ -3046,20 +3046,20 @@ function set_newer_by_url_list_link_text()
 		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
 		echo ${TMP_SPLITER}
-		echo_text_style "Checking the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， default val is '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}'"
+		echo_text_style "Checking the soft 'version' by 'link text' in <url>('${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}'), default 'val' is [${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS_VAR_YET_VAL}]"
 		# 清除字母开头： | tr -d "a-zA-Z-"
 		local _TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep -oP "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS_ZREG}" | sort -rV | awk 'NR==1')
 		# local TMP_NEWER_FILENAME=$(echo ${3} | sed "s@()@${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}.*@g")
 		# local TMP_NEWER_HREF_LINK_FILENAME=$(curl -s -A Mozilla ${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL} | grep "href=" | grep -v "Parent Directory" | sed 's@\(.*\)href="\([^"\n]*\)"\(.*\)@\2@g' | grep "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_KEY_WORDS}" | grep "${TMP_NEWER_FILENAME}\$" | awk 'NR==1' | sed 's@.*/@@g')
 
 		if [ -n "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}" ]; then
-			echo_text_style "Upgrade the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>， release newer version to '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'"
+			echo_text_style "Upgrade the soft 'version' by 'link text' in <url>('${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}'), release newer 'version' to [${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}]"
 			
-			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft version by link text newer '${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'，if u want to change"
+			bind_if_input "_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS" "Please sure the checked soft 'version' by 'link text' newer [${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}], if u want to change"
 
 			eval ${1}='${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}'
 		else
-			echo_text_style "Cannot check the soft version by link text in url of <${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}>，Some part info"
+			echo_text_style "Cannot check the soft 'version' by 'link text' in <url>('${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_VAR_FIND_URL}'), some part info"
 			echo "${_TMP_SET_NEWER_BY_URL_LIST_LINK_TEXT_NEWER_VERS}"
 		fi
 	}
@@ -3090,14 +3090,14 @@ function set_github_soft_releases_newer_version()
 		local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
 		echo ${TMP_SPLITER}
-		echo_text_style "Checking the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, default val is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
+		echo_text_style "Starting check <github repos soft>('${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}'), default 'val' is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
 		# local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1)
 		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}')
 
 		if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
-			echo_text_style "Upgrade the soft in github repos of <${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>, release newer version to '${_TMP_GITHUB_SOFT_NEWER_VERS}'"
+			echo_text_style "Checking <github repos soft>('${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}'), get release newer 'version'([${_TMP_GITHUB_SOFT_NEWER_VERS}])"
 
-			bind_if_input "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure the checked soft in github repos newer '${_TMP_GITHUB_SOFT_NEWER_VERS}', if u want to change"
+			bind_if_input "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure <github repos soft>('${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}') version, if u want to change"
 
 			eval ${1}='${_TMP_GITHUB_SOFT_NEWER_VERS}'
 		else
@@ -5520,7 +5520,7 @@ function soft_setup_npm()
 # 参数4：检测不存在时默认的执行脚本，例如安装
 # 参数5：选项类型注释，例如command/yum/npm。默认command
 # 示例：
-# 	 soft_check_yn_action "vim,wget" "yum list installed | grep %s" "echo '%s was installed'" "yum -y install %s"
+# 	 soft_check_yn_action "vim,wget" "yum list installed | grep %s" "echo '%s exists'" "yum -y install %s"
 function soft_check_yn_action() 
 {
 	local _TMP_SOFT_CHECK_YN_ACTION_CHECK_ITEMS="${1}"
@@ -5568,7 +5568,7 @@ function soft_check_yn_action()
 # 参数2：命令不存在时默认的 执行安装/更新脚本
 # 参数3：命令已存在时执行脚本名称
 # 示例：
-# 	 soft_cmd_check_action "vim,wget" "yum -y install %s" "echo '%s was installed'"
+# 	 soft_cmd_check_action "vim,wget" "yum -y install %s" "echo '%s exists'"
 function soft_cmd_check_action() 
 {
 	function _soft_cmd_check_action_echo()
@@ -5637,7 +5637,7 @@ function soft_cmd_check_git_down_action()
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
 
 	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
-	echo_text_style "Starting 'execute' script('${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}')"
+	echo_text_style "Starting 'execute' <script>('${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}')"
 
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
 	# echo_text_style '[Command] of <${1}> installed'
@@ -5666,11 +5666,11 @@ function soft_cmd_check_confirm_git_action()
 			script_check_action 'soft_cmd_check_git_down_action' "${1}" "${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_PARAMS[@]}"
 
 			echo "${TMP_SPLITER2}"
-			echo_text_style "The command of <${1}> from [git] was re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed"
+			echo_text_style "The command <${1}>('git') was re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed"
 		}
 
 		local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked the command of <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}> from [git] was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed, please sure u will exec [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo_text_style 'Checked the command of <${1}> from [git] was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed'"
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked command <${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_CMD}>('git') was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed, please sure u will [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo_text_style 'Checked the command of <${1}> from [git] was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed'"
 	}
 
 	soft_cmd_check_git_action "${1}" "${2}" "${3}" "${4}" "${5}" "_soft_cmd_check_confirm_git_action"
@@ -5732,7 +5732,7 @@ function soft_cmd_check_upgrade_action()
 			# 重装先确认备份，默认备份
 			## Please sure the soft of 'conda' u will 'backup check still or not'?
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N="Y"
-			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> u will [backup check] 'still or not'"
+			confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N" "Please sure soft <command>([${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}]) u will [backup check] 'still or not'"
 
 			# 是否强制删除这里取反，soft_trail_clear参数需要
 			local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_BACKUP_Y_N}"
@@ -5751,8 +5751,8 @@ function soft_cmd_check_upgrade_action()
 		# 提示是否重装的值，默认不重装
 		local _TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N="N"
 		## 检测到软件已安装，确认重装或不重装。
-		## 例如：Checked the soft of 'conda' was installed, please sure u will 'reinstall still or not'?
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N" "Checked the soft command of <${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}> was ${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC}ed, please sure u will 're${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC} still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_NTMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
+		## 例如：Checked the soft of 'conda' exists, please sure u will 'reinstall still or not'?
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_REINSTALL_Y_N" "Checked soft <command>([${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}]) was ${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC}ed, please sure u will <re${_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_TYPE_DESC}> 'still or not'" "_soft_cmd_check_upgrade_action_exec_remove" "_TMP_SOFT_CMD_CHECK_UPGRADE_ACTION_E_SCRIPT" "${_NTMP_SOFT_CMD_CHECK_UPGRADE_ACTION_CURRENT_SOFT}"
 	}
 
 	# 检测执行，未安装则运行外部安装脚本（exec_step_conda），已安装则运行内部函数(_soft_cmd_check_upgrade_action_exec)进行安装还原操作
@@ -5787,7 +5787,7 @@ function soft_rpm_check_action()
 # 参数3：重装选择N时 或包已存在时执行脚本名称
 # 参数4：动作类型描述，action/install
 # 示例：
-# 	 soft_yum_check_action "vvv" "yum -y install %s" "echo '%s was installed'"
+# 	 soft_yum_check_action "vvv" "yum -y install %s" "echo '%s exists'"
 # 	 soft_yum_check_action "sss" "test"
 # 	 soft_yum_check_action "wget,vim" "echo '%s setup'"
 function soft_yum_check_action() 
@@ -5805,8 +5805,8 @@ function soft_yum_check_action()
 # 参数1：包名称
 # 参数2：包存在时输出信息
 # 示例：
-#     soft_yum_check_setup "vvv" "%s was installed"
-#     soft_yum_check_setup "wget,vim" "%s was installed"
+#     soft_yum_check_setup "vvv" "%s exists"
+#     soft_yum_check_setup "wget,vim" "%s exists"
 function soft_yum_check_setup() 
 {
 	local _TMP_SOFT_YUM_CHECK_SETUP_SOFTS=${1}
@@ -5818,10 +5818,10 @@ function soft_yum_check_setup()
 
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD}" "${_TMP_SOFT_YUM_CHECK_SETUP}"
-		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"Soft of <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> was installed by yum"}"
+		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"Soft <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> exists in yum"}"
 	}
 
-	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'Soft of <%s> has installed by yum'" "_soft_yum_check_setup_echo"
+	soft_yum_check_action "${_TMP_SOFT_YUM_CHECK_SETUP_SOFTS}" "yum -y -q install %s && echo_text_style 'Soft <%s> has installed by yum'" "_soft_yum_check_setup_echo"
 	return $?
 }
 
