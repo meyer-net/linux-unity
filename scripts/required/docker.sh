@@ -165,7 +165,7 @@ function formal_docker()
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
-    
+
     ## 创建自有内部网络
     docker network create ${DOCKER_NETWORK}
     
@@ -278,7 +278,13 @@ function test_docker()
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
 
-    items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action"
+    function _docker_snap_restore_boot()
+    {
+        local TMP_DOCKER_SETUP_YN_BOOT="Y"
+        confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@}"
+    }
+
+    items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action '%s' '' '_docker_snap_restore_boot'"
 
 	return $?
 }

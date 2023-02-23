@@ -340,16 +340,20 @@ function exec_step_browserless_chrome() {
 # x2-简略启动，获取初始化软件（形成启动后才可抽取目录信息）
 #    参数1：镜像名称，例 browserless/chrome
 #    参数2：镜像版本，例 latest
-#    参数3：快照类型(还原时有效)，例 image/container/dockerfile
-#    参数4：快照来源，例 snapshot/clean/hub/commit，默认snapshot
+#    参数3：启动命令，例 /bin/sh
+#    参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#    参数5：快照类型(还原时有效)，例 image/container/dockerfile
+#    参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
 function boot_build_dc_browserless_chrome() {
     # 变量覆盖特性，其它方法均可读取
     ## 执行传入参数
     local TMP_DC_BLC_SETUP_IMG_NAME="${1}"
     local TMP_DC_BLC_SETUP_IMG_MARK_NAME="${1/\//_}"
     local TMP_DC_BLC_SETUP_IMG_VER="${2}"
-    local TMP_DC_BLC_SETUP_IMG_SNAP_TYPE="${3}"
-    local TMP_DC_BLC_SETUP_IMG_STORE="${4}"
+    local TMP_DC_BLC_SETUP_CTN_ARG_CMD="${3}"
+    local TMP_DC_BLC_SETUP_CTN_ARGS="${4}"
+    local TMP_DC_BLC_SETUP_IMG_SNAP_TYPE="${5}"
+    local TMP_DC_BLC_SETUP_IMG_STORE="${6}"
 
     echo "${TMP_SPLITER}"
     echo_text_style "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
@@ -360,11 +364,12 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
     local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
-    
-    local TMP_DC_BLC_SETUP_PRE_ARG_CMD=""
 
+    # 参数覆盖, 镜像参数覆盖启动设定
+    docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
+    
     # 开始启动
-    docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_PRE_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
+    docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
 
     return $?
 }
