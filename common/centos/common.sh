@@ -1318,37 +1318,30 @@ function item_change_cover_action()
 #      item_change_cover_bind "${_ARR[*]}" "^/etc/docker$" "/etc/docker_cover"
 function item_change_cover_bind()
 {
-	local _TMP_ITEM_CHANGE_COVER_BIND_REGEX="${2}"
-	local _TMP_ITEM_CHANGE_COVER_BIND_ITEM="${3}"
-	local _TMP_ITEM_CHANGE_COVER_BIND_VAR_TYPE=$(echo_var_type "${1}")
-
-	function _item_change_cover_bind()
+	local _TMP_ITEM_CHANGE_COVER_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEM_CHANGE_COVER_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME=${_TMP_ITEM_CHANGE_COVER_BIND_VAR_ARR[0]}
+	local _TMP_ITEM_CHANGE_COVER_BIND_VAR_TYPE=${_TMP_ITEM_CHANGE_COVER_BIND_VAR_ARR[1]}
+	local _TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL=${_TMP_ITEM_CHANGE_COVER_BIND_VAR_ARR[2]}
+	
+	local _TMP_ITEM_CHANGE_COVER_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_ITEM_CHANGE_COVER_BIND_ITEM=$(echo_discern_exchange_var_val "${3}")
+	
+	function _item_change_cover_bind_re()
 	{
-		local _TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME=${1}
-		local _TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
+		# _TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL="${3}"
 		if [ "${_TMP_ITEM_CHANGE_COVER_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
-		fi
-		
-		function _item_change_cover_bind_re()
-		{
-			# _TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL="${3}"
-			if [ "${_TMP_ITEM_CHANGE_COVER_BIND_VAR_TYPE}" == "array" ]; then
-				if [ -z "${_TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL}" ]; then
-					eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='(${1})'
-				else
-					eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='(${3})'
-				fi
+			if [ -z "${_TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL}" ]; then
+				eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='(${1})'
 			else
-				eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='${3}'
+				eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='(${3})'
 			fi
-		}
-
-		item_change_cover_action "${_TMP_ITEM_CHANGE_COVER_BIND_REGEX}" "${_TMP_ITEM_CHANGE_COVER_BIND_ITEM}" "${_TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL}" "_item_change_cover_bind_re"
-		return $?
+		else
+			eval ${_TMP_ITEM_CHANGE_COVER_BIND_VAR_NAME}='${3}'
+		fi
 	}
 
-	discern_exchange_var_action "${1}" "_item_change_cover_bind" "${@}"
+	item_change_cover_action "${_TMP_ITEM_CHANGE_COVER_BIND_REGEX}" "_TMP_ITEM_CHANGE_COVER_BIND_ITEM" "_TMP_ITEM_CHANGE_COVER_BIND_VAR_VAL" "_item_change_cover_bind_re"
 	return $?
 }
 
@@ -1423,34 +1416,29 @@ function items_change_combine_cover_action()
 #      items_change_combine_cover_bind '_OUTPUT_ARR[*]' '' "${_CHECK_ARR[*]}"
 function items_change_combine_cover_bind()
 {
+	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME=${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_ARR[0]}
+	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_TYPE=${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_ARR[1]}
+	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL=${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_ARR[2]}
+	
 	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
-	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_TYPE=$(echo_var_type "${1}")
-	function _items_change_combine_cover_bind()
+	local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_CPR_VAL=$(echo_discern_exchange_var_val "${3}")
+	
+	function _items_change_combine_cover_bind_re()
 	{
-		local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME=${1}
-		local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
-		local _TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_CPR_VAL=$(echo_discern_exchange_var_val "${3}")
 		if [ "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
-		fi
-		
-		function _items_change_combine_cover_bind_re()
-		{
-			if [ "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_TYPE}" == "array" ]; then
-				if [ -z "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL}" ]; then
-					eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='(${1})'
-				else
-					eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='(${3})'
-				fi
+			if [ -z "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL}" ]; then
+				eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='(${1})'
 			else
-				eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='${3}'
+				eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='(${3})'
 			fi
-		}
-
-		items_change_combine_cover_action "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_REGEX}" "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_CPR_VAL}" "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL}" "_items_change_combine_cover_bind_re"
+		else
+			eval ${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_NAME}='${3}'
+		fi
 	}
 
-	discern_exchange_var_action "${1}" "_items_change_combine_cover_bind" "${@}"
+	items_change_combine_cover_action "${_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_REGEX}" "_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_CPR_VAL" "_TMP_ITEMS_CHANGE_COMBINE_COVER_BIND_VAR_VAL" "_items_change_combine_cover_bind_re"
 	return $?
 }
 
@@ -1526,7 +1514,7 @@ function item_change_remove_bind()
 		fi
 	}
 
-	item_change_remove_action "${_TMP_ITEM_CHANGE_REMOVE_BIND_REGEX}" "${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL}" '_item_change_remove_bind_re'
+	item_change_remove_action "${_TMP_ITEM_CHANGE_REMOVE_BIND_REGEX}" "_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL" '_item_change_remove_bind_re'
 	return $?
 }
 
@@ -1607,7 +1595,7 @@ function item_change_select_action()
 
 # 执行脚本，内容存在则保留
 # 参数1：需要绑定的数组字符串变量名/值
-# 参数2：内容正则变量
+# 参数2：内容正则变量名/值
 # 示例：
 #      local _ARR=()
 #      _ARR[0]="/opt/docker"
@@ -1624,7 +1612,8 @@ function item_change_select_bind()
 	local _TMP_ITEM_CHANGE_SELECT_BIND_VAR_NAME="${_TMP_ITEM_CHANGE_SELECT_BIND_VAR_ARR[0]}"
 	local _TMP_ITEM_CHANGE_SELECT_BIND_VAR_TYPE="${_TMP_ITEM_CHANGE_SELECT_BIND_VAR_ARR[1]}"
 	local _TMP_ITEM_CHANGE_SELECT_BIND_VAR_VAL="${_TMP_ITEM_CHANGE_SELECT_BIND_VAR_ARR[2]}"
-	local _TMP_ITEM_CHANGE_SELECT_BIND_REGEX="${2}"
+
+	local _TMP_ITEM_CHANGE_SELECT_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
 
 	function _item_change_select_bind_re()
 	{
@@ -1635,13 +1624,13 @@ function item_change_select_bind()
 		fi
 	}
 
-	item_change_select_action "${_TMP_ITEM_CHANGE_SELECT_BIND_REGEX}" "${_TMP_ITEM_CHANGE_SELECT_BIND_VAR_VAL}" '_item_change_select_bind_re'
+	item_change_select_action "${_TMP_ITEM_CHANGE_SELECT_BIND_REGEX}" "_TMP_ITEM_CHANGE_SELECT_BIND_VAR_VAL" '_item_change_select_bind_re'
 	return $?
 }
 
 # 执行脚本，内容存在则替换
 # 参数1：内容正则变量
-# 参数2：替换内容
+# 参数2：替换内容变量名/值
 # 参数3：内容判断数组
 # 参数4：替换后执行脚本
 #       参数1：被替换的字符串
@@ -1658,7 +1647,7 @@ function item_change_select_bind()
 #      item_change_replace_action "^/etc/docker$" "/etc/docker" "${_ARR[*]}" 'echo "has replace arr str：${1}"'
 function item_change_replace_action()
 {
-	local _TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM="${2}"
+	local _TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM=$(echo_discern_exchange_var_val "${2}")
 	local _TMP_ITEM_CHANGE_REPLACE_ACTION_ITEMS="${3}"
 	local _TMP_ITEM_CHANGE_REPLACE_ACTION_AFTER_REPLACE_SCRIPTS=${4}
 	function _item_change_replace_action()
@@ -1679,8 +1668,8 @@ function item_change_replace_action()
 
 # 执行脚本，内容不存在则替换
 # 参数1：需要绑定的数组字符串变量名/值
-# 参数2：内容正则变量
-# 参数3：替换内容
+# 参数2：内容正则变量名/值
+# 参数3：替换内容变量名/值
 # 示例：
 #      local _ARR=()
 #      _ARR[0]="/opt/docker"
@@ -1691,37 +1680,31 @@ function item_change_replace_action()
 #      item_change_replace_bind "_ARR" "_CHECK_ITEM" "/etc/docker" && echo "${_ARR[*]}"
 #      item_change_replace_bind "${_ARR[*]}" "^/etc/docker$" "/etc/docker"
 function item_change_replace_bind()
-{
-	local _TMP_ITEM_CHANGE_REPLACE_BIND_REGEX="${2}"
-	local _TMP_ITEM_CHANGE_REPLACE_BIND_ITEM="${3}"
-	local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_TYPE=$(echo_var_type "${1}")
+{	
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME=${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_ARR[0]}
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_TYPE=${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_ARR[1]}
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL=${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_ARR[2]}
 
-	function _item_change_replace_bind()
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_ITEM_CHANGE_REPLACE_BIND_ITEM=$(echo_discern_exchange_var_val "${3}")
+
+	function _item_change_replace_bind_re()
 	{
-		local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME=${1}
-		local _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
+		# _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL="${3}"
 		if [ "${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
-		fi
-		
-		function _item_change_replace_bind_re()
-		{
-			# _TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL="${3}"
-			if [ "${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_TYPE}" == "array" ]; then
-				if [ -z "${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL}" ]; then
-					eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='(${1})'
-				else
-					eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='(${3})'
-				fi
+			if [ -z "${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL}" ]; then
+				eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='(${1})'
 			else
-				eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='${3}'
+				eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='(${3})'
 			fi
-		}
-
-		item_change_replace_action "${_TMP_ITEM_CHANGE_REPLACE_BIND_REGEX}" "${_TMP_ITEM_CHANGE_REPLACE_BIND_ITEM}" "${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL}" "_item_change_replace_bind_re"
+		else
+			eval ${_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_NAME}='${3}'
+		fi
 	}
 
-	discern_exchange_var_action "${1}" "_item_change_replace_bind" "${@}"
+	item_change_replace_action "${_TMP_ITEM_CHANGE_REPLACE_BIND_REGEX}" "_TMP_ITEM_CHANGE_REPLACE_BIND_ITEM" "_TMP_ITEM_CHANGE_REPLACE_BIND_VAR_VAL" "_item_change_replace_bind_re"
 	return $?
 }
 
@@ -1765,8 +1748,8 @@ function item_change_append_action()
 
 # 执行脚本，内容不存在则新增
 # 参数1：需要绑定的数组字符串变量名/值
-# 参数2：内容正则变量
-# 参数3：新增内容
+# 参数2：内容正则变量名/值
+# 参数3：新增内容变量名/值
 # 示例：
 #      local _ARR=()
 #      _ARR[0]="/opt/docker"
@@ -1778,36 +1761,30 @@ function item_change_append_action()
 #      item_change_append_bind "${_ARR[*]}" "^/etc/docker$" "/etc/docker"
 function item_change_append_bind()
 {
-	local _TMP_ITEM_CHANGE_APPEND_BIND_REGEX="${2}"
-	local _TMP_ITEM_CHANGE_APPEND_BIND_ITEM="${3}"
-	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE=$(echo_var_type "${1}")
+	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEM_CHANGE_APPEND_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME=${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_ARR[0]}
+	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE=${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_ARR[1]}
+	local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL=${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_ARR[2]}
 
-	function _item_change_append_bind()
+	local _TMP_ITEM_CHANGE_APPEND_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_ITEM_CHANGE_APPEND_BIND_ITEM=$(echo_discern_exchange_var_val "${3}")
+	
+	function _item_change_append_bind_re()
 	{
-		local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME=${1}
-		local _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
+		# _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="${3}"
 		if [ "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
-		fi
-		
-		function _item_change_append_bind_re()
-		{
-			# _TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL="${3}"
-			if [ "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_TYPE}" == "array" ]; then
-				if [ -z "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL}" ]; then
-					eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${1})'
-				else
-					eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${3})'
-				fi
+			if [ -z "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL}" ]; then
+				eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${1})'
 			else
-				eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='${3}'
+				eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='(${3})'
 			fi
-		}
-
-		item_change_append_action "${_TMP_ITEM_CHANGE_APPEND_BIND_REGEX}" "${_TMP_ITEM_CHANGE_APPEND_BIND_ITEM}" "${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL}" "_item_change_append_bind_re"
+		else
+			eval ${_TMP_ITEM_CHANGE_APPEND_BIND_VAR_NAME}='${3}'
+		fi
 	}
 
-	discern_exchange_var_action "${1}" "_item_change_append_bind" "${@}"
+	item_change_append_action "${_TMP_ITEM_CHANGE_APPEND_BIND_REGEX}" "_TMP_ITEM_CHANGE_APPEND_BIND_ITEM" "_TMP_ITEM_CHANGE_APPEND_BIND_VAR_VAL" "_item_change_append_bind_re"
 	return $?
 }
 
@@ -1815,7 +1792,7 @@ function item_change_append_bind()
 # 例如:
 # 前置字符串存在的情况则不添加，已知前置字符串：/opt/docker，则类似/opt/docker/logs不添加，软连接需自行提前识别
 # 参数1：需要绑定的数组字符串变量名/值
-# 参数2：新增内容
+# 参数2：新增内容变量名/值
 # 参数3：间隔符号，默认空（路径时需要，否则会无法绑定）
 # 示例：
 #       local _ARR=()
@@ -1830,40 +1807,34 @@ function item_change_append_bind()
 #       item_change_append_ignore_prefix_bind "${_ARR[*]}" "/etc/docker"  ??? 不兼容
 function item_change_append_ignore_prefix_bind()
 {
-	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME="${1}"
-	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE=$(echo_var_type "${1}")
-	function _item_change_append_ignore_prefix_bind()
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME=${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_ARR[0]}
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE=${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_ARR[1]}
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL=${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_ARR[2]}
+
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER="${3}"
+
+	local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=""
+	function _item_change_append_ignore_prefix_bind_filter()
 	{
-		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
-		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM="${2}"
-		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER="${3}"
-		if [ "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
+		# 前置不存在
+		echo "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM}" | egrep "^${1}${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER}" >& /dev/null
+		if [ $? -eq 0 ]; then
+			_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=0
+			break
 		fi
-
-		local _TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=""
-		function _item_change_append_ignore_prefix_bind_filter()
-		{
-			# 前置不存在
-			echo "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM}" | egrep "^${1}${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_SPLITER}" >& /dev/null
-			if [ $? -eq 0 ]; then
-				_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET=0
-				break
-			fi
-		}
-		
-		items_split_action "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL}" "_item_change_append_ignore_prefix_bind_filter"
-
-		if [ -z "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}" ]; then
-			item_change_append_bind "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME}" "^${2}$" "${2}"
-			return $?
-		fi
-		
-		return ${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}
 	}
+	
+	items_split_action "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_VAL}" "_item_change_append_ignore_prefix_bind_filter"
 
-	discern_exchange_var_action "${1}" "_item_change_append_ignore_prefix_bind" "${@}"
-	return $?
+	if [ -z "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}" ]; then
+		item_change_append_bind "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_VAR_NAME}" "^${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM}$" "${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_APPEND_ITEM}"
+		return $?
+	fi
+	
+	return ${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}
 }
 
 # 分割并执行动作
