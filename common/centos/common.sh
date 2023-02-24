@@ -1508,31 +1508,25 @@ function item_change_remove_action()
 #      item_change_remove_bind "_ARR" "_CHECK_ITEM"
 #      item_change_remove_bind "_ARR" "^/etc/docker$"
 function item_change_remove_bind()
-{
-	local _TMP_ITEM_CHANGE_REMOVE_BIND_REGEX="${2}"
-	local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_TYPE=$(echo_var_type "${1}")
+{	
+	local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_ARR" "${1}"
+	local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME=${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_ARR[0]}
+	local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_TYPE=${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_ARR[1]}
+	local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL=${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_ARR[2]}
+	
+	local _TMP_ITEM_CHANGE_REMOVE_BIND_REGEX=$(echo_discern_exchange_var_val "${2}")
 
-	function _item_change_remove_bind()
+	function _item_change_remove_bind_re()
 	{
-		local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME=${1}
-		local _TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL=$(eval echo '${'"${1}"'}')
 		if [ "${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_TYPE}" == "array" ]; then
-			_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL="$(eval echo '${'"${1}[*]"'}')"
+			eval ${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME}='(${3})'
+		else
+			eval ${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME}='${3}'
 		fi
-
-		function _item_change_remove_bind_re()
-		{
-			if [ "${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_TYPE}" == "array" ]; then
-				eval ${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME}='(${3})'
-			else
-				eval ${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_NAME}='${3}'
-			fi
-		}
-
-		item_change_remove_action "${_TMP_ITEM_CHANGE_REMOVE_BIND_REGEX}" "${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL}" '_item_change_remove_bind_re'
 	}
 
-	discern_exchange_var_action "${1}" "_item_change_remove_bind" "${@}"
+	item_change_remove_action "${_TMP_ITEM_CHANGE_REMOVE_BIND_REGEX}" "${_TMP_ITEM_CHANGE_REMOVE_BIND_VAR_VAL}" '_item_change_remove_bind_re'
 	return $?
 }
 
@@ -4998,7 +4992,6 @@ function docker_image_args_combine_bind()
 	items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "_docker_image_args_combine_bind_pair_split"
 	items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "_docker_image_args_combine_bind_pair_split"
 
-echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}"
 	eval ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}='(${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL})'
 
 	return $?
