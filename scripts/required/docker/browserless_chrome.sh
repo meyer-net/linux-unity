@@ -301,8 +301,7 @@ function exec_step_browserless_chrome() {
     local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
     local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
     
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'execute step' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_CTN_VER}]('${TMP_DC_BLC_SETUP_CTN_ID}'), hold on please"
+    echo_text_wrap_style "Starting 'execute step' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_CTN_VER}]('${TMP_DC_BLC_SETUP_CTN_ID}'), hold on please"
 
     set_env_dc_browserless_chrome
 

@@ -4229,7 +4229,7 @@ function soft_path_restore_confirm_action()
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_E_SCRIPTS=${4}
 
 	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_BACKUP_PATH="${BACKUP_DIR}${1}"
-	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked 'current soft' already got 'path'(<${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}>, please sure u want to <cover> 'still or force'"
+	local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO="([${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PREV_FUNC}]) Checked 'current soft' already got 'path'(<${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}>, please sure u want to <cover> 'still or' <force>"
 
 	# 备份到强制，然后删除
 	# 参数1：操作目录，例如：/opt/docker
