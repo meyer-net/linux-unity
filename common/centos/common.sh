@@ -4103,17 +4103,15 @@ function soft_trail_clear()
 		## 清理服务残留（备份前执行，否则会有资源占用的问题）
 		function _soft_trail_clear_svr_remove() 
 		{
-			echo "${TMP_SPLITER3}"
 			echo_text_style "Starting 'remove systemctl' named <${1}>"
 			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
-			echo
 			echo_text_style "'Systemctl' <${1}> removed"
+			echo "${TMP_SPLITER3}"
 		}
 
 		# export -f _soft_trail_clear_svr_remove
 		# systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs -I {} bash -c "_soft_trail_clear_svr_remove {}"
 		systemctl list-unit-files | grep ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} | cut -d' ' -f1 | grep -v '^$' | sort -r | eval "script_channel_action '_soft_trail_clear_svr_remove'"
-		echo "${TMP_SPLITER3}"
 	}
 	
 	dirs_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_soft_trail_clear_svr_remove_all" "${2}"
@@ -6508,12 +6506,7 @@ function soft_docker_check_upgrade_action()
 					# 有镜像，没容器
 					# 有容器则备份数据，有镜像直接重装
 					echo_text_style "Starting <re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_TYPE_DESC}> 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}])"
-										
-					# # 执行备份后自定义命令
-					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_CUS_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}"
-
-					# # 执行安装			
-					# script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "was re"
+					
 					function _soft_docker_check_upgrade_action_ctn_trail()
 					{						
 						# 重装先确认备份，默认备份
@@ -6574,7 +6567,7 @@ function soft_docker_check_upgrade_action()
 						fi
 
 						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
-						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
+						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}' '' '' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
 					;;
 					*)
 						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
