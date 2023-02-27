@@ -408,20 +408,24 @@ function proxy_by_ss()
 # 检查变量类型(单个数组函数会被判定为字符串，如下_VAR5)
 # 参数1：需要判断的变量名/值
 # 示例：
-#       _VAR1=1 && echo_var_type "_VAR1" && echo
-#       _VAR2="321" && echo_var_type "_VAR2" && echo
-#       _VAR3="a1234" && echo_var_type "_VAR3" && echo
-#       _VAR4=(1 2 3) && echo_var_type "_VAR4" && echo
-#       _VAR5=(abc) && echo_var_type "_VAR5" && echo
-#       _VAR6=() && echo_var_type "_VAR6" && echo
-#       _VAR7=(a123 b321) && echo_var_type "${_VAR7[*]}" && echo
-#       _VAR8="" && echo_var_type "_VAR8" && echo
+#       _VAR1=1 && echo_var_type "_VAR1" && echo ":integer"
+#       _VAR2="321" && echo_var_type "_VAR2" && echo ":integer"
+#       _VAR3="a1234" && echo_var_type "_VAR3" && echo ":string"
+#       _VAR4="epel-release" && echo_var_type "_VAR4" && echo ":string"
+#       _VAR5="str space str" && echo_var_type "_VAR5" && echo ":string"
+#       _VAR6="" && echo_var_type "_VAR6" && echo ":nil"
+#       _VAR7=(1 2 3) && echo_var_type "_VAR7" && echo ":array"
+#       _VAR8=(abc) && echo_var_type "_VAR8" && echo ":array"
+#       _VAR9=() && echo_var_type "_VAR9" && echo ":array"
+#       _VAR10=(a123 b321) && echo_var_type "${_VAR10[*]}" && echo ":array"
+#       echo_var_type "aaa bbb" && echo ":array"
 function echo_var_type() {
 	local _TMP_ECHO_VAR_TYPE_SOUR_VAR_NAME=${1}
 	local _TMP_ECHO_VAR_TYPE_VAR_PAIR=()
 	bind_discern_exchange_var_pair "_TMP_ECHO_VAR_TYPE_VAR_PAIR" "${1}"
 
 	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[0]}
+
 	local _TMP_ECHO_VAR_TYPE_VAR_VAL=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[1]}
 	local _TMP_ECHO_VAR_TYPE_VAR_ARR_VAL="$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[*]"'}')"
 	local _TMP_ECHO_VAR_TYPE_VAR_ARR_LEN="$(eval echo '${'"#${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[*]"'}')"
@@ -444,8 +448,8 @@ function echo_var_type() {
 		if [ "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" == "${_TMP_ECHO_VAR_TYPE_SOUR_VAR_NAME}" ]; then
 			# 满足变量定义
 			if [ -n "$(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | egrep '^\w+$')" ]; then
-				# 排除数字
-				if [ -z "$(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | egrep '^[0-9]+$')" ]; then
+				# 排除数字开始
+				if [ -z "$(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | egrep '^[0-9]+')" ]; then
 					# 值非变量定义 ??? 无法识别单个项目
 					# local _TMP_ECHO_VAR_TYPE_VAR_DEFINE=$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_VAR_VAL}"+x'}')
 					# echo "空数组<${_TMP_ECHO_VAR_TYPE_VAR_DEFINE}|${_TMP_ECHO_VAR_TYPE_VAR_VAL}>"
@@ -453,11 +457,7 @@ function echo_var_type() {
 						return $?
 				fi
 			fi
-		fi		
-		# if [ -z "${_TMP_ECHO_VAR_TYPE_VAR_DEFINE}" ]; then
-
-			
-		# fi
+		fi
 	fi
 
 	local _TMP_ECHO_VAR_TYPE_VAR_ARR_VAL_FIRST="$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[0]"'}')"
@@ -522,14 +522,14 @@ function set_if_equals()
 	return $?
 }
 
-# 识别并返回变量的KV值（V值始终作为数组字符串返回） ??? 传递空数组时，会变成变量名。有地方被引用
+# 识别并返回变量的KV值（V值始终作为数组字符串返回）!!!超出引用数组范围外，变量会失效 ??? 传递空数组时，会变成变量名。有地方被引用
 # 参数1：需要绑定到的变量名
 # 参数2：需要识别的变量名/值
 # 示例：
-#      bind_discern_exchange_var_pair "_PAIR" 123 && echo ${_PAIR[*]}
-#      _VAR=123 && bind_discern_exchange_var_pair "_PAIR" "_VAR" && echo ${_PAIR[*]}
-#      bind_discern_exchange_var_pair "_PAIR" "abc" && echo ${_PAIR[*]}
-#      _VAR="abc" && bind_discern_exchange_var_pair "_PAIR" "_VAR" && echo ${_PAIR[*]}
+#      bind_discern_exchange_var_pair "_PAIR1" 123 && echo ${_PAIR1[*]}
+#      _VAR=123 && bind_discern_exchange_var_pair "_PAIR2" "_VAR" && echo ${_PAIR2[*]}
+#      bind_discern_exchange_var_pair "_PAIR3" "abc" && echo ${_PAIR3[*]}
+#      _VAR="abc" && bind_discern_exchange_var_pair "_PAIR4" "_VAR" && echo ${_PAIR4[*]}
 function bind_discern_exchange_var_pair() {
 	# 变量名
 	local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_NAME="${2}"
@@ -547,8 +547,8 @@ function bind_discern_exchange_var_pair() {
 
 	# 必须满足变量定义规范
 	if [ -n "$(echo "${2}" | egrep '^\w+$')" ]; then
-		# 排除数字
-		if [ -z "$(echo "${2}" | egrep '^[0-9]+$')" ]; then
+		# 排除数字开始
+		if [ -z "$(echo "${2}" | egrep '^[0-9]+')" ]; then
 			_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}[@]"'}')
 
 			# 识别直接赋值非变量名的场景
@@ -572,9 +572,9 @@ function bind_discern_exchange_var_pair() {
 		fi
 	else
 		# 值里包含空格，铁定不是变量
-		if [ $( echo "${2}" | grep -o "[[:space:]]" | wc -l) -gt 0 ]; then
+		# if [ $( echo "${2}" | grep -o "[[:space:]]" | wc -l) -gt 0 ]; then
 			bind_discern_exchange_var_pair_bind_anymouse
-		fi
+		# fi
 	fi
 
 	eval ${1}='("${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_NAME}" "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL}")'
@@ -582,7 +582,7 @@ function bind_discern_exchange_var_pair() {
 	return $?
 }
 
-# 识别并返回变量的KTV值（数组字符串）
+# 识别并返回变量的KTV值（数组字符串）!!!超出引用数组范围外，变量会失效
 # 参数1：需要绑定到的变量名
 # 参数2：需要识别的变量名/值
 # 示例：
@@ -614,9 +614,14 @@ function bind_discern_exchange_var_arr() {
 #      _VAR="abc" && discern_exchange_var_action "_VAR"
 #      discern_exchange_var_action "${1}" "_child_func" "${@}"
 function discern_exchange_var_action() {
-	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="$(echo_discern_exchange_var_name "${1}")"
+	# 使用该方式，匿名变量名会读取失效。
+	# local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME="$(echo_discern_exchange_var_name "${1}")"
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PAIR_ARR=()
+	bind_discern_exchange_var_pair "_TMP_DISCERN_EXCHANGE_VAR_ACTION_PAIR_ARR" "${1}"
+	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME=${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PAIR_ARR[0]}
 
 	local _TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS=("${@:4}")
+
 	if [ -n "${2}" ]; then
 		# 传参必须用[@]
 		${2} "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_VAR_NAME}" "${_TMP_DISCERN_EXCHANGE_VAR_ACTION_PARAMS[@]}"
@@ -635,9 +640,8 @@ function discern_exchange_var_action() {
 #      _VAR="abc" && echo_discern_exchange_var_name "_VAR"
 #      echo_discern_exchange_var_name "abc"
 function echo_discern_exchange_var_name() {
-	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_VAR_ARR=()
-	bind_discern_exchange_var_pair "_TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_VAR_ARR" "${1}"
-	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_VAR_ARR[0]}"
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_PAIR_ARR=()
+	bind_discern_exchange_var_pair "_TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_PAIR_ARR" "${1}"
 
 	return $?
 }
@@ -652,9 +656,9 @@ function echo_discern_exchange_var_name() {
 #      echo_discern_exchange_var_val "abc"
 function echo_discern_exchange_var_val() {
 	
-	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_VAR_ARR=()
-	bind_discern_exchange_var_pair "_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_VAR_ARR" "${1}"
-	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_VAR_ARR[1]}"
+	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_PAIR_ARR=()
+	bind_discern_exchange_var_pair "_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_PAIR_ARR" "${1}"
+	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_VAL_PAIR_ARR[1]}"
 
 	return $?
 }
@@ -4005,8 +4009,8 @@ function dirs_trail_clear()
 	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
-	echo "${TMP_SPLITER3}"
 	echo_text_style "Starting 'resolve dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
+	echo "${TMP_SPLITER3}"
 
 	function _dirs_trail_clear_remove_sym_dir()
 	{
@@ -4048,13 +4052,11 @@ function dirs_trail_clear()
 	
 	# 有记录的情况下才执行
 	if [ ${#_TMP_DIRS_TRAIL_CLEAR_REALLY_DIR_ARR[@]} -gt 0 ]; then
-		echo "${TMP_SPLITER3}"
-		echo_text_style "Starting 'trail' the dirs of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>）"
+		echo_text_wrap_style "Starting 'trail' the dirs of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>）"
 		if [ "${_TMP_DIRS_TRAIL_CLEAR_FORCE}" == "N" ]; then
 			## 具备特殊性质的备份，优先执行
 			local _TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_DIRS_TRAIL_CLEAR_MARK_NAME}"
 			if [ "$(type -t ${_TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC})" == "function" ] ; then
-				echo "${TMP_SPLITER3}"
 				echo_text_style "Starting 'exec' the 'soft special func' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}>"
 				script_check_action "_TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_DIRS_TRAIL_CLEAR_NAME}"
 				echo_text_style "The 'soft special func' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was executed"
@@ -4706,7 +4708,7 @@ function echo_docker_volume_name()
 #       echo_docker_images_exists_vers "browserless/chrome"
 function echo_docker_images_exists_vers()
 {
-	docker images | grep "^${1}" | awk -F' ' '{if($2=="latest"||$2=="<none>"){print $3} else {print $2}}' | grep -Pv ".+_v[0-9]+(?=SC[0-9]+$)" | sed 's/S[A-Z][0-9|A-Z]*$//' | uniq
+	docker images | grep "^${1}" | awk -F' ' '{if($2=="latest"||$2=="<none>"){print $3} else {print $2}}' | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+$)" | sed 's/S[A-Z][0-9|A-Z]*$//' | uniq
 
 	return $?
 }
@@ -5150,7 +5152,7 @@ EOF
 	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
 	### 还原标记则为SR(Snap restore c/i/d)			
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | grep "^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v[0-9]+)SC(?=[0-9]+$)" | wc -l)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | grep "^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v[0-9]{10})SC(?=[0-9]+$)" | wc -l)
 	# imgver111111_v1675749340SC0
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT}"
 	# browserless_chrome:imgver111111_v1675749340SC0
@@ -5282,7 +5284,7 @@ function docker_snap_restore_choice_action()
 			local _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES="Image,Container,Dockerfile"
 
 			echo "${TMP_SPLITER2}"
-			bind_if_choice "_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE" "Please sure 'which type' u want to [restore] from snapshot <${1}>([${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VER}])" "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES}"
+			bind_if_choice "_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE" "Please sure 'which type' u want to [restore] from snapshot <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VER}]" "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPES}"
 			typeset -l _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_TYPE
 
 			# 快照存储类型已被重新加载
@@ -5387,11 +5389,17 @@ function docker_snap_restore_action()
     local _TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${2}"	
 	# /bin/sh
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD=$([[ -a ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.run ]] && cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.run)
+	# imgver111111
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_VER=$(echo "${2}" | grep -oP "[^_]+(?=_v[0-9]{10})")
 	# /bin/sh
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=${1}:${2} ).+")
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_VER:-${2}} ).+")
 	# --volume /etc/localtime:/etc/localtime
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=^docker run ).+(?=${1}:${2}.+)")
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=^docker run ).+(?=${1}:.+)")
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
+	
+	# 卸载无用的变量
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--name=\w+$"
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--hostname=\w+$"
 		
     echo "${TMP_SPLITER2}"
     echo_text_style "Starting <restore> 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) from <${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS:-"snapshot restore"}> to <${1}>:[${2}]"
@@ -5450,12 +5458,12 @@ function docker_snap_restore_action()
 			{
 				# --env=APP_DIR=/usr/src/app
 				local _TMP_DOCKER_SNAP_RESTORE_ACTION_ENV_KEY=$(echo "${1}" | cut -d'=' -f1)
-				item_change_remove_action "^--env=${_TMP_DOCKER_SNAP_RESTORE_ACTION_ENV_KEY}=" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS}" '_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS="${3}"'
+				item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--env=${_TMP_DOCKER_SNAP_RESTORE_ACTION_ENV_KEY}="
 			}
-			items_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS}" "_docker_snap_restore_action_filter_arg_envs"
+			items_split_action "_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS" "_docker_snap_restore_action_filter_arg_envs"
 		fi
 	fi
-	
+
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS=""
 	if [ -a ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.hostconfig.json ]; then
 		local _TMP_DOCKER_SNAP_RESTORE_ACTION_CTN_FILE_HOSTCONF=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.hostconfig.json)
@@ -5467,14 +5475,14 @@ function docker_snap_restore_action()
 		{
 			# --volume=/mountdisk/data/docker_apps/browserless_chrome/imgver111111:/usr/src/app/workspace
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_MOUNT_KEY=$(echo "${1}" | cut -d':' -f2)
-			item_change_remove_action "^--volume=.+:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MOUNT_KEY}$" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS}" '_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS="${3}"'
+			item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--volume=.+:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MOUNT_KEY}$"
 		}
-		items_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS}" "_docker_snap_restore_action_filter_arg_mounts"
+		items_split_action "_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS" "_docker_snap_restore_action_filter_arg_mounts"
 	fi
-
+	
 	_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS} --workdir=${_TMP_DOCKER_SNAP_RESTORE_ACTION_WORKING_DIR} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_ENVS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS}"
 
-	script_check_action "${5}" "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS}" "${@:3:4}"
+	script_check_action "${5}" "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}" "${4}"
     return $?
 }
 
@@ -5587,6 +5595,7 @@ function docker_image_boot_print()
 		bind_exchange_port "_TMP_DOCKER_IMG_BOOT_PRINT_PS_OPN_PORT"
 		_TMP_DOCKER_IMG_BOOT_PRINT_ARGS=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}" | sed "s@${_TMP_DOCKER_IMG_BOOT_PRINT_PS_PORT_PAIR}@${_TMP_DOCKER_IMG_BOOT_PRINT_PS_OPN_PORT}:${_TMP_DOCKER_IMG_BOOT_PRINT_PS_INN_PORT}@g")
 		
+		trim_str "_TMP_DOCKER_IMG_BOOT_PRINT_ARGS"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
 		echo_text_style "Booting <${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}] by args(${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}) && cmd(${_TMP_DOCKER_IMG_BOOT_PRINT_CMD:-"None"})"
         _TMP_DOCKER_IMG_BOOT_PRINT_PS_ID=$(docker run -d ${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS} ${1}:${_TMP_DOCKER_IMG_BOOT_PRINT_VER} ${_TMP_DOCKER_IMG_BOOT_PRINT_CMD})
@@ -5731,8 +5740,8 @@ function docker_image_boot_print()
 		fi
 	}
 
-	find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
-	find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+	[[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+	[[ -a ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'boot info'↓:"
@@ -5750,10 +5759,12 @@ function docker_image_boot_print()
 	items_split_action "${_TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
 	
     # 查看日志（config/image）
-    echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'container inspect'↓:"
-    echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_PS_ID}.ctn.inspect.json
-    cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_PS_ID}.ctn.inspect.json
+	if [ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]; then
+		echo "${TMP_SPLITER2}"
+		echo_text_style "View the 'container inspect'↓:"
+		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_PS_ID}.ctn.inspect.json
+		cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_PS_ID}.ctn.inspect.json
+	fi
 
     echo "${TMP_SPLITER2}"
     echo_text_style "View the 'container logs'↓:"
@@ -6099,8 +6110,7 @@ function soft_check_yn_action()
 		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT=${1}
 		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT}"
 		
-		echo ${TMP_SPLITER2}
-        echo_text_style "Checking <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}> from '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}'"
+        echo_text_wrap_style "Checking <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}> from '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}'"
 		
 		# 获取判断响应
 		local _TMP_SOFT_CHECK_YN_ACTION_RES=$(script_check_action '_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT' ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM})
@@ -6228,7 +6238,7 @@ function soft_cmd_check_confirm_git_action()
 		}
 
 		local _TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked 'command'(<${1}>-[git]) was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed, please 'sure' u will [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo && echo_text_style \"Checked 'command'(<${1}>-[git]) was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed\""
+		confirm_yn_action "_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_YN_REINSTALL" "Checked 'command'(<${1}>-[git]) was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed, please 'sure' u will [re${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}] 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo_text_style \"Checked 'command'(<${1}>-[git]) was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed\""
 	}
 
 	soft_cmd_check_git_action "${1}" "${2}" "${3}" "${4}" "${5}" "_soft_cmd_check_confirm_git_action"
@@ -6376,7 +6386,6 @@ function soft_yum_check_setup()
 
 		# 此处如果是取用变量而不是实际值，则split_action中的printf不会进行格式化
 		# print "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD}" "${_TMP_SOFT_YUM_CHECK_SETUP}"
-		echo 
 		echo_text_style "${_TMP_SOFT_YUM_CHECK_SETUP_SOFT_STD:-"Soft <${_TMP_SOFT_YUM_CHECK_SETUP_CURRENT_SOFT_NAME}> 'exists' in 'yum local'"}"
 	}
 
@@ -6399,8 +6408,7 @@ function soft_yum_check_upgrade_action()
 	{
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
 
-		echo "${TMP_SPLITER2}"
-		echo_text_style "Starting 'remove' yum repo of <${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}>"
+		echo_text_wrap_style "Starting 'remove' yum repo of <${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}>"
 
 		# 清理安装包，删除空行（cut -d可能带来空行）
 		yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log
@@ -6474,7 +6482,7 @@ function soft_docker_check_upgrade_action()
 
 	function _soft_docker_check_upgrade_action_print_image()
 	{
-		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2==\"${1}\"){print}}"
+		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${1}\"){print}}"
 	}
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_EXISTS_VERS}\" | eval script_channel_action '_soft_docker_check_upgrade_action_print_image'"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_E_SCRIPT=${3:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG_PRINT_SCRIPT}}

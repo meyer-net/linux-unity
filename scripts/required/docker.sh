@@ -48,8 +48,7 @@ function set_env_docker()
 # *-特殊备份，会嵌入在备份时执行
 function special_backup_docker()
 {
-    echo "${TMP_SPLITER2}"
-    echo_text_style "Starting 'create' the 'containers snapshop' of soft <docker>"
+    echo_text_wrap_style "Starting 'create' the 'containers snapshop' of soft <docker>"
 
     # 参数1：e75f9b427730
     # 参数2：browserless/chrome:latest
@@ -134,8 +133,7 @@ function special_backup_docker()
 # 2-安装软件
 function setup_docker()
 {
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'install', hold on please"
+    echo_text_wrap_style "Starting 'install', hold on please"
 
     # 预先删除运行时文件 
     rm -rf /run/containerd/containerd.sock
@@ -160,8 +158,7 @@ function formal_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'formal dirs', hold on please"
+    echo_text_wrap_style "Starting 'formal dirs', hold on please"
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
@@ -180,8 +177,8 @@ function formal_docker()
 	## 日志
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
 	## 数据
-    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
+    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     ## soft_path_restore_confirm_action "/etc/docker"
     # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
@@ -211,9 +208,7 @@ function conf_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-	echo
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'configuration' <docker>, wait for a moment"
+    echo_text_wrap_style "Starting 'configuration' <docker>, wait for a moment"
 
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
@@ -251,8 +246,7 @@ function test_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'restore' <docker> snapshot, wait for a moment"
+    echo_text_wrap_style "Starting 'restore' <docker> snapshot, wait for a moment"
 
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
@@ -280,8 +274,14 @@ function test_docker()
 
     function _docker_snap_restore_boot()
     {
+        function _docker_snap_restore_boot_print()
+        {
+            docker images | awk 'NR==1'
+            docker images | grep "^${1}" | awk -F" " "{if(\$2==\"${2}\"){print}}"
+        }
+        
         local TMP_DOCKER_SETUP_YN_BOOT="Y"
-        confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@}"
+        confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@:1:4}" "" '_docker_snap_restore_boot_print'
     }
 
     items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action '%s' '' '_docker_snap_restore_boot'"
@@ -298,8 +298,7 @@ function boot_docker()
 
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'boot' <docker>, wait for a moment"
+    echo_text_wrap_style "Starting 'boot' <docker>, wait for a moment"
 
     ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info'↓:"
@@ -362,8 +361,7 @@ function setup_ext_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'install' <docker> exts, wait for a moment"
+    echo_text_wrap_style "Starting 'install' <docker> exts, wait for a moment"
 
     # # 安装测试镜像
     # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"

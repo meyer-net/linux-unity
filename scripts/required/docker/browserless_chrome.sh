@@ -32,8 +32,7 @@ function set_env_dc_browserless_chrome() {
 
 # 2-安装软件
 function setup_dc_browserless_chrome() {
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'install', hold on please"
+    echo_text_wrap_style "Starting 'install', hold on please"
 
     function _setup_dc_browserless_chrome_cp_source() {
         echo "${TMP_SPLITER2}"
@@ -62,8 +61,7 @@ function setup_dc_browserless_chrome() {
 function formal_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'formal dirs', hold on please"
+    echo_text_wrap_style "Starting 'formal dirs', hold on please"
 
     # 开始标准化
     ## 还原 & 创建 & 迁移
@@ -186,8 +184,7 @@ function formal_dc_browserless_chrome() {
 function conf_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'configuration', hold on please"
+    echo_text_wrap_style "Starting 'configuration', hold on please"
 
     # 开始配置
     # docker exec docker exec -u root -w /usr/src/app -it ${TMP_DC_BLC_SETUP_CTN_ID} sh -c "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js"
@@ -200,10 +197,9 @@ function conf_dc_browserless_chrome() {
 # 5-测试软件
 function test_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
-    # 实验部分
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'test', hold on please"
+    # 实验部分
+    echo_text_wrap_style "Starting 'test', hold on please"
 
     return $?
 }
@@ -218,10 +214,9 @@ function test_dc_browserless_chrome() {
 # 参数4：最终启动参数
 function boot_check_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
-    # 实验部分
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'boot check', hold on please"
+    # 实验部分
+    echo_text_wrap_style "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_BLC_SETUP_CTN_PORT}" ]; then
         echo "${TMP_SPLITER2}"
@@ -236,8 +231,7 @@ function boot_check_dc_browserless_chrome() {
 function down_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'download exts', hold on please"
+    echo_text_wrap_style "Starting 'download exts', hold on please"
 
     return $?
 }
@@ -246,8 +240,7 @@ function down_ext_dc_browserless_chrome() {
 function setup_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'install exts', hold on please"
+    echo_text_wrap_style "Starting 'install exts', hold on please"
 
     return $?
 }
@@ -257,8 +250,7 @@ function setup_ext_dc_browserless_chrome() {
 # 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_dc_browserless_chrome()
 {
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'reconf', hold on please"
+    echo_text_wrap_style "Starting 'reconf', hold on please"
 
     # 授权iptables端口访问
     # echo_soft_port ${2}
@@ -277,7 +269,6 @@ function reconf_dc_browserless_chrome()
 #    参数3：最终启动版本
 #    参数4：最终启动命令
 #    参数5：最终启动参数
-#    参数6：最终标记版本
 function exec_step_browserless_chrome() {
     # 变量覆盖特性，其它方法均可读取
     ## 执行传入参数
@@ -288,8 +279,6 @@ function exec_step_browserless_chrome() {
     local TMP_DC_BLC_SETUP_CTN_VER="${3}"
     local TMP_DC_BLC_SETUP_CTN_CMD="${4}"
     local TMP_DC_BLC_SETUP_CTN_ARGS="${5}"
-    # imgver111111
-    # local TMP_DC_BLC_SETUP_CTN_MARK_VER="${6:-${3}}"
 
     # 统一编排到的路径
     local TMP_DC_BLC_CURRENT_DIR=$(pwd)
@@ -355,8 +344,7 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_IMG_SNAP_TYPE="${5}"
     local TMP_DC_BLC_SETUP_IMG_STORE="${6}"
 
-    echo "${TMP_SPLITER}"
-    echo_text_style "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
+    echo_text_wrap_style "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
     
     # 标准启动参数
     local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
@@ -366,7 +354,12 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
+    echo "${TMP_SPLITER}"
+    echo_text_style "Starting 'combine container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}] boot args, hold on please"
+    echo_text_style "<Container> args(${TMP_DC_BLC_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_text_style "<Container> pre args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
+    echo_text_style "<Container> combine args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     
     # 开始启动
     docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
@@ -378,7 +371,7 @@ function boot_build_dc_browserless_chrome() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_browserless_chrome() {
-    echo_text_style "Checking 'install' <${1}>, hold on please"
+    echo_text_wrap_style "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装
     soft_docker_check_upgrade_action "${1}" "boot_build_dc_browserless_chrome"
