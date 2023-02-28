@@ -133,7 +133,7 @@ function special_backup_docker()
 # 2-安装软件
 function setup_docker()
 {
-    echo_text_wrap_style "Starting 'install', hold on please"
+    echo_text_wrap_style "Starting 'install package', hold on please"
 
     # 预先删除运行时文件 
     rm -rf /run/containerd/containerd.sock
@@ -143,6 +143,7 @@ function setup_docker()
 
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_SETUP_DIR}"
 
 	cd ${TMP_DOCKER_SETUP_DIR}
     
@@ -176,13 +177,16 @@ function formal_docker()
     # 还原 & 创建 & 迁移
 	## 日志
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_LOGS_DIR}"
 	## 数据
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_DATA_DIR}"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     ## soft_path_restore_confirm_action "/etc/docker"
     # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_ETC_DIR}"
 
 	# 创建链接规则
 	## 日志

@@ -356,10 +356,7 @@ function boot_build_dc_browserless_chrome() {
     echo_text_style "Starting 'combine container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}] boot args, hold on please"
     echo_text_style "<Container> args(${TMP_DC_BLC_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     echo_text_style "<Container> pre args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
-    # 有还原设定时，才启用合并   
-    if [ -n "${TMP_DC_BLC_SETUP_CTN_ARGS}" ]; then
-        docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
-    fi
+    docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
     echo_text_style "<Container> combine args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     
     # 开始启动

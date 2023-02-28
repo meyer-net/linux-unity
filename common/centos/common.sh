@@ -408,72 +408,64 @@ function proxy_by_ss()
 # 检查变量类型(单个数组函数会被判定为字符串，如下_VAR5)
 # 参数1：需要判断的变量名/值
 # 示例：
-#       _VAR1=1 && echo_var_type "_VAR1" && echo ":integer"
-#       _VAR2="321" && echo_var_type "_VAR2" && echo ":integer"
-#       _VAR3="a1234" && echo_var_type "_VAR3" && echo ":string"
-#       _VAR4="epel-release" && echo_var_type "_VAR4" && echo ":string"
-#       _VAR5="str space str" && echo_var_type "_VAR5" && echo ":string"
-#       _VAR6="" && echo_var_type "_VAR6" && echo ":nil"
-#       _VAR7=(1 2 3) && echo_var_type "_VAR7" && echo ":array"
-#       _VAR8=(abc) && echo_var_type "_VAR8" && echo ":array"
-#       _VAR9=() && echo_var_type "_VAR9" && echo ":array"
-#       _VAR10=(a123 b321) && echo_var_type "${_VAR10[*]}" && echo ":array"
-#       echo_var_type "aaa bbb" && echo ":array"
+#       _VAR1=1 && echo_var_type "${_VAR1}" && echo_var_type "_VAR1" && echo "-> integer:integer" && echo
+#       _VAR2="321" && echo_var_type "${_VAR2}" && echo_var_type "_VAR2" && echo "-> integer:integer" && echo
+#       _VAR3="a1234" && echo_var_type "${_VAR3}" && echo_var_type "_VAR3" && echo "-> string:string" && echo
+#       _VAR4="epel-release" && echo_var_type "${_VAR4}" && echo_var_type "_VAR4" && echo "-> string:string" && echo
+#       _VAR5="str space str" && echo_var_type "${_VAR5}" && echo_var_type "_VAR5" && echo "-> string:string" && echo
+#       _VAR6="" && echo_var_type "${_VAR6}" && echo_var_type "_VAR6" && echo "-> nil:nil" && echo
+#       _VAR7=(1 2 3) && echo_var_type "${_VAR7[*]}" && echo_var_type "_VAR7" && echo "-> string:array" && echo
+#       _VAR8=(abc) && echo_var_type "${_VAR8[*]}" && echo_var_type "_VAR8" && echo "-> string:array" && echo
+#       _VAR9=() && echo_var_type "${_VAR9[*]}" && echo_var_type "_VAR9" && echo "-> nil:array" && echo
+#       _VAR10=(a123 b321) && echo_var_type "${_VAR10[*]}" && echo_var_type "_VAR10" && echo "-> string:array" && echo
+#       _VAR11=($(ls -l /tmp/ | awk -F' ' '{print $9}' | awk '$1=$1')) && echo_var_type "${_VAR11[*]}" && echo_var_type "_VAR11" && echo "-> string:array" && echo
+#       _VAR12="$(ls -l /tmp/ | awk -F' ' '{print $9}' | awk '$1=$1')" && echo_var_type "${_VAR12[*]}" && echo_var_type "_VAR12" && echo "-> string:string" && echo
 function echo_var_type() {
-	local _TMP_ECHO_VAR_TYPE_SOUR_VAR_NAME=${1}
-	local _TMP_ECHO_VAR_TYPE_VAR_PAIR=()
-	bind_discern_exchange_var_pair "_TMP_ECHO_VAR_TYPE_VAR_PAIR" "${1}"
-
-	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[0]}
-
-	local _TMP_ECHO_VAR_TYPE_VAR_VAL=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[1]}
-	local _TMP_ECHO_VAR_TYPE_VAR_ARR_VAL="$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[*]"'}')"
-	local _TMP_ECHO_VAR_TYPE_VAR_ARR_LEN="$(eval echo '${'"#${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[*]"'}')"
-
-	# 空数组或数组字符串会输出如下：
-	# 变量名变成如下：
-	# echo "PAIR(${1}|${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}|${_TMP_ECHO_VAR_TYPE_VAR_VAL}|${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL})"
-	# ${1} -> _VAR6 | a123 b321
-	# ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME} -> _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_EXCHANGE_VAL_fa51962e_80a8_435c_90da_3d9ad304bab8
-	# ${_TMP_ECHO_VAR_TYPE_VAR_VAL} -> _VAR6 | a123 b321
-	# ${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL} -> _VAR6 | a123 b321
-	if [ "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}" != "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" ] && [ "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" == "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" ] && [ "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}" != "${_TMP_ECHO_VAR_TYPE_SOUR_VAR_NAME}" ]; then
-		# 有空格直接判定
-		if [ $(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | grep -o "[[:space:]]" | wc -l) -gt 0 ]; then
-			echo "array"
-			return $?
-		fi
-
-		# 空数组识别或单个字符串
-		if [ "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" == "${_TMP_ECHO_VAR_TYPE_SOUR_VAR_NAME}" ]; then
-			# 满足变量定义
-			if [ -n "$(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | egrep '^\w+$')" ]; then
-				# 排除数字开始
-				if [ -z "$(echo "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" | egrep '^[0-9]+')" ]; then
-					# 值非变量定义 ??? 无法识别单个项目
-					# local _TMP_ECHO_VAR_TYPE_VAR_DEFINE=$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_VAR_VAL}"+x'}')
-					# echo "空数组<${_TMP_ECHO_VAR_TYPE_VAR_DEFINE}|${_TMP_ECHO_VAR_TYPE_VAR_VAL}>"
-						echo "array"
-						return $?
-				fi
-			fi
-		fi
-	fi
-
-	local _TMP_ECHO_VAR_TYPE_VAR_ARR_VAL_FIRST="$(eval echo '${'"${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[0]"'}')"
-	eval "unset ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[0]" >& /dev/null
-	if [ $? -eq 0 ]; then
-		echo "array"
-		eval "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME}[0]"='${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL_FIRST}'
+	if [ $(echo "${1}" | wc -l) -gt 1 ]; then
+		echo "string"
 		return $?
 	fi
 
-	[ -z "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" ] && echo "nil" && return $?
-	# [[ "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" =~ ${_TMP_ECHO_VAR_TYPE_VAR_VAL} ]] && [[ "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" != "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" ]] && [[ ${_TMP_ECHO_VAR_TYPE_VAR_ARR_LEN} -ne ${#_TMP_ECHO_VAR_TYPE_VAR_VAL} ]] && echo "array" && return $?
-	printf "%d" "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" &>/dev/null && echo "integer" && return $?
-	printf "%d" "$(echo ${_TMP_ECHO_VAR_TYPE_VAR_VAL} | sed 's/^[+-]\?0\+//')" &>/dev/null && echo "integer" && return $?
-	printf "%f" "${_TMP_ECHO_VAR_TYPE_VAR_VAL}" &>/dev/null && echo "number" && return $?
-	[ ${#_TMP_ECHO_VAR_TYPE_VAR_VAL} -eq 1 ] && echo "char" && return $?
+	local _TMP_ECHO_VAR_TYPE_VAR_PAIR=()
+	bind_discern_exchange_var_pair "_TMP_ECHO_VAR_TYPE_VAR_PAIR" "${1}"
+	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[0]}
+	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL=${_TMP_ECHO_VAR_TYPE_VAR_PAIR[1]}
+
+	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_DECLARE=$(declare -p ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_NAME} 2>/dev/null)
+	local _TMP_ECHO_VAR_TYPE_CHECK_VAR_REGEX='^declare -n [^=]+=\"([^\"]+)\"$'
+	while [[ $_TMP_ECHO_VAR_TYPE_CHECK_VAR_DECLARE =~ ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_REGEX} ]]; do
+		_TMP_ECHO_VAR_TYPE_CHECK_VAR_DECLARE=$(declare -p ${BASH_REMATCH[1]})
+	done
+
+	case "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_DECLARE#declare -}" in
+	a*)
+		echo "array"
+		return $?
+		;;
+	A*)
+		echo "hash"
+		return $?
+		;;
+	i*)
+		echo "int"
+		return $?
+		;;
+	x*)
+		echo "export"
+		return $?
+		;;
+	*)
+		# echo "OTHER"
+		;;
+	esac
+
+	[ -z "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL}" ] && echo "nil" && return $?
+	# [[ "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" =~ ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL} ]] && [[ "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL}" != "${_TMP_ECHO_VAR_TYPE_VAR_ARR_VAL}" ]] && [[ ${_TMP_ECHO_VAR_TYPE_VAR_ARR_LEN} -ne ${#_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL} ]] && echo "array" && return $?
+	printf "%d" "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL}" &>/dev/null && echo "integer" && return $?
+	printf "%d" "$(echo ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL}|sed 's/^[+-]\?0\+//')" &>/dev/null && echo "integer" && return
+	printf "%d" "$(echo ${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL} | sed 's/^[+-]\?0\+//')" &>/dev/null && echo "integer" && return $?
+	printf "%f" "${_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL}" &>/dev/null && echo "number" && return $?
+	[ ${#_TMP_ECHO_VAR_TYPE_CHECK_VAR_VAL} -eq 1 ] && echo "char" && return $?
 	echo "string" && return $?
 	
 	return $?
@@ -549,23 +541,26 @@ function bind_discern_exchange_var_pair() {
 	if [ -n "$(echo "${2}" | egrep '^\w+$')" ]; then
 		# 排除数字开始
 		if [ -z "$(echo "${2}" | egrep '^[0-9]+')" ]; then
-			_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}[@]"'}')
-
-			# 识别直接赋值非变量名的场景
-			if [ -z "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL}" ]; then
+			# 数组输出：declare -a _ARR='()'
+			# 字符串输出：declare -- _ARR_STR="/mountdisk /data"
+			# 未定义输出：-bash: declare: _ARR: 未找到
+			local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE="$(declare -p ${2} 2>/dev/null)"
+			if [[ "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare -a" ]]; then
+				_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}[@]"'}')
+			elif [[ "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare --" ]]; then
+				_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}"'}')
+			else
 				# 判断是否是数组定义，非0则被定义了别的变量或（不是有效标识符/不是数组变量）
-				eval "unset ${2}[0]" >& /dev/null
-				local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ARR_DEFINE=$?
-
-				# 判断是否是其它变量定义
-				# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
-				local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ELSE_DEFINE=$(eval echo '${'"${2}"+x'}')
-				if [ -z "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ELSE_DEFINE}" ] && [ ${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ARR_DEFINE} -eq 0 ]; then
+				# eval "unset ${2}[0]" >& /dev/null && [ $? -eq 0 ]
+					# 多行的情况 或 判断是否是其它变量定义
+					# 参考：https://pubs.opengroup.org/onlinepubs/9699919799/utilities/V3_chap02.html#tag_18_06_02
+				local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ELSE_DEFINE=$(eval echo '${'"${2}"+x'}' 2>/dev/null)
+				if [ $(echo "${2}" | wc -l) -gt 1 ] || [ -z "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_ELSE_DEFINE}" ]; then
 					# 未定义变量则使用变量本身
 					_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=${2}
-
-					bind_discern_exchange_var_pair_bind_anymouse	
 				fi
+
+				bind_discern_exchange_var_pair_bind_anymouse
 			fi
 		else
 			bind_discern_exchange_var_pair_bind_anymouse
@@ -4089,6 +4084,7 @@ function dirs_trail_clear()
 function soft_trail_clear() 
 {
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_NAME=${1}
+	local _TMP_SOFT_TRAIL_CLEAR_FORCE=${2:-"N"}
 	local _TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR=()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[0]="/var/lib/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
@@ -4100,6 +4096,28 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	# docker的情况
+	if [ "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}" == "docker" ]; then
+		local _TMP_SOFT_TRAIL_CLEAR_DC_STATUS=$(echo_service_node_content "docker" "Active")
+		if [ "${_TMP_SOFT_TRAIL_CLEAR_DC_STATUS}" == "active" ]; then
+			local _TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=($(docker ps -a | awk 'NR>1' | cut -d' ' -f1))
+
+			function _soft_trail_clear_docker_container()
+			{
+				local _TMP_SOFT_TRAIL_CLEAR_DOCKER_IMG_FULL_NAME=$(docker container inspect ${1} | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+				echo_text_style "Starting 'trail clear' <docker> 'container'-${2}/${#_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS[@]}: <${_TMP_SOFT_TRAIL_CLEAR_DOCKER_IMG_FULL_NAME}>[${1}]"
+				docker_soft_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE}"
+			}
+			
+			items_split_action "_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS" "_soft_trail_clear_docker_container"
+		fi
+
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${DOCKER_APP_SETUP_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_DATA_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_ATT_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_SETUP_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${DOCKER_APP_LOGS_DIR}"
+	fi
 	
 	# 已经进入清理流程，不管选择是否备份。都要执行删除服务
 	function _soft_trail_clear_svr_remove_all()
@@ -4157,7 +4175,7 @@ function docker_soft_trail_clear()
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[1]="${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[2]="${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[3]="${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
-	
+
 	# 真实路径 - 挂载路径
 	# 父目录存在的情况则不添加，例如:
 	# 已知目录：/opt/docker_apps/browserless_chrome/054dce166530，则类似/opt/docker_apps/browserless_chrome/054dce166530/work不添加
@@ -4170,7 +4188,7 @@ function docker_soft_trail_clear()
 		fi
 	}
 	su_bash_channel_conda_exec "runlike ${1}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort | eval script_channel_action '_docker_soft_trail_clear_combine_filter'
-	
+
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
 	item_change_append_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_TRAIL_CLEAR_STORE_REL_DIR}"
@@ -4197,7 +4215,6 @@ function docker_soft_trail_clear()
 		docker stop ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}
 		docker rm ${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}
 	}
-	
 	dirs_trail_clear "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_IMG_NAME}('${1}')" "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_SOFT_DIR_ARR[*]}" "_docker_soft_trail_clear_ctn_remove" "${2}"
 
 	return $?
@@ -4877,79 +4894,91 @@ function docker_images_choice_vers_action()
 #       docker_image_args_combine_bind "_OUTPUT_ARR" "${_COVER_ARR[*]}" && echo "${_OUTPUT_ARR[*]}"
 function docker_image_args_combine_bind()
 {
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_PAIR=()
-	bind_discern_exchange_var_pair "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_PAIR" "${1}"
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_PAIR[0]}
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_PAIR[1]}
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_ARR" "${1}"
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_ARR[0]}
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_TYPE=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_ARR[1]}
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_ARR[2]}
 	
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_PAIR=()
 	bind_discern_exchange_var_pair "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_PAIR" "${2}"
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_NAME=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_PAIR[0]}
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_PAIR[1]}
 	
-	# 定义纯净变量
+	# 卸载无用的变量
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL}
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL}
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL}
-
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
-
+	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--name=\w+$"
+	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--hostname=\w+$"
 	# 记录特定变量
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL" "^--env=.+$"
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL" "^--volume=.+$"
-	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "^--env=.+$"
-	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "^--volume=.+$"
-
 	# 清理无关联变量
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--env=.+$"
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--volume=.+$"
-	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--env=.+$"
-	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--volume=.+$"
 
-	# 卸载无用的变量
-	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--name=\w+$"
-	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--hostname=\w+$"
+	# 不为空则操作
+	if [ -n "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}" ]; then
 
-	# 覆盖环境变量
-	function _docker_image_args_combine_bind_split()
-	{
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY=$(echo "${1}" | grep -oP "(?<=^--)[^\=]+(?=\=)")
-		item_change_cover_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=.+$" "${1}"
-	}
-	items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "_docker_image_args_combine_bind_split"
+		# 记录特定变量
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
+		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "^--env=.+$"
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
+		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "^--volume=.+$"
 
-	# 覆盖环境变量
-	function _docker_image_args_combine_bind_pair_split()
-	{
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY=$(echo "${1}" | grep -oP "(?<=^--)[^\=]+(?=\=)")
-		typeset -u _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY="${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}"
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL=$(echo "${1}" | grep -oP "(?<=^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}\=).+")
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR=""	
+		# 卸载无用的变量
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--name=\w+$"
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--hostname=\w+$"
 
-		case "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}" in
-		'env')
-			_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR="="
-		;;
-		'volume')
-			_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR=":"
-		;;
-		*)
-			continue
-		esac
+		# 清理无关联变量
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--env=.+$"
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--volume=.+$"
 
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL}" | awk -F"${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}" '{print $1}')
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_VAL=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL}" | awk -F"${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}" '{print $2}')
+		# 覆盖环境变量
+		function _docker_image_args_combine_bind_split()
+		{
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY=$(echo "${1}" | grep -oP "(?<=^--)[^\=]+(?=\=)")
+			item_change_cover_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=.+$" "${1}"
+		}
+		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "_docker_image_args_combine_bind_split"
+
+		# 覆盖环境变量
+		function _docker_image_args_combine_bind_pair_split()
+		{
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY=$(echo "${1}" | grep -oP "(?<=^--)[^\=]+(?=\=)")
+			typeset -u _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY="${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}"
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL=$(echo "${1}" | grep -oP "(?<=^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}\=).+")
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR=""	
+
+			case "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}" in
+			'env')
+				_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR="="
+			;;
+			'volume')
+				_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR=":"
+			;;
+			*)
+				continue
+			esac
+
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL}" | awk -F"${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}" '{print $1}')
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_VAL=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL}" | awk -F"${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}" '{print $2}')
+			
+			item_change_cover_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY}_VAL" "^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}.+" "--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_VAL}"
+		}
 		
-		item_change_cover_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY}_VAL" "^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}.+" "--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_KEY}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR}${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL_VAL}"
-	}
-	
-	items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "_docker_image_args_combine_bind_pair_split"
-	items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "_docker_image_args_combine_bind_pair_split"
+		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "_docker_image_args_combine_bind_pair_split"
+		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "_docker_image_args_combine_bind_pair_split"
+	fi
 
-	eval ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}='(${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL})'
+	if [ "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_TYPE}" == "array" ]; then
+		eval ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}='(${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL})'
+	else
+		eval ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}='${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL}'
+	fi
 	
 	return $?
 }
