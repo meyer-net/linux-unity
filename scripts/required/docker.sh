@@ -186,7 +186,7 @@ function formal_docker()
     ## soft_path_restore_confirm_action "/etc/docker"
     # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
-    soft_path_restore_confirm_create "${DOCKER_APP_ETC_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_ATT_DIR}"
 
 	# 创建链接规则
 	## 日志
