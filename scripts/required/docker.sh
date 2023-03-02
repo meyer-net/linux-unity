@@ -57,7 +57,7 @@ function special_backup_docker()
     function _special_backup_docker_snap_trail()
     {
         # 镜像ID
-        local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+        # local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 
         # 删除容器临时文件（例如：.X99-lock）
         echo "${TMP_SPLITER3}"
@@ -79,45 +79,53 @@ function special_backup_docker()
 		docker ps -a | awk 'NR==1'
         docker ps -a | grep "^${1:0:12}"
         
-        # 删除容器
-        echo "${TMP_SPLITER3}"
-        echo_text_style "Starting remove 'container' <${2}>([${1}])↓:"
-        docker container rm ${1}
-        echo "${TMP_SPLITER3}"
-        echo_text_style "View the 'surplus containers'↓:"
-        docker ps -a
+        # # 删除容器
+        # echo "${TMP_SPLITER3}"
+        # echo_text_style "Starting remove 'container' <${2}>([${1}])↓:"
+        # docker container rm ${1}
+        # echo "${TMP_SPLITER3}"
+        # echo_text_style "View the 'surplus containers'↓:"
+        # docker ps -a
         
-        # 删除镜像
-        echo "${TMP_SPLITER3}"
-        echo_text_style "Starting remove 'image' <${2}>:↓"
-        docker rmi ${2}
+        # # 删除镜像
+        # echo "${TMP_SPLITER3}"
+        # echo_text_style "Starting remove 'image' <${2}>:↓"
+        # docker rmi ${2}
 
-        echo "${TMP_SPLITER3}"
-        echo_text_style "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
-        rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
-
-        echo "${TMP_SPLITER3}"
-        echo_text_style "View the 'surplus images'↓:"
-        docker images
+        # echo "${TMP_SPLITER3}"
+        # echo_text_style "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
+        # rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
+        
+        # echo "${TMP_SPLITER3}"
+        # echo_text_style "View the 'surplus images'↓:"
+        # docker images
     }
 
-    local TMP_DOCKER_SETUP_CTNS=$(docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$")    
+    local TMP_DOCKER_SETUP_CTNS=$(docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v '^$')    
     function _special_backup_docker_backup()
     {
-        echo "${TMP_SPLITER2}"
-        echo_text_style "Starting boot 'services' of soft <docker>"
-        ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
-        local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
-        echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
-        echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
         
-        # 废弃下述两行代码，因外部函数无法调用
-        # export -f docker_snap_create_action
-        # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-        echo "${TMP_SPLITER2}"
-        echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
-        echo "${TMP_DOCKER_SETUP_CTNS}" | eval "script_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-        echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
+        local _TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS=$(echo_service_node_content "docker" "Active")
+        if [ "${_TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS}" != "active" ]; then
+            echo_text_style "Starting boot 'services' of soft <docker>"
+            ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
+            local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
+            echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
+            echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start    
+		fi
+        
+        if [ -n "${TMP_DOCKER_SETUP_CTNS}" ]; then
+            # 废弃下述两行代码，因外部函数无法调用
+            # export -f docker_snap_create_action
+            # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+            echo "${TMP_SPLITER2}"
+            echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
+            echo "${TMP_DOCKER_SETUP_CTNS}" | eval "script_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
+            echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
+        else
+            echo "ER："
+            echo "${TMP_DOCKER_SETUP_CTNS}"
+        fi
     }
 
     if [ $(echo "${TMP_DOCKER_SETUP_CTNS}" | wc -l) -gt 0 ]; then
@@ -133,7 +141,7 @@ function special_backup_docker()
 # 2-安装软件
 function setup_docker()
 {
-    echo_text_wrap_style "Starting 'install package', hold on please"
+    echo_text_wrap_style "Starting 'install' <docker>, hold on please"
 
     # 预先删除运行时文件 
     rm -rf /run/containerd/containerd.sock
@@ -159,13 +167,10 @@ function formal_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo_text_wrap_style "Starting 'formal dirs', hold on please"
+    echo_text_wrap_style "Starting 'formal dirs' <docker>, hold on please"
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
-
-    ## 创建自有内部网络
-    docker network create ${DOCKER_NETWORK}
     
     # 停止服务，否则运行时修改会引起未知错误
     # 不执行会出警告：
@@ -212,7 +217,7 @@ function conf_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo_text_wrap_style "Starting 'configuration' <docker>, wait for a moment"
+    echo_text_wrap_style "Starting 'configuration' <docker>, hold on please"
 
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
@@ -236,6 +241,14 @@ EOF
 
     # 启动服务
     systemctl start docker.service
+    
+    ## 创建自有内部网络
+    local TMP_DOCKER_SETUP_NETWORK_SUBNET="172.16.0.0/16"
+    bind_if_input "TMP_DOCKER_SETUP_NETWORK_SUBNET" "Please sure which subnet you want to use"
+    if [ -n "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" ]; then
+        docker network create ${DOCKER_NETWORK} --subnet ${TMP_DOCKER_SETUP_NETWORK_SUBNET}
+        docker network inspect ${DOCKER_NETWORK}
+    fi
 
     # 记录配置完服务时的启动状态
     nohup systemctl status docker.service > logs/boot.log 2>&1 &
@@ -250,8 +263,8 @@ function test_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo_text_wrap_style "Starting 'restore' <docker> snapshot, wait for a moment"
-
+    echo_text_wrap_style "Starting 'restore' <docker> snapshot, hold on please"
+    
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
     local TMP_DOCKER_SETUP_SNAP_IMG_NAMES=""
@@ -276,19 +289,39 @@ function test_docker()
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
 
-    function _docker_snap_restore_boot()
+    # 参数1：镜像名称，例 browserless/chrome
+    # 参数2：镜像版本，例 latest
+    # 参数3：启动命令，例 /bin/sh
+    # 参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+    # 参数5：快照类型(还原时有效)，例 image/container/dockerfile
+    # 参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
+    function _docker_snap_restore_build()
     {
+        # 镜像目录重建
+        local TMP_DOCKER_SETUP_IMG_MARK_NAME="${1/\//_}"
+        local TMP_DOCKER_SETUP_IMG_LOCAL_SH=${__DIR}/scripts/required/docker/${TMP_DOCKER_SETUP_IMG_MARK_NAME}.sh
+        if [[ -a "${TMP_DOCKER_SETUP_IMG_LOCAL_SH}" ]]; then
+            echo_text_wrap_style "Starting 'rebuild' <docker> snapshot struct, hold on please"
+            cp ${TMP_DOCKER_SETUP_IMG_LOCAL_SH} ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
+            sed -i '/^soft_setup_basic/d' ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
+            source ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
+            boot_build_dc_${TMP_DOCKER_SETUP_IMG_MARK_NAME} "${@}"
+            rm -rf ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
+        fi
+        
         function _docker_snap_restore_boot_print()
         {
             docker images | awk 'NR==1'
             docker images | grep "^${1}" | awk -F" " "{if(\$2==\"${2}\"){print}}"
         }
         
-        local TMP_DOCKER_SETUP_YN_BOOT="Y"
-        confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@:1:4}" "" '_docker_snap_restore_boot_print'
+        # 目录重建时变已启动，故注释
+        # local TMP_DOCKER_SETUP_YN_BOOT="Y"
+        # confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@:1:4}" "" '_docker_snap_restore_boot_print'
+        _docker_snap_restore_boot_print "${1}" "${2}"
     }
 
-    items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action '%s' '' '_docker_snap_restore_boot'"
+    items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action '%s' '' '_docker_snap_restore_build'"
 
 	return $?
 }
@@ -302,7 +335,7 @@ function boot_docker()
 
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
-    echo_text_wrap_style "Starting 'boot' <docker>, wait for a moment"
+    echo_text_wrap_style "Starting 'boot' <docker>, hold on please"
 
     ## 设置系统管理，开机启动
     echo_text_style "View the 'systemctl info'↓:"
@@ -316,7 +349,7 @@ function boot_docker()
     echo_text_style "View the 'service status'↓:"
     systemctl start docker.service
 
-    exec_sleep 3 "Initing <docker>, wait for a moment"
+    exec_sleep 3 "Initing <docker>, hold on please"
 
     echo "[-]">> logs/boot.log
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
@@ -344,7 +377,7 @@ function boot_docker()
     docker ps -a
 
     # 结束
-    exec_sleep 10 "Boot <docker> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay 10 secs to exit"
 
 	# 授权iptables端口访问
 	# echo_soft_port ${TMP_SETUP_DOCKER_BC_PS_PORT}
@@ -365,7 +398,7 @@ function setup_ext_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo_text_wrap_style "Starting 'install' <docker> exts, wait for a moment"
+    echo_text_wrap_style "Starting 'install' <docker> exts, hold on please"
 
     # # 安装测试镜像
     # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
