@@ -5137,9 +5137,10 @@ function docker_snap_create_action()
 
 	# 备份容器信息
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting 'export&package' container snap:↓"	
+    echo_text_style "Starting 'export&package' <container> snap:↓"	
 	echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
 	docker container export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
 	## 打开后不是标准json格式，先格式化！
 	### :%!python -m json.tool
 	local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
@@ -5148,9 +5149,10 @@ function docker_snap_create_action()
 
 	# 备份镜像信息
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting 'export&package' image snap:↓"	
+    echo_text_style "Starting 'export&package' <image> snap:↓"	
 	echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
 	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
+	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
 	# 初始化依赖分析(取最后一天时间为起始)
     echo "${TMP_SPLITER2}"
