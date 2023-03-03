@@ -15,7 +15,7 @@ function check_sets()
 
 function optimize_system()
 {
-	echo_text_style "Starting init 'optimize system'"
+	echo_style_text "Starting init 'optimize system'"
 
 	#安装CJSON时用
 	##默认会检测不到lua.h
@@ -181,7 +181,7 @@ EOF
 			echo ${TMP_SPLITER}
 			echo 
 			echo 
-			echo_text_style "*** For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', Please remember it."
+			echo_style_text "*** For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', Please remember it."
 			echo 
 			echo 
 			echo ${TMP_SPLITER}

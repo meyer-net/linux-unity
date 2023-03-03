@@ -81,7 +81,7 @@ function conf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	# echo
-    # echo_text_style "Configuration <nvm>, wait for a moment"
+    # echo_style_text "Configuration <nvm>, wait for a moment"
     # echo "${TMP_SPLITER}"
 
 	return $?
@@ -107,21 +107,21 @@ function boot_nvm()
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
 	echo
-    echo_text_style "Starting <nvm>, wait for a moment"
+    echo_style_text "Starting <nvm>, wait for a moment"
     echo "${TMP_SPLITER}"
 	
 	# 启动及状态检测
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version'↓:"
+    echo_style_text "View the 'version'↓:"
     nvm --version
 	
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current'↓:"
+    echo_style_text "View the 'current'↓:"
     nvm current
 
     # 结束
     echo "${TMP_SPLITER2}"
-    echo_text_style "Setup <nvm> over"
+    echo_style_text "Setup <nvm> over"
     exec_sleep 10 "Boot <nvm> over, please checking the setup log, this will stay 10 secs to exit"
 	
 	return $?
@@ -140,12 +140,12 @@ function down_plugin_nvm()
 function setup_plugin_nvm()
 {
 	echo
-    echo_text_style "Starting install the popular 'nodejs vers' for most users, wait for a moment"
+    echo_style_text "Starting install the popular 'nodejs vers' for most users, wait for a moment"
     echo "${TMP_SPLITER}"
-    echo_text_style "View the 'remote list'↓:"
+    echo_style_text "View the 'remote list'↓:"
     nvm ls-remote --lts
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'local list'↓:"
+    echo_style_text "View the 'local list'↓:"
 	nvm ls
 
     # local TMP_NVM_SETUP_MOST_USR_VER=`curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@'`
@@ -154,26 +154,26 @@ function setup_plugin_nvm()
     ## 稳定版
     echo "${TMP_SPLITER2}"	
 	## 如果没加载到最新版，则默认使用稳定版（防止官方展示规则变动的情况）
-    echo_text_style "Starting install the 'stable' version"
+    echo_style_text "Starting install the 'stable' version"
     nvm install stable
 
     ## 安装使用人数最多的版本
     echo "${TMP_SPLITER2}"	
     local TMP_NVM_SETUP_MOST_USR_VER=$(fetch_url_selector_attr 'https://nodejs.org/en/' 'a[class=home-downloadbutton]:has-text("Recommended For Most Users")' | awk NR==1 | cut -d' ' -f1)
-    echo_text_style "Starting install the 'newer popular recommended for most users' version <${TMP_NVM_SETUP_MOST_USR_VER}>"
+    echo_style_text "Starting install the 'newer popular recommended for most users' version <${TMP_NVM_SETUP_MOST_USR_VER}>"
 	nvm install ${TMP_NVM_SETUP_MOST_USR_VER}
     
     ## 安装上一个LTS版本（主要是最新版本与底层可能存在版本不兼容的情况，例如系统GLIBC版本达不到nodejs运行要求）
     echo "${TMP_SPLITER2}"
     local TMP_NVM_SETUP_PRE_LTS_VER=$(nvm ls | grep "lts/" | grep -oP "\K([0-9]{1,2}[.]){2}[0-9]{1,2}" | grep -v "${TMP_NVM_SETUP_MOST_USR_VER}" | sort -rV | awk NR==1)
-    echo_text_style "Starting install the 'pre lts' version <${TMP_NVM_SETUP_PRE_LTS_VER}>"
+    echo_style_text "Starting install the 'pre lts' version <${TMP_NVM_SETUP_PRE_LTS_VER}>"
     nvm install ${TMP_NVM_SETUP_PRE_LTS_VER}
     
 	# 使用并指定新版本
     echo "${TMP_SPLITER2}"	
     local TMP_NVM_SETUP_STABLE_VER="${TMP_NVM_SETUP_PRE_LTS_VER}"
 	set_if_empty "TMP_NVM_SETUP_STABLE_VER" "stable"
-    echo_text_style "[Setting] the 'default alias' version <${TMP_NVM_SETUP_STABLE_VER}>"
+    echo_style_text "[Setting] the 'default alias' version <${TMP_NVM_SETUP_STABLE_VER}>"
 	nvm use ${TMP_NVM_SETUP_STABLE_VER}
 	nvm alias default ${TMP_NVM_SETUP_STABLE_VER}
     
@@ -188,39 +188,39 @@ function setup_plugin_nvm()
     # path_not_exists_action "/usr/local/bin/node" "ln -sf ${TMP_NVM_SETUP_NODE_PATH} /usr/bin/node" "Node at '/usr/local/bin/node' was linked"
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "Starting install package manager tool of 'npm'"
+    echo_style_text "Starting install package manager tool of 'npm'"
     npm install -g npm@latest
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "Starting install package manager tool of 'cnpm'"
+    echo_style_text "Starting install package manager tool of 'cnpm'"
 	npm install -g cnpm@latest
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "Starting install package manager tool of 'yarn'"
+    echo_style_text "Starting install package manager tool of 'yarn'"
 	npm install -g yarn@latest
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "Starting install the tool of 'es-checker'"
+    echo_style_text "Starting install the tool of 'es-checker'"
 	npm install -g es-checker@latest
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'local list'↓:"
+    echo_style_text "View the 'local list'↓:"
 	nvm ls
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current nodejs version'↓:"
+    echo_style_text "View the 'current nodejs version'↓:"
 	node --version
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current nodejs v8-options/harmony'↓:"
+    echo_style_text "View the 'current nodejs v8-options/harmony'↓:"
 	node --v8-options | grep harmony
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'current npm version'↓:"
+    echo_style_text "View the 'current npm version'↓:"
 	npm --version
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'es-checker'↓:"
+    echo_style_text "View the 'es-checker'↓:"
 	es-checker
 
 	return $?
@@ -234,14 +234,14 @@ function reconf_nvm()
 	cd ${TMP_NVM_SETUP_DIR}
 	
 	echo
-    echo_text_style "[Re configuration] <nvm>, wait for a moment"
+    echo_style_text "[Re configuration] <nvm>, wait for a moment"
     echo "${TMP_SPLITER}"
 
     # 安装nrm
-    echo_text_style "Starting install the tool of 'nrm'"
+    echo_style_text "Starting install the tool of 'nrm'"
     npm install -g nrm
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'nrm list'↓:"
+    echo_style_text "View the 'nrm list'↓:"
 	nrm ls
     
 	#* npm -------- https://registry.npmjs.org/
@@ -253,22 +253,22 @@ function reconf_nvm()
 	#  edunpm ----- http://registry.enpmjs.org/
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "Checking the 'quickly registry' by nrm"
+    echo_style_text "Checking the 'quickly registry' by nrm"
     # 查找响应时间最短的源
 	local TMP_NVM_SETUP_SOFT_NPM_NRM_TEST=`nrm test`
 	local TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN=`echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep -oP "(?<=\s)\d+(?=ms)" | sort -g | awk 'NR==1'`
 	local TMP_NVM_SETUP_SOFT_NPM_NRM_REPO=`echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep "${TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN}" | sed "s@-@@g" | grep -oP "(?<=\s).*(?=\s\d)" | awk '{sub("^ *","");sub(" *$","");print}' | awk 'NR==1'`
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'nrm test'↓:"
+    echo_style_text "View the 'nrm test'↓:"
 	echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}"
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'quickly registry'↓:"
-    echo_text_style "[${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}]"
+    echo_style_text "View the 'quickly registry'↓:"
+    echo_style_text "[${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}]"
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "Use the 'quickly registry'↓:"
+    echo_style_text "Use the 'quickly registry'↓:"
 	nrm use ${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}
 
 	# npm config set registry https://registry.npm.taobao.org

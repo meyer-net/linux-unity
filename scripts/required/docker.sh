@@ -8,6 +8,7 @@
 #		  https://www.runoob.com/docker/centos-docker-install.html
 #         https://zhuanlan.zhihu.com/p/377456104
 #         https://www.51cto.com/article/650560.html
+#         https://www.51cto.com/article/652770.html
 #------------------------------------------------
 # - 容器导入导出与镜像导入导出区别
 #       export/import 操作对象（容器）：
@@ -61,19 +62,19 @@ function special_backup_docker()
 
         # 删除容器临时文件（例如：.X99-lock）
         echo "${TMP_SPLITER3}"
-        echo_text_style "View the 'container tmp files clear -> /tmp'↓:"
-        echo_text_style "[before]:"
+        echo_style_text "View the 'container tmp files clear -> /tmp'↓:"
+        echo_style_text "[before]:"
         docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
         ## 前几行内容无效，如下 2>/dev/null
         #  .
         #  ..
         docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
-        echo_text_style "[after]:"
+        echo_style_text "[after]:"
         docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
 
         # 停止容器
         echo "${TMP_SPLITER3}"
-        echo_text_style "View the 'container status after stop command now'↓:"
+        echo_style_text "View the 'container status after stop command now'↓:"
         docker stop ${1}
         echo "[-]"
 		docker ps -a | awk 'NR==1'
@@ -81,23 +82,23 @@ function special_backup_docker()
         
         # # 删除容器
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "Starting remove 'container' <${2}>([${1}])↓:"
+        # echo_style_text "Starting remove 'container' <${2}>([${1}])↓:"
         # docker container rm ${1}
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "View the 'surplus containers'↓:"
+        # echo_style_text "View the 'surplus containers'↓:"
         # docker ps -a
         
         # # 删除镜像
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "Starting remove 'image' <${2}>:↓"
+        # echo_style_text "Starting remove 'image' <${2}>:↓"
         # docker rmi ${2}
 
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
+        # echo_style_text "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
         # rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
         
         # echo "${TMP_SPLITER3}"
-        # echo_text_style "View the 'surplus images'↓:"
+        # echo_style_text "View the 'surplus images'↓:"
         # docker images
     }
 
@@ -107,7 +108,7 @@ function special_backup_docker()
         
         local _TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS=$(echo_service_node_content "docker" "Active")
         if [ "${_TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS}" != "active" ]; then
-            echo_text_style "Starting boot 'services' of soft <docker>"
+            echo_style_text "Starting boot 'services' of soft <docker>"
             ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
             local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
             echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
@@ -118,10 +119,9 @@ function special_backup_docker()
             # 废弃下述两行代码，因外部函数无法调用
             # export -f docker_snap_create_action
             # docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v "^$" | xargs -I {} sh -c "docker_snap_create_action {} '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-            echo "${TMP_SPLITER2}"
-            echo_text_style "Starting backup 'containers snapshot' of soft <docker>"
+            echo_style_text "Starting backup 'containers snapshot' of soft <docker>"
             echo "${TMP_DOCKER_SETUP_CTNS}" | eval "script_channel_action 'docker_snap_create_action' '${MIGRATE_DIR}/snapshot' '${LOCAL_TIMESTAMP}' '_special_backup_docker_snap_trail'"
-            echo_text_style "The 'containers snapshop' of soft <docker> was backuped"
+            echo_style_text "The 'containers snapshop' of soft <docker> was backuped"
         else
             echo "ER："
             echo "${TMP_DOCKER_SETUP_CTNS}"
@@ -243,13 +243,15 @@ EOF
     systemctl start docker.service
     
     ## 创建自有内部网络
-    local TMP_DOCKER_SETUP_NETWORK_SUBNET="172.16.0.0/16"
-    bind_if_input "TMP_DOCKER_SETUP_NETWORK_SUBNET" "Please sure which subnet you want to use"
-    if [ -n "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" ]; then
-        docker network create ${DOCKER_NETWORK} --subnet ${TMP_DOCKER_SETUP_NETWORK_SUBNET}
-        docker network inspect ${DOCKER_NETWORK}
+    if [ -z "$(docker network ls | awk -F' ' "{if(\$2==\"${DOCKER_NETWORK}\"){print}}")" ]; then
+        local TMP_DOCKER_SETUP_NETWORK_SUBNET="172.16.0.0/16"
+        bind_if_input "TMP_DOCKER_SETUP_NETWORK_SUBNET" "Please sure which subnet you want to use"
+        if [ -n "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" ]; then
+            docker network create ${DOCKER_NETWORK} --subnet ${TMP_DOCKER_SETUP_NETWORK_SUBNET}
+            docker network inspect ${DOCKER_NETWORK}
+        fi
     fi
-
+    
     # 记录配置完服务时的启动状态
     nohup systemctl status docker.service > logs/boot.log 2>&1 &
 
@@ -284,7 +286,7 @@ function test_docker()
     local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
 
     # ??? 先删除由于备份产生还原的Commit版
-    # echo_text_style "View & remove the 'backuped data exists images'↓:"
+    # echo_style_text "View & remove the 'backuped data exists images'↓:"
     # docker images | awk 'NR==1'
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
@@ -338,7 +340,7 @@ function boot_docker()
     echo_text_wrap_style "Starting 'boot' <docker>, hold on please"
 
     ## 设置系统管理，开机启动
-    echo_text_style "View the 'systemctl info'↓:"
+    echo_style_text "View the 'systemctl info'↓:"
     chkconfig docker on # systemctl enable docker.service
 	systemctl enable containerd.service
 	systemctl enable docker.socket
@@ -346,7 +348,7 @@ function boot_docker()
 
 	# 启动及状态检测
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'service status'↓:"
+    echo_style_text "View the 'service status'↓:"
     systemctl start docker.service
 
     exec_sleep 3 "Initing <docker>, hold on please"
@@ -357,24 +359,33 @@ function boot_docker()
     cat logs/boot.log
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version'↓:"
+    echo_style_text "View the 'version'↓:"
     docker -v
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'info'↓:"
+    echo_style_text "View the 'info'↓:"
     docker info
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'images'↓:"
+    echo_style_text "View the 'network list'↓:"
+    docker network ls
+    
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View the 'bridge inspect'↓:"
+    docker inspect bridge
+    
+    
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View the 'images'↓:"
     docker images
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'system df'↓:"
-    docker system df
+    echo_style_text "View the 'containers'↓:"
+    docker ps -a
     
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'containers'↓:"
-    docker ps -a
+    echo_style_text "View the 'system df'↓:"
+    docker system df
 
     # 结束
     exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay 10 secs to exit"
@@ -414,11 +425,11 @@ function setup_ext_docker()
     #     local TMP_SETUP_DOCKER_BC_PS_PORT=${2}
         
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'container folder /usr/src/app'↓:"
+    #     echo_style_text "View the 'container folder /usr/src/app'↓:"
     #     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
 
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'container visit'↓:"
+    #     echo_style_text "View the 'container visit'↓:"
     #     curl -s http://localhost:${TMP_SETUP_DOCKER_BC_PS_PORT}
     #     # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
 
@@ -443,7 +454,7 @@ function setup_ext_docker()
     # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
     # https://github.com/containrrr/watchtower 
 
-    echo_text_style "Install <docker> exts completed"
+    echo_style_text "Install <docker> exts completed"
 
 	return $?
 }

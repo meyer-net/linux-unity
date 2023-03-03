@@ -15,11 +15,11 @@ function check_epel()
 
 function setup_epel()
 {
-	echo_text_style "Starting init '${MAJOR_OS}${MAJOR_VERS}_64bit EPEL Repository'"
+	echo_style_text "Starting init '${MAJOR_OS}${MAJOR_VERS}_64bit EPEL Repository'"
 
 	bind_if_inputty "COUNTRY_CODE" "Please sure 'your country code'"
 
-	echo_text_style "The final checked country code is ''${COUNTRY_CODE}''"
+	echo_style_text "The final checked country code is ''${COUNTRY_CODE}''"
 	
 	if [ "${COUNTRY_CODE}" == "CN" ]; then
 		cat >/etc/resolv.conf<<EOF

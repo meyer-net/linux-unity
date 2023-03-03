@@ -37,7 +37,7 @@ function bootstrap() {
 
     func_test
 
-    echo_text_style "Execute over"
+    echo_style_text "Execute over"
 }
 
 ##########################################################################################################

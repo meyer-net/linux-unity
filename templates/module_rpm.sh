@@ -114,7 +114,7 @@ function conf_$soft_name()
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 		
 	echo
-    echo_text_style "Configuration <$soft_name>, wait for a moment"
+    echo_style_text "Configuration <$soft_name>, wait for a moment"
     echo "${TMP_SPLITER}"
 
 	# 开始配置
@@ -158,7 +158,7 @@ function boot_$soft_name()
     echo "${TMP_SPLITER}"
 
     ## 设置系统管理，开机启动
-    echo_text_style "View the 'systemctl info'↓:"
+    echo_style_text "View the 'systemctl info'↓:"
     chkconfig $setup_name on
 	systemctl enable $setup_name.service
 	systemctl list-unit-files | grep $setup_name
@@ -166,18 +166,18 @@ function boot_$soft_name()
 	# 启动及状态检测
     systemctl start $setup_name.service
 	## 等待执行完毕 产生端口
-    echo_text_style "View the 'booting port'↓:"
+    echo_style_text "View the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', wait for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_text_style "Echo the 'port↓' to iptables:"
+    echo_style_text "Echo the 'port↓' to iptables:"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
     
     # systemctl reload $setup_name.service
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'service status'↓:"
+    echo_style_text "View the 'service status'↓:"
     echo "[-]">> logs/boot.log
 	nohup systemctl status $setup_name.service >> logs/boot.log 2>&1 &
     cat logs/boot.log
@@ -187,21 +187,21 @@ function boot_$soft_name()
 	# journalctl -u $setup_name --no-pager | less
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version'↓:"
+    echo_style_text "View the 'version'↓:"
     $setup_name -v
 	
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'info'↓:"
+    echo_style_text "View the 'info'↓:"
     $setup_name info
 
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_text_style "Echo the 'web service init script'↓:"
+    echo_style_text "Echo the 'web service init script'↓:"
     #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
     echo "${TMP_SPLITER2}"
-    echo_text_style "Setup <$soft_name> over"
+    echo_style_text "Setup <$soft_name> over"
     exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay 10 secs to exit"
 
 	return $?

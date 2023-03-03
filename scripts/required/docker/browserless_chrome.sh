@@ -36,7 +36,7 @@ function setup_dc_browserless_chrome() {
 
     function _setup_dc_browserless_chrome_cp_source() {
         echo "${TMP_SPLITER2}"
-        echo_text_style "View the 'workingdir copy'↓:"
+        echo_style_text "View the 'workingdir copy'↓:"
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app ${1} >& /dev/null
@@ -69,7 +69,7 @@ function formal_dc_browserless_chrome() {
     #### /mountdisk/logs/docker_apps/browserless_chrome/imgver111111
     # function _formal_dc_browserless_chrome_cp_logs() {
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'logs copy'↓:"
+    #     echo_style_text "View the 'logs copy'↓:"
 
     #     # 拷贝日志目录
     #     ## /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/app_output
@@ -86,7 +86,7 @@ function formal_dc_browserless_chrome() {
     #### /mountdisk/data/docker_apps/browserless_chrome/imgver111111
     function _formal_dc_browserless_chrome_cp_data() {
         echo "${TMP_SPLITER2}"
-        echo_text_style "View the 'data copy'↓:"
+        echo_style_text "View the 'data copy'↓:"
 
         # 拷贝日志目录
         # mkdir -pv ${1}
@@ -107,7 +107,7 @@ function formal_dc_browserless_chrome() {
     #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111
     function _formal_dc_browserless_chrome_cp_etc() {
     #     echo "${TMP_SPLITER2}"
-    #     echo_text_style "View the 'etc copy'↓:"
+    #     echo_style_text "View the 'etc copy'↓:"
 
     #     # 拷贝日志目录
     #     ## /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/app
@@ -131,7 +131,7 @@ function formal_dc_browserless_chrome() {
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'symlink create':↓"
+    echo_style_text "View the 'symlink create':↓"
     ### 日志
     #### /opt/docker_apps/browserless_chrome/imgver111111/logs -> /mountdisk/logs/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
@@ -167,7 +167,7 @@ function formal_dc_browserless_chrome() {
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK}
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_BLC_SETUP_APP_MARK}
     echo "${TMP_SPLITER2}"
-    echo_text_style "Starting 'inspect change', hold on please"
+    echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     docker_change_container_volume_migrate "${TMP_DC_BLC_SETUP_CTN_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
@@ -219,7 +219,7 @@ function boot_check_dc_browserless_chrome() {
     echo_text_wrap_style "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_BLC_SETUP_CTN_PORT}" ]; then
-        echo_text_style "View the 'container visit'↓:"
+        echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
     fi
 }
@@ -346,17 +346,18 @@ function boot_build_dc_browserless_chrome() {
     
     # 标准启动参数
     local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
-    local TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    # local TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
     local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
-    echo_text_style "Starting 'combine container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}] boot args, hold on please"
-    echo_text_style "<Container> args(${TMP_DC_BLC_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
-    echo_text_style "<Container> pre args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "Starting 'combine container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}] boot args, hold on please"
+    echo "${TMP_SPLITER2}"
+    echo_style_text "<Container> 'pre' args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'ctn' args(${TMP_DC_BLC_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
-    echo_text_style "<Container> combine args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'combine' args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"

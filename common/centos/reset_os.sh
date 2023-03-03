@@ -25,7 +25,7 @@ function reset_dns()
 
 	bind_if_inputty "COUNTRY_CODE" "[${FUNCNAME[0]}] Please sure 'your country code'"
 
-	echo_text_style "The final checked country code is '${COUNTRY_CODE}'"
+	echo_style_text "The final checked country code is '${COUNTRY_CODE}'"
 
 	if [ "${COUNTRY_CODE}" == "CN" ]; then
 		cat >/etc/resolv.conf<<EOF

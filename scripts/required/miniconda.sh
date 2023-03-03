@@ -164,7 +164,7 @@ function conf_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Configuration 'conda packages', wait for a moment"
+    echo_style_text "Configuration 'conda packages', wait for a moment"
     echo "${TMP_SPLITER}"
 
     # ~/.bashrc 中存在，故不启用
@@ -203,32 +203,32 @@ function boot_miniconda()
 	# 验证安装
     ## 当前启动命令 && 等待启动
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'channels'↓:"
+    echo_style_text "View the 'channels'↓:"
     condabin/conda config --get show_channel_urls
     condabin/conda config --get channels
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'sources'↓:"
+    echo_style_text "View the 'sources'↓:"
     condabin/conda config --show-sources
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'list'↓:"
+    echo_style_text "View the 'list'↓:"
 	condabin/conda list
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'env list'↓:"
+    echo_style_text "View the 'env list'↓:"
 	condabin/conda env list
 
     echo "${TMP_SPLITER2}"
-    echo_text_style "View the 'update'↓:"
+    echo_style_text "View the 'update'↓:"
     condabin/conda update -y conda
     
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'version'↓:"
+    echo_style_text "View the 'version'↓:"
     condabin/conda --version
 
     echo "${TMP_SPLITER2}"	
-    echo_text_style "View the 'info'↓:"
+    echo_style_text "View the 'info'↓:"
     condabin/conda info -e
 
     # 结束
@@ -273,13 +273,13 @@ function setup_ext_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	echo
-    echo_text_style "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], wait for a moment"
+    echo_style_text "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], wait for a moment"
 
     # 安装playwright插件
     soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
     echo ${TMP_SPLITER2}
     soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
-    echo_text_style "Plugin 'playwright'@[${PY_ENV}] installed"
+    echo_style_text "Plugin 'playwright'@[${PY_ENV}] installed"
     echo ${TMP_SPLITER2}
     soft_setup_conda_pip "runlike" "whereis runlike"
     echo ${TMP_SPLITER2}
@@ -446,11 +446,11 @@ EOF
 
     # 测试插件
 	echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
+    echo_style_text "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
-    echo_text_style "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
+    echo_style_text "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
     su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?
