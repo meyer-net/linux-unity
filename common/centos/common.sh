@@ -5619,11 +5619,11 @@ function docker_snap_restore_action()
 		_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_FROM=$(find ${MIGRATE_DIR} -name ${2}.* | grep "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).+(?=/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}/${2}$)")
 	fi
     
-	# 检测 镜像是否存在，存在则不开启还原行为
+	# 检测 镜像是否存在，存在则不开启还原行为(暂未判断结束版本标记，例如SRC/SCI等)
     echo_style_text "Checking 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images"
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS=$(docker images | grep "^${1}")
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" ]; then
-		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" | awk -F' ' '{print $2}' | grep "^${2}$")
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" | awk -F' ' '{print $2}' | egrep "^${2}")
 		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VER}" ]; then
 			echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images exists, restore stoped"
 			return 0
