@@ -238,7 +238,7 @@ function down_$soft_name()
 {
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_$soft_upper_short_name_SETUP_DIR=${SETUP_DIR}/$setup_name
-	local TMP_$soft_upper_short_name_CURRENT_DIR=`pwd`
+	local TMP_$soft_upper_short_name_CURRENT_DIR=$(pwd)
 
 	# 统一编排到的路径
 	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/$setup_name
@@ -250,7 +250,7 @@ function down_$soft_name()
 	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
 	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
 
-	# local TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS=`curl -s https://www.xxx.com`
+	# local TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS=$(curl -s https://www.xxx.com)
 	# echo "$title_name: The newer stable version is ${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
     # local TMP_$soft_upper_short_name_SETUP_NEWER="${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
 

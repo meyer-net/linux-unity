@@ -148,7 +148,7 @@ function setup_plugin_nvm()
     echo_style_text "View the 'local list'↓:"
 	nvm ls
 
-    # local TMP_NVM_SETUP_MOST_USR_VER=`curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@'`
+    # local TMP_NVM_SETUP_MOST_USR_VER=$(curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@')
 
     # 安装特定的一些版本(已安装的nodejs版本还原后还能识别，不必再次安装，故不再判断)
     ## 稳定版
@@ -177,8 +177,8 @@ function setup_plugin_nvm()
 	nvm use ${TMP_NVM_SETUP_STABLE_VER}
 	nvm alias default ${TMP_NVM_SETUP_STABLE_VER}
     
-    # local TMP_NVM_SETUP_NPM_PATH=`which npm`
-	# local TMP_NVM_SETUP_NODE_PATH=`which node`
+    # local TMP_NVM_SETUP_NPM_PATH=$(which npm)
+	# local TMP_NVM_SETUP_NODE_PATH=$(which node)
 
 	# # 部分程序是识别 /usr/bin or /usr/local/bin 目录的，所以在此创建适配其需要的软连接
     # path_not_exists_action "/usr/bin/npm" "ln -sf ${TMP_NVM_SETUP_NPM_PATH} /usr/bin/npm" "Npm at '/usr/bin/npm' was linked"
@@ -255,9 +255,9 @@ function reconf_nvm()
     echo "${TMP_SPLITER2}"
     echo_style_text "Checking the 'quickly registry' by nrm"
     # 查找响应时间最短的源
-	local TMP_NVM_SETUP_SOFT_NPM_NRM_TEST=`nrm test`
-	local TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN=`echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep -oP "(?<=\s)\d+(?=ms)" | sort -g | awk 'NR==1'`
-	local TMP_NVM_SETUP_SOFT_NPM_NRM_REPO=`echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep "${TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN}" | sed "s@-@@g" | grep -oP "(?<=\s).*(?=\s\d)" | awk '{sub("^ *","");sub(" *$","");print}' | awk 'NR==1'`
+	local TMP_NVM_SETUP_SOFT_NPM_NRM_TEST=$(nrm test)
+	local TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN=$(echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep -oP "(?<=\s)\d+(?=ms)" | sort -g | awk 'NR==1')
+	local TMP_NVM_SETUP_SOFT_NPM_NRM_REPO=$(echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep "${TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN}" | sed "s@-@@g" | grep -oP "(?<=\s).*(?=\s\d)" | awk '{sub("^ *","");sub(" *$","");print}' | awk 'NR==1')
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'nrm test'↓:"
@@ -312,7 +312,7 @@ function check_setup_nvm()
 {
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_NVM_SETUP_DIR=${SETUP_DIR}/nvm
-	local TMP_NVM_CURRENT_DIR=`pwd`
+	local TMP_NVM_CURRENT_DIR=$(pwd)
 
 	# 统一编排到的路径
 	local TMP_NVM_SETUP_LNK_DATA_DIR=${DATA_DIR}/nvm

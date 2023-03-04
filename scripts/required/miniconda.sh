@@ -35,7 +35,7 @@
 #         conda env export > environment.yaml	        出当前环境的包信息
 #         conda env create -f environment.yaml	        用配置文件创建新的虚拟环境
 #------------------------------------------------
-local TMP_MCD_SETUP_CPU_STRUCT=`uname -m`
+local TMP_MCD_SETUP_CPU_STRUCT=$(uname -m)
 local TMP_MCD_SETUP_DOWN_SH_FILE_NAME="Miniconda3-latest-Linux-${TMP_MCD_SETUP_CPU_STRUCT}.sh"
 local TMP_MCD_SETUP_BC_PS_PORT=13000
 
@@ -285,7 +285,7 @@ function setup_ext_miniconda()
     echo ${TMP_SPLITER2}
     soft_setup_conda_pip "whaler" "whereis whaler"
  
-    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - `whoami` -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
+    # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - $(whoami) -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
     path_not_exists_create "${CONDA_PW_SCRIPTS_DIR}"
     cat >${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py<<EOF
@@ -499,7 +499,7 @@ function check_setup_miniconda()
 	local TMP_MCD_SETUP_SCRIPTS_DIR=${TMP_MCD_SETUP_DIR}/scripts
 
     # 临时
-	local TMP_MCD_CURRENT_DIR=`pwd`
+	local TMP_MCD_CURRENT_DIR=$(pwd)
 
     # *** miniconda本身具备了自动更新的操作，故不做重装还原操作，此处已安装的情况下，直接使用原有命令是最好的选择
     # function down_miniconda()

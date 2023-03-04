@@ -169,8 +169,8 @@ EOF
 	fi
 	
 	# 默认端口检测
-	# local TMP_SSH_PORT_CURRENT=`egrep "^[#]*Port" /etc/ssh/sshd_config | awk '{print $NF}'`
-	local TMP_DFT_SSH_PORT=`semanage port -l | grep ssh | awk '{print $NF}' | sed '/^$/d'`
+	# local TMP_SSH_PORT_CURRENT=$(egrep "^[#]*Port" /etc/ssh/sshd_config | awk '{print $NF}')
+	local TMP_DFT_SSH_PORT=$(semanage port -l | grep ssh | awk '{print $NF}' | sed '/^$/d')
 	if [ "${TMP_DFT_SSH_PORT}" == "22" ]; then
 		function _change_ssh_port()
 		{
@@ -200,7 +200,7 @@ EOF
 		passwd root
 	}
 
-	local TMP_IS_PASSWORD_SETED=`egrep "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $NF}'`
+	local TMP_IS_PASSWORD_SETED=$(egrep "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $NF}')
 	if [ "${TMP_IS_PASSWORD_SETED}" != "yes" ]; then
 		confirm_y_action "Y" "[${FUNCNAME[0]}] Sys find there is 'no root password set', please sure if u want to <change>" "_change_root_passwd"
 	fi

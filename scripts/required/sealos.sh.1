@@ -36,7 +36,7 @@ function set_env_sealos()
 function setup_sealos()
 {
 	## 直装模式
-	cd `dirname ${TMP_SLS_CURRENT_DIR}`
+	cd $(dirname ${TMP_SLS_CURRENT_DIR})
 
 	# 轻量级安装的情况下不进行安装包还原操作
 	mv sealos /usr/bin/
@@ -44,8 +44,8 @@ function setup_sealos()
 	cd ${TMP_SLS_SETUP_DIR}
 	
 	# 特殊多层结构下使用
-    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_LOGS_DIR}`
-    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_DATA_DIR}`
+    # path_not_exists_create $(dirname ${TMP_SLS_SETUP_LNK_LOGS_DIR})
+    # path_not_exists_create $(dirname ${TMP_SLS_SETUP_LNK_DATA_DIR})
 
 	# 创建日志软链
 	local TMP_SLS_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/sealos
@@ -92,7 +92,7 @@ function conf_sealos()
 
 	# 开始配置
 	# 特殊多层结构下使用
-    # path_not_exists_create `dirname ${TMP_SLS_SETUP_LNK_ETC_DIR}`
+    # path_not_exists_create $(dirname ${TMP_SLS_SETUP_LNK_ETC_DIR})
 
     # 还原 & 移动 - ①-Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_SLS_SETUP_ETC_DIR}" "${TMP_SLS_SETUP_LNK_ETC_DIR}"
@@ -198,7 +198,7 @@ function exec_step_sealos()
 {
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_SLS_SETUP_DIR=${1}
-	local TMP_SLS_CURRENT_DIR=`pwd`
+	local TMP_SLS_CURRENT_DIR=$(pwd)
     
 	set_env_sealos 
 

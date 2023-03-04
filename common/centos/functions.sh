@@ -18,7 +18,7 @@ function echo_title()
 	clear
 
     local _TMP_SPLITER_LEN=$((${#TMP_SPLITER}-2))
-    local _TMP_ECHO_TITLE_LINE_PREFIX=`eval printf %.s'' {1..5}`
+    local _TMP_ECHO_TITLE_LINE_PREFIX=$(eval printf %.s'' {1..5})
 
     local _TMP_ECHO_TITLE_NOTE_LINE1="${_TMP_ECHO_TITLE_LINE_PREFIX}Function unity boots of ${MAJOR_OS}.${MAJOR_VERS}"
     local _TMP_ECHO_TITLE_NOTE_LINE2="${_TMP_ECHO_TITLE_LINE_PREFIX}Copy right meyer.cheng - http://www.epudev.com"
@@ -27,14 +27,14 @@ function echo_title()
     local _TMP_ECHO_TITLE_PATH_LINE2="${_TMP_ECHO_TITLE_LINE_PREFIX}Current file: ${__FILE}"
     local _TMP_ECHO_TITLE_PATH_LINE3="${_TMP_ECHO_TITLE_LINE_PREFIX}Current conf: ${__CONF}"
 
-    local _TMP_ECHO_TITLE_ITEM_LINE1="${_TMP_ECHO_TITLE_LINE_PREFIX}'System name': ${SYS_NAME}"
-    local _TMP_ECHO_TITLE_ITEM_LINE2="${_TMP_ECHO_TITLE_LINE_PREFIX}'Product name': ${SYS_PRODUCT_NAME}(${SYSTEMD_DETECT_VIRT})"
-    local _TMP_ECHO_TITLE_ITEM_LINE3="${_TMP_ECHO_TITLE_LINE_PREFIX}'OS version': ${MAJOR_OS}.${MAJOR_VERS}"
-    local _TMP_ECHO_TITLE_ITEM_LINE4="${_TMP_ECHO_TITLE_LINE_PREFIX}'Localhost': ${LOCAL_HOST}(${LOCAL_ID})"
-    local _TMP_ECHO_TITLE_ITEM_LINE5="${_TMP_ECHO_TITLE_LINE_PREFIX}'IpV4': ${LOCAL_IPV4}"
-    local _TMP_ECHO_TITLE_ITEM_LINE6="${_TMP_ECHO_TITLE_LINE_PREFIX}'IpV6': ${LOCAL_IPV6}"
-    local _TMP_ECHO_TITLE_ITEM_LINE7="${_TMP_ECHO_TITLE_LINE_PREFIX}'Processor': ${PROCESSOR_COUNT}"
-    local _TMP_ECHO_TITLE_ITEM_LINE8="${_TMP_ECHO_TITLE_LINE_PREFIX}'FreeMemory': ${MEMORY_GB_FREE}GB"
+    local _TMP_ECHO_TITLE_ITEM_LINE1="${_TMP_ECHO_TITLE_LINE_PREFIX}System name: ${SYS_NAME}"
+    local _TMP_ECHO_TITLE_ITEM_LINE2="${_TMP_ECHO_TITLE_LINE_PREFIX}Product name: ${SYS_PRODUCT_NAME}(${SYSTEMD_DETECT_VIRT})"
+    local _TMP_ECHO_TITLE_ITEM_LINE3="${_TMP_ECHO_TITLE_LINE_PREFIX}OS version: ${MAJOR_OS}.${MAJOR_VERS}"
+    local _TMP_ECHO_TITLE_ITEM_LINE4="${_TMP_ECHO_TITLE_LINE_PREFIX}Localhost: ${LOCAL_HOST}(${LOCAL_ID})"
+    local _TMP_ECHO_TITLE_ITEM_LINE5="${_TMP_ECHO_TITLE_LINE_PREFIX}IpV4: ${LOCAL_IPV4}"
+    local _TMP_ECHO_TITLE_ITEM_LINE6="${_TMP_ECHO_TITLE_LINE_PREFIX}IpV6: ${LOCAL_IPV6}"
+    local _TMP_ECHO_TITLE_ITEM_LINE7="${_TMP_ECHO_TITLE_LINE_PREFIX}Processor: ${PROCESSOR_COUNT}"
+    local _TMP_ECHO_TITLE_ITEM_LINE8="${_TMP_ECHO_TITLE_LINE_PREFIX}FreeMemory: ${MEMORY_GB_FREE}GB"
     
 	function _TMP_ECHO_TITLE_FILL_FUNC() {
         local _TMP_FILL_RIGHT_TITLE_FORMAT=${1}
@@ -83,14 +83,14 @@ function echo_title()
 	}
 	
 	function _TMP_ECHO_TITLE_GUM_FUNC() {	
-        _TMP_ECHO_TITLE_FILL_FUNC `gum style --foreground 130 "%"` `gum style --foreground 112 "%"` '%'
+        _TMP_ECHO_TITLE_FILL_FUNC $(gum style --foreground 130 "%") $(gum style --foreground 112 "%") '%'
 
-        local _TMP_ECHO_TITLE_GUM_NOTE_LINE=`gum style --bold --align left "${_TMP_ECHO_TITLE_NOTE_LINE1}" "${_TMP_ECHO_TITLE_NOTE_LINE2}"`
-        local _TMP_ECHO_TITLE_GUM_PATH_LINE=`gum style --align left "${_TMP_ECHO_TITLE_PATH_LINE1}" "${_TMP_ECHO_TITLE_PATH_LINE2}" "${_TMP_ECHO_TITLE_PATH_LINE3}"`
-        local _TMP_ECHO_TITLE_GUM_ITEM_LINE=`gum style --align left "${_TMP_ECHO_TITLE_ITEM_LINE1}" "${_TMP_ECHO_TITLE_ITEM_LINE2}" "${_TMP_ECHO_TITLE_ITEM_LINE3}" "${_TMP_ECHO_TITLE_ITEM_LINE4}" "${_TMP_ECHO_TITLE_ITEM_LINE5}" "${_TMP_ECHO_TITLE_ITEM_LINE6}" "${_TMP_ECHO_TITLE_ITEM_LINE7}" "${_TMP_ECHO_TITLE_ITEM_LINE8}"`
+        local _TMP_ECHO_TITLE_GUM_NOTE_LINE=$(gum style --bold --align left "${_TMP_ECHO_TITLE_NOTE_LINE1}" "${_TMP_ECHO_TITLE_NOTE_LINE2}")
+        local _TMP_ECHO_TITLE_GUM_PATH_LINE=$(gum style --align left "${_TMP_ECHO_TITLE_PATH_LINE1}" "${_TMP_ECHO_TITLE_PATH_LINE2}" "${_TMP_ECHO_TITLE_PATH_LINE3}")
+        local _TMP_ECHO_TITLE_GUM_ITEM_LINE=$(gum style --align left "${_TMP_ECHO_TITLE_ITEM_LINE1}" "${_TMP_ECHO_TITLE_ITEM_LINE2}" "${_TMP_ECHO_TITLE_ITEM_LINE3}" "${_TMP_ECHO_TITLE_ITEM_LINE4}" "${_TMP_ECHO_TITLE_ITEM_LINE5}" "${_TMP_ECHO_TITLE_ITEM_LINE6}" "${_TMP_ECHO_TITLE_ITEM_LINE7}" "${_TMP_ECHO_TITLE_ITEM_LINE8}")
         
-        local _TMP_ECHO_TITLE_GUM_SPLIT_CHARS=`eval printf %.s'-' {1..$((${_TMP_SPLITER_LEN}-${#_TMP_ECHO_TITLE_LINE_PREFIX}-1))}`
-        local _TMP_ECHO_TITLE_GUM_SPLIT_LINE=`gum style --strikethrough --foreground 212 "${_TMP_ECHO_TITLE_LINE_PREFIX}${_TMP_ECHO_TITLE_GUM_SPLIT_CHARS}"`
+        local _TMP_ECHO_TITLE_GUM_SPLIT_CHARS=$(eval printf %.s'-' {1..$((${_TMP_SPLITER_LEN}-${#_TMP_ECHO_TITLE_LINE_PREFIX}-1))})
+        local _TMP_ECHO_TITLE_GUM_SPLIT_LINE=$(gum style --strikethrough --foreground 212 "${_TMP_ECHO_TITLE_LINE_PREFIX}${_TMP_ECHO_TITLE_GUM_SPLIT_CHARS}")
         
         gum style --border double --width $((${_TMP_SPLITER_LEN}+${#_TMP_ECHO_TITLE_LINE_PREFIX})) --padding "1 1" \
         "${_TMP_ECHO_TITLE_GUM_NOTE_LINE}" \
@@ -114,13 +114,13 @@ function link_logs()
     # 先创建，避免存在有些系统存在或不存在的问题。一般存在
     mkdir -pv /logs
 
-    local TMP_LOGS_IS_LINK=`ls -il /logs | grep "\->"`
+    local TMP_LOGS_IS_LINK=$(ls -il /logs | grep "\->")
     if [ -z "${TMP_LOGS_IS_LINK}" ]; then
         mv /logs ${LOGS_DIR}
         ln -sf ${LOGS_DIR} /logs
     fi
     
-    local TMP_VARLOG_IS_LINK=`ls -il /var/log | grep "\->"`
+    local TMP_VARLOG_IS_LINK=$(ls -il /var/log | grep "\->")
     if [ -z "${TMP_VARLOG_IS_LINK}" ]; then
         chattr -a /var/log/messages 
 
@@ -164,7 +164,7 @@ function update_libs()
 {
     #---------- CHANGE ---------- {
     hostnamectl set-hostname ${SYS_NEW_NAME}
-    SYS_NAME=`hostname`
+    SYS_NAME=$(hostname)
     #---------- CHANGE ---------- }
     
     mkdirs
@@ -242,7 +242,7 @@ function share_dir_server()
     local _TMP_SHARE_DIR_SVR_LCL_DIR="${PRJ_DIR}"
     bind_if_input "_TMP_SHARE_DIR_SVR_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to share"
 
-    local _TMP_SHARE_DIR_SVR_ALLOWS=`echo ${LOCAL_HOST} | sed "s@\.${LOCAL_ID}$@.0/24@G"`
+    local _TMP_SHARE_DIR_SVR_ALLOWS=$(echo ${LOCAL_HOST} | sed "s@\.${LOCAL_ID}$@.0/24@G")
     bind_if_input "_TMP_SHARE_DIR_SVR_ALLOWS" "${FUNCNAME[0]} Please ender 'the host network area' which u allows to share"
 
     local _TMP_SHARE_DIR_SVR_PERS="rw,no_root_squash"

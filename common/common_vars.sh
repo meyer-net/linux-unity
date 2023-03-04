@@ -8,9 +8,9 @@
 #------------------------------------------------
 
 #---------- SYS ---------- {
-red=`tput setaf 1`
-green=`tput setaf 2`
-reset=`tput sgr0`
+red=$(tput setaf 1)
+green=$(tput setaf 2)
+reset=$(tput sgr0)
 CL_RED="\033[31m"
 CL_GRN="\033[32m"
 CL_YLW="\033[33m"
@@ -28,37 +28,37 @@ export GUM_INPUT_PROMPT_FOREGROUND="#04B575"
 
 #---------- HARDWARE ---------- { 
 # 主机名称
-SYS_NAME=`hostname`
+SYS_NAME=$(hostname)
 
 # 系统产品名称
-SYS_PRODUCT_NAME=`dmidecode -t system | grep "Product Name" | awk -F':' '{print $NF}' | awk '{sub("^ *","");sub(" *$","");print}'`
+SYS_PRODUCT_NAME=$(dmidecode -t system | grep "Product Name" | awk -F':' '{print $NF}' | awk '{sub("^ *","");sub(" *$","");print}')
 
 # 系统位数
-CPU_ARCHITECTURE=`lscpu | awk NR==1 | awk -F' ' '{print $NF}'`
+CPU_ARCHITECTURE=$(lscpu | awk NR==1 | awk -F' ' '{print $NF}')
 
 # 系统版本
-MAJOR_OS=`cat /etc/redhat-release | awk -F' ' '{print $1}'`
-MAJOR_OS_LOWER=`echo ${MAJOR_OS} | tr 'A-Z' 'a-z'`
-MAJOR_VERS=`grep -oE '[0-9]+\.[0-9]+' /etc/redhat-release | cut -d "." -f1`
+MAJOR_OS=$(cat /etc/redhat-release | awk -F' ' '{print $1}')
+MAJOR_OS_LOWER=$(echo ${MAJOR_OS} | tr 'A-Z' 'a-z')
+MAJOR_VERS=$(grep -oE '[0-9]+\.[0-9]+' /etc/redhat-release | cut -d "." -f1)
 
 # 处理器核心数
-PROCESSOR_COUNT=`cat /proc/cpuinfo | grep "processor"| wc -l`
+PROCESSOR_COUNT=$(cat /proc/cpuinfo | grep "processor"| wc -l)
 
 # 空闲内存数
-MEMORY_FREE=`awk '($1 == "MemFree:"){print $2/1048576}' /proc/meminfo`
+MEMORY_FREE=$(awk '($1 == "MemFree:"){print $2/1048576}' /proc/meminfo)
 
 # GB -> BYTES
 MEMORY_GB_FREE=${MEMORY_FREE%.*}
 
 # 机器环境信息
-SYSTEMD_DETECT_VIRT=`systemd-detect-virt`
-DMIDECODE_MANUFACTURER=`dmidecode -t system | grep "Manufacturer" | awk -F':' '{print \$NF}' | xargs echo`
+SYSTEMD_DETECT_VIRT=$(systemd-detect-virt)
+DMIDECODE_MANUFACTURER=$(dmidecode -t system | grep "Manufacturer" | awk -F':' '{print \$NF}' | xargs echo)
 
 #---------- HARDWARE ---------- }
 
 #---------- SYSTEM ---------- {
-LOCAL_TIME=`date +"%Y-%m-%d %H:%M:%S"`
-LOCAL_TIMESTAMP=`date -d "${LOCAL_TIME}" +%s` 
+LOCAL_TIME=$(date +"%Y-%m-%d %H:%M:%S")
+LOCAL_TIMESTAMP=$(date -d "${LOCAL_TIME}" +%s) 
 #---------- SYSTEM ---------- }
 
 #---------- DIR ---------- {    
@@ -67,7 +67,7 @@ DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 DOCKER_APP_SETUP_DIR=${SETUP_DIR}/docker_apps
 # NVM_PATH=~/.nvm/nvm.sh
 NVM_PATH=${SETUP_DIR}/nvm/nvm.sh
-CURRENT_USER=`whoami`
+CURRENT_USER=$(whoami)
 
 DOWN_DIR=/home/${CURRENT_USER}/downloads
 RPMS_DIR=${DOWN_DIR}/rpms

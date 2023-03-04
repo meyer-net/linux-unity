@@ -79,7 +79,7 @@ function conf_dc_$soft_name()
 
 	# 开始配置
 	# 特殊多层结构下使用
-    # path_not_exists_create `dirname ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}`
+    # path_not_exists_create $(dirname ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR})
 
     # 还原 & 移动 - ①-Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_DC_$soft_upper_short_name_SETUP_ETC_DIR}" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
@@ -185,7 +185,7 @@ function check_setup_dc_$soft_name()
 	# local TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
     # path_not_exists_action "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "exec_step_$soft_name" "$title_name was installed"
     
-	# local TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS=`curl -s https://www.xxx.com`
+	# local TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS=$(curl -s https://www.xxx.com)
 	# echo "$title_name: The newer stable version is ${TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
     # local TMP_DC_$soft_upper_short_name_SETUP_NEWER="${TMP_DC_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
 

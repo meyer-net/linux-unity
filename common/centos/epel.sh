@@ -35,7 +35,7 @@ EOF
 		#http://centos.ustc.edu.cn/
 		#http://mirrors.aliyun.com/repo/Centos-${MAJOR_VERS}.repo
 		# echo "Change repos to CN..."
-		# local TMP_SETED_MIRRORS=`cat /etc/yum.repos.d/CentOS-Base.repo | grep 'mirror.centos.org'`
+		# local TMP_SETED_MIRRORS=$(cat /etc/yum.repos.d/CentOS-Base.repo | grep 'mirror.centos.org')
 		# if [ -n "$TMP_SETED_MIRRORS" ]; then
 		# 	if [ ! -f "/etc/yum.repos.d/CentOS-Base.repo.backup" ]; then
 		# 		mv /etc/yum.repos.d/CentOS-Base.repo /tmp/CentOS-Base.repo.backup
@@ -43,7 +43,7 @@ EOF
 		# 		wget -O /etc/yum.repos.d/CentOS-Base.repo http://mirrors.aliyun.com/repo/Centos-${MAJOR_VERS}.repo
 		# 		mv /tmp/CentOS-Base.repo.backup /etc/yum.repos.d/
 		# 		echo "" >> /etc/yum.repos.d/CentOS-Base.repo
-		# 		echo "# At "`date +%Y%m%d`" init" >> /etc/yum.repos.d/CentOS-Base.repo
+		# 		echo "# At "$(date +%Y%m%d)" init" >> /etc/yum.repos.d/CentOS-Base.repo
 		# 	fi
 		# fi
 				

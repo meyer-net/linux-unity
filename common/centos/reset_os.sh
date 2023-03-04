@@ -7,7 +7,7 @@
 
 function reset_passwd()
 {
-    local _TMP_RESET_PASSWD_USR=`whoami`
+    local _TMP_RESET_PASSWD_USR=$(whoami)
     local _TMP_RESET_PASSWD_STR=""
 	bind_if_input "_TMP_RESET_PASSWD_USR" "[${FUNCNAME[0]}] Please sure 'which user' if u want to change password"
 	bind_if_input "_TMP_RESET_PASSWD_STR" "[${FUNCNAME[0]}] Please sure 'the new password of user@${_TMP_RESET_PASSWD_USR}', if u want to change" "y"
@@ -50,7 +50,7 @@ EOF
 
 function reset_ip()
 {
-    local _TMP_RESET_IP_FILES=`ls /etc/sysconfig/network-scripts/ifcfg-en*`
+    local _TMP_RESET_IP_FILES=$(ls /etc/sysconfig/network-scripts/ifcfg-en*)
     local _TMP_RESET_IP_NETWORK_FILE=""
     set_if_choice "_TMP_RESET_IP_NETWORK_FILE" "[${FUNCNAME[0]}] Please choice your network card too reset" "${_TMP_RESET_IP_FILES//  /,}"
 
