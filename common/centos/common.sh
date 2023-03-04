@@ -939,8 +939,8 @@ function echo_style_text() {
 # 参数2：格式化字符串规格，指定颜色
 # 参数3：输出包裹字符，默认-
 # 示例：
-#	    echo_text_wrap_style "[Hello] 'World'"
-function echo_text_wrap_style() {
+#	    echo_style_wrap_text "[Hello] 'World'"
+function echo_style_wrap_text() {
 	local _TMP_EXEC_TEXT_WRAP_STYLE_VAL="'|'$(echo_discern_exchange_var_val "${1}")'|'"
 	local _TMP_EXEC_TEXT_WRAP_STYLE_SPLITER=""
 
@@ -2332,7 +2332,7 @@ function bind_if_choice()
 			echo ${_TMP_CHOICE_SPLITER}
 
 			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
-				echo "${_TMP_BIND_IF_CHOICE_ECHO}, by above keys, then enter it"
+				echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'above keys', then <enter> it"
 			fi
 			
 			if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -le 10 ]; then
@@ -2381,7 +2381,7 @@ function bind_if_choice()
 			local _TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_BIND_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
 			
 			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
-				echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'follow keys', then enter it"
+				echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'follow keys', then <enter> it"
 			fi
 			
 			_TMP_BIND_IF_CHOICE_NEW_VAL=$(eval ${_TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT})
@@ -2431,7 +2431,7 @@ function mark_if_choice_action()
 }
 
 # 按键选择类型的弹出动态设置变量值函数
-# 参数1：需要设置的变量名
+# 参数1：需要设置的变量名/值
 # 参数2：提示信息
 # 参数3：选项参数
 # 参数4：自定义的Spliter
@@ -2439,10 +2439,15 @@ function mark_if_choice_action()
 # 参数6：执行脚本后的操作
 function exec_if_choice_custom()
 {
-	local _TMP_EXEC_IF_CHOICE_NEW_VAL=$(echo_discern_exchange_var_val "${1}")
+	typeset -l _TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL
+
+	local _TMP_EXEC_IF_CHOICE_CUSTOM_VAR_PAIR=()
+	bind_discern_exchange_var_pair "_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_PAIR" "${1}"
+	local _TMP_EXEC_IF_CHOICE_CUSTOM_VAR_NAME=${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_PAIR[0]}
+	local _TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL=${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_PAIR[1]}
 
 	# 非首次运行时，清理命令台
-	if [ "${1}" == "TMP_CHOICE_CTX" ] && [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
+	if [ "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}" != "tmp_choice_ctx" ]; then
 		clear
 	fi
 
@@ -2450,58 +2455,57 @@ function exec_if_choice_custom()
 	{
 		bind_if_choice "${@:1:4}"
 
-		_TMP_EXEC_IF_CHOICE_NEW_VAL=$(eval echo '${'"${1}"'}')
+		_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL=$(eval echo '${'"${1}"'}')
 	}
 
 	discern_exchange_var_action "${1}" "_exec_if_choice_custom" "${@}"
 
-	typeset -l _TMP_EXEC_IF_CHOICE_NEW_VAL
-	if [ -n "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" ]; then
-		if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" = "exit" ]; then
+	if [ -n "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}" ]; then
+		if [ "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}" = "exit" ]; then
 			exit 1
 		fi
 
-		if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" = "..." ]; then
+		if [ "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}" = "..." ]; then
 			return $?
 		fi
-
+		
 		if [ -n "$5" ]; then
-			local _TMP_EXEC_IF_CHOICE_SCRIPT_PATH="${5}/${_TMP_EXEC_IF_CHOICE_NEW_VAL}"
-			local _TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR=(${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH})
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[1]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@.@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[2]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@-@_@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[3]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@-@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[4]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@_@.@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[5]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@-@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[6]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@\.@_@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[7]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @-@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[8]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @_@g")
-			_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[9]=$(echo "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" | sed "s@ @.@g")
+			local _TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH="${5}/${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}"
+			local _TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR=(${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH})
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[1]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@-@.@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[2]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@-@_@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[3]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@_@-@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[4]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@_@.@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[5]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@\.@-@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[6]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@\.@_@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[7]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@ @-@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[8]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@ @_@g")
+			_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[9]=$(echo "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" | sed "s@ @.@g")
 
 			# 识别文件转换
-			for _TMP_EXEC_IF_CHOICE_SCRIPT_PATH in ${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH_ARR[@]}; do
-				if [ -f "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}.sh" ]; then
-					_TMP_EXEC_IF_CHOICE_SCRIPT_PATH="${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}.sh"
+			for _TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH in ${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH_ARR[@]}; do
+				if [ -f "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}.sh" ]; then
+					_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH="${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}.sh"
 					break
 				fi
 			done
 
-			if [ ! -f "${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}" ];then
-				script_check_action "${5}${_TMP_EXEC_IF_CHOICE_NEW_VAL}"
+			if [ ! -f "${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}" ];then
+				script_check_action "${5}${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}"
 			else
-				source ${_TMP_EXEC_IF_CHOICE_SCRIPT_PATH}
+				source ${_TMP_EXEC_IF_CHOICE_CUSTOM_SCRIPT_PATH}
 			fi
 		else
-			script_check_action "${_TMP_EXEC_IF_CHOICE_NEW_VAL}"
+			script_check_action "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}"
 		fi
 		
-		local _TMP_EXEC_IF_CHOICE_TMP_RETURN=$?
+		local _TMP_EXEC_IF_CHOICE_CUSTOM_TMP_RETURN=$?
 		#返回非0，跳出循环，指导后续请求不再进行
-		if [ ${_TMP_EXEC_IF_CHOICE_TMP_RETURN} != 0 ]; then
-			return ${_TMP_EXEC_IF_CHOICE_TMP_RETURN}
+		if [ ${_TMP_EXEC_IF_CHOICE_CUSTOM_TMP_RETURN} != 0 ]; then
+			return ${_TMP_EXEC_IF_CHOICE_CUSTOM_TMP_RETURN}
 		fi
 
-		# if [ "${_TMP_EXEC_IF_CHOICE_NEW_VAL}" != "..." ]; then
+		# if [ "${_TMP_EXEC_IF_CHOICE_CUSTOM_VAR_VAL}" != "..." ]; then
 		# 	read -n 1 -p "Press <Enter> go on..."
 		# fi
 
@@ -2700,7 +2704,7 @@ function get_iplocal () {
 	function _get_iplocal()
 	{
 		#  | grep noprefixroute，qcloud无此属性
-		local _TMP_GET_IP_LOCAL_IP=$(ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
+		local _TMP_GET_IP_LOCAL_IP=$(ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | grep -v "br-" | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
 		[ -z ${_TMP_GET_IP_LOCAL_IP} ] && _TMP_GET_IP_LOCAL_IP=$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1)
 
 		if [ -n "${_TMP_GET_IP_LOCAL_IP}" ]; then
@@ -2991,20 +2995,12 @@ function exec_sleep_until_not_empty()
 }
 
 # 获取挂载根路径，取第一个挂载的磁盘
-# 参数1：需要设置的变量名
-function get_mount_root() {
-	function _get_mount_root()
-	{
-		local _TMP_GET_MOUNT_ROOT=""
-		local _TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk 'NR==1{print \${1}}' | xargs -I {} echo '/dev/{}')
-		if [ -n "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" ]; then
-			_TMP_GET_MOUNT_ROOT=$(df -h | grep "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" | awk -F' ' '{print \$NF}')
-		fi
+function echo_mount_root() {
+	local _TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk 'NR==1{print $1}' | xargs -I {} echo '/dev/{}')
+	if [ -n "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" ]; then
+		echo "$(df -h | grep "^${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" | awk -F' ' '{print $NF}')"
+	fi
 
-		eval ${1}='${_TMP_GET_MOUNT_ROOT}'
-	}
-
-	discern_exchange_var_action "${1}" "_get_mount_root" "${@}"
 	return $?
 }
 
@@ -3018,19 +3014,19 @@ function resolve_unmount_disk () {
 	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX=(${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR//,/ })
 	
 	# 获取当前磁盘的格式，例如sd,vd
-	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print \${1}}')
+	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print $1}')
 	
 	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT=(${_TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR// / })
 	
-	for I in ${!_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]};  
-	do
-		local _TMP_RESOLVE_UNMOUNT_DISK_POINT="/dev/${_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[$I]}"
+	function _resolve_unmount_disk_mount()
+	{
+		local _TMP_RESOLVE_UNMOUNT_DISK_POINT="/dev/${1}"
 
 		# 判断未格式化
 		local _TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT=$(fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l)
 
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT} -eq 0 ]; then
-			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
+			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there is one of disk(<$((${2}+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
 			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Suggest step："
 			echo_style_text "                                Type 'n', <enter>"
 			echo_style_text "                                Type 'p', <enter>"
@@ -3056,7 +3052,7 @@ function resolve_unmount_disk () {
 		# 判断未挂载
 		local _TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT=$(df -h | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}" | wc -l)
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNTED_COUNT} -eq 0 ]; then
-			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there's one of disk(<$((I+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [no mount]"
+			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there is one of disk(<$((${2}+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [no mount]"
 
 			# 必要判断项
 			# 1：数组为空，检测到所有项都提示
@@ -3065,8 +3061,11 @@ function resolve_unmount_disk () {
 			if [ ${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR} -eq 0 ]; then
 				bind_if_input "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads'"
 			else
-				_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX[${I}]}
-				# [ ${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_LEN} -gt $((I+1)) ];
+				_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX[${2}]}
+			fi
+
+			if [[ -a ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT} ]]; then
+				bind_if_input "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked path <${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}> exists, please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads' and sure it not exists"
 			fi
 
 			if [ -n "${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}" ]; then
@@ -3083,8 +3082,9 @@ function resolve_unmount_disk () {
 
 			echo "---------------------------------------------"
 		fi
+	}
 
-	done
+	items_split_action "_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT" "_resolve_unmount_disk_mount"
 
 	return $?
 }
@@ -4011,7 +4011,7 @@ function dirs_trail_clear()
 	### Record really dir of </mountdisk/logs/docker> from source link </mountdisk/logs/docker -> /mountdisk/logs/docker>
 	### Checked dir of </mountdisk/etc/docker> is a symlink for really dir </etc/docker>, sys deleted.
 	### Record really dir of </opt/docker> from source link </opt/docker -> /opt/docker>
-	echo_text_wrap_style "Starting 'resolve dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
+	echo_style_wrap_text "Starting 'resolve dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
 
 	function _dirs_trail_clear_remove_sym_dir()
 	{
@@ -4052,7 +4052,7 @@ function dirs_trail_clear()
 	}
 	
 	# 有记录的情况下才执行
-	echo_text_wrap_style "Starting 'trail' the dirs of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
+	echo_style_wrap_text "Starting 'trail' the dirs of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>)"
 	if [ "${_TMP_DIRS_TRAIL_CLEAR_FORCE}" == "N" ]; then
 		## 具备特殊性质的备份，优先执行
 		local _TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC="special_backup_${_TMP_DIRS_TRAIL_CLEAR_MARK_NAME}"
@@ -4115,7 +4115,7 @@ function soft_trail_clear()
 			function _soft_trail_clear_docker_container()
 			{
 				local _TMP_SOFT_TRAIL_CLEAR_DOCKER_IMG_FULL_NAME=$(docker container inspect ${1} | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
-				echo_text_wrap_style "Starting 'trail clear' <docker> 'container'($((${2}+1))/${#_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS[@]}): <${_TMP_SOFT_TRAIL_CLEAR_DOCKER_IMG_FULL_NAME}>([${1}])"
+				echo_style_wrap_text "Starting 'trail clear' <docker> 'container'($((${2}+1))/${#_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS[@]}): <${_TMP_SOFT_TRAIL_CLEAR_DOCKER_IMG_FULL_NAME}>([${1}])"
 				docker_soft_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_FORCE}"
 			}
 			
@@ -4125,10 +4125,9 @@ function soft_trail_clear()
 		## 清理服务残留（备份前执行，否则会有资源占用的问题）
 		function _soft_trail_clear_svr_remove() 
 		{
-			echo_style_text "Starting 'remove systemctl' named <${1}>"
+			echo_style_wrap_text "Starting 'remove systemctl' named <${1}>"
 			systemctl stop ${1} && systemctl disable ${1} && rm -rf /usr/lib/systemd/system/${1} && rm -rf /etc/systemd/system/multi-user.target.wants/${1}
 			echo_style_text "'Systemctl' <${1}> removed"
-			echo "${TMP_SPLITER3}"
 		}
 
 		# export -f _soft_trail_clear_svr_remove
@@ -4765,6 +4764,7 @@ function docker_change_container_volume_migrate()
 		confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
 	}
 
+	echo_style_text "Staring sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]) will <remove>"
 	items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
 	return $?
 }
@@ -5040,6 +5040,9 @@ function docker_image_args_combine_bind()
 		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL//-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR}/}
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--name=\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--hostname=\w+$"
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--mac-address=\w+$"
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--runtime=runc\w+$"
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--detach=\w+$"
 
 		# 清理无关联变量
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--env=.+$"
@@ -5610,6 +5613,7 @@ function docker_snap_restore_choice_action()
 #   docker_snap_restore_action "browserless/chrome" "1673604625" "container" "clean"
 function docker_snap_restore_action()
 {
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME="${1}"
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME="${1/\//_}"
 	typeset -l _TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE
     local _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}"
@@ -5618,23 +5622,49 @@ function docker_snap_restore_action()
 	if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_FROM}" ]; then
 		_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_FROM=$(find ${MIGRATE_DIR} -name ${2}.* | grep "${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/).+(?=/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}/${2}$)")
 	fi
-    
+
 	# 检测 镜像是否存在，存在则不开启还原行为(暂未判断结束版本标记，例如SRC/SCI等)
-    echo_style_text "Checking 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images"
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_RESTORED=""
+    echo_style_wrap_text "Checking 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) exists of <${1}>:[${2}] from docker images"
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS=$(docker images | grep "^${1}")
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" ]; then
-		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VER=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" | awk -F' ' '{print $2}' | egrep "^${2}")
-		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VER}" ]; then
-			echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images exists, restore stoped"
-			return 0
+		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" | awk -F' ' '{print $2}' | egrep "^${2}" | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+$)")
+		echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images exists versions('${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS}')"
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS}" ]; then
+			# 镜像存在，但未有容器
+			function _docker_snap_restore_action_change_ver_check()
+			{
+				local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CTN="$(docker ps -a --no-trunc | awk -F' ' "{if(\$2==\"${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${1}\"){print}}")"
+				if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CTN}" ]; then
+					echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[${1}], but got none 'container', restore <stoped>, boot mark 'version changed' from [${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}] to <${1}>"
+					_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${1}"
+					_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_RESTORED="true"
+					break
+				fi
+			}
+			
+			items_split_action "_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS" "_docker_snap_restore_action_change_ver_check"
+
+			# 镜像存在，已有容器
+			if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_RESTORED}" ]; then
+				echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images exists, restore stoped"
+				return
+			fi
 		fi
 	fi
-
-    # /mountdisk/repo/migrate/snapshot/browserless_chrome/
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR="${MIGRATE_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_FROM}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}"
-    # local TMP_DOCKER_SNAP_RESTORE_ACTION_LNK_NAME="${1/_//}"
-    # /mountdisk/repo/migrate/snapshot/browserless_chrome/1673604625
-    local _TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${2}"	
+	
+	# 卸载无用的变量
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--name=\w+$"
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--hostname=\w+$"
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--mac-address=[\w|:]+$"
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--runtime=\w+$"
+	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--detach=\w+$"
+	
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR="${MIGRATE_DIR}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_FROM}/${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_MARK_NAME}"
+	# local TMP_DOCKER_SNAP_RESTORE_ACTION_LNK_NAME="${1/_//}"
+	# /mountdisk/repo/migrate/snapshot/browserless_chrome/1673604625
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BASE_DIR}/${2}"	
 	# /bin/sh
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD=$([[ -a ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.run ]] && cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.run)
 	# imgver111111
@@ -5644,41 +5674,40 @@ function docker_snap_restore_action()
 	# --volume /etc/localtime:/etc/localtime
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=^docker run ).+(?=${1}:.+)")
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
-	
-	# 卸载无用的变量
-	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--name=\w+$"
-	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--hostname=\w+$"
-		
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting <restore> 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) from <${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS:-"snapshot restore"}> to <${1}>:[${2}]"
-    case "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}" in
-        "container")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRC"
-            zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.ctn.gz | docker import - ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
-        ;;
-        "image")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRI"
-            docker load < ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.img.tar
-			
-			local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].Id" | xargs echo | cut -d':' -f2)
-			docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
-			
-			if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" ]; then
-				items_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" "docker rmi %s"
-			fi
-			
-			# local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
-			# docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
-        ;;
-        "dockerfile")
-            _TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRD"
-            docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.Dockerfile -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
-        ;;
-        *)
-            echo
-    esac
     
-    echo_style_text "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE} snapshot' restored to <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
+	if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_RESTORED}" ]; then
+			
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting <restore> 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) <${1}>:[${2}] from '${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS:-"snapshot restore"}'"
+		case "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}" in
+			"container")
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRC"
+				zcat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.ctn.gz | docker import - ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+			;;
+			"image")
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRI"
+				docker load < ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.img.tar
+				
+				local _TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].Id" | xargs echo | cut -d':' -f2)
+				docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_ID} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+				
+				if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" ]; then
+					items_split_action "${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS}" "docker rmi %s"
+				fi
+				
+				# local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
+				# docker tag ${_TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAG} ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}
+			;;
+			"dockerfile")
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER="${2}SRD"
+				docker build -f ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.Dockerfile -t ${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER} .
+			;;
+			*)
+				echo
+		esac
+		
+		echo_style_text "The '${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE} snapshot' restored to <${1}>:[${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}]"
+	fi
 
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_WORKING_DIR=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=--workdir\=)[^\s]+")
 
@@ -5727,8 +5756,10 @@ function docker_snap_restore_action()
 		}
 		items_split_action "_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS" "_docker_snap_restore_action_filter_arg_mounts"
 	fi
+
+	item_change_cover_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--workdir=.+:${_TMP_DOCKER_SNAP_RESTORE_ACTION_MOUNT_KEY}$" "--workdir=${_TMP_DOCKER_SNAP_RESTORE_ACTION_WORKING_DIR}"
 	
-	_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS} --workdir=${_TMP_DOCKER_SNAP_RESTORE_ACTION_WORKING_DIR} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_ENVS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS}"
+	_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS="${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_ENVS} ${_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS}"
 
 	trim_str "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS"
 	script_check_action "${5}" "${1}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS}" "${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}" "${4}"
@@ -6051,7 +6082,7 @@ function soft_setup_basic()
 	local _TMP_SOFT_SETUP_BASIC_PRINT_NAME="${1}"
 	
 	if [ -n "${2}" ]; then
-		echo_text_wrap_style "Starting 'install' <${_TMP_SOFT_SETUP_BASIC_PRINT_NAME}>"
+		echo_style_wrap_text "Starting 'install' <${_TMP_SOFT_SETUP_BASIC_PRINT_NAME}>"
 
 		local _TMP_SOFT_SETUP_BASIC_INSTALL_NAME="${1}"
 		typeset -l _TMP_SOFT_SETUP_BASIC_INSTALL_NAME
@@ -6062,7 +6093,7 @@ function soft_setup_basic()
 		
 		script_check_action "${2}" "${_TMP_SOFT_SETUP_BASIC_INSTALL_NAME}" "${@:3}"
 
-		echo_text_wrap_style "Install <${_TMP_SOFT_SETUP_BASIC_PRINT_NAME}> completed"
+		echo_style_wrap_text "Install <${_TMP_SOFT_SETUP_BASIC_PRINT_NAME}> completed"
 
 		cd ${_TMP_SOFT_SETUP_BASIC_CURRENT_DIR}
 	fi
@@ -6359,7 +6390,7 @@ function soft_check_yn_action()
 		local _TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT=${1}
 		exec_text_printf "_TMP_SOFT_CHECK_YN_ACTION_FINAL_N_SCRIPT" "${_TMP_SOFT_CHECK_YN_ACTION_N_SCRIPT}"
 		
-        echo_text_wrap_style "Checking <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}> from '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}'"
+        echo_style_wrap_text "Checking <${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM}> from '${_TMP_SOFT_CHECK_YN_ACTION_TYPE_ECHO}'"
 		
 		# 获取判断响应
 		local _TMP_SOFT_CHECK_YN_ACTION_RES=$(script_check_action '_TMP_SOFT_CHECK_YN_ACTION_FINAL_CHECK_SCRIPT' ${_TMP_SOFT_CHECK_YN_ACTION_CURRENT_ITEM})
@@ -6657,7 +6688,7 @@ function soft_yum_check_upgrade_action()
 	{
 		local _TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT=${1}
 
-		echo_text_wrap_style "Starting 'remove' yum repo of <${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}>"
+		echo_style_wrap_text "Starting 'remove' yum repo of <${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT}>"
 
 		# 清理安装包，删除空行（cut -d可能带来空行）
 		yum list installed | grep ${_TMP_SOFT_YUM_CHECK_UPGRADE_ACTION_CURRENT_SOFT} >> ${SETUP_DIR}/yum_remove_list.log

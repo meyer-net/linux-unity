@@ -19,7 +19,7 @@ function setup_requriements()
     # change_service_user "docker" "docker"
     # echo "over" 
     # read -e TTTT
-	echo_text_wrap_style "Starting init 'requriements libs'"
+	echo_style_wrap_text "Starting init 'requriements libs'"
 
     if [ "${SYS_SETUP_COMMAND}" == "yum" ]; then
         yum -y update && yum makecache fast

@@ -32,7 +32,7 @@ function set_env_dc_browserless_chrome() {
 
 # 2-安装软件
 function setup_dc_browserless_chrome() {
-    echo_text_wrap_style "Starting 'install', hold on please"
+    echo_style_wrap_text "Starting 'install', hold on please"
 
     function _setup_dc_browserless_chrome_cp_source() {
         echo "${TMP_SPLITER2}"
@@ -61,7 +61,7 @@ function setup_dc_browserless_chrome() {
 function formal_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo_text_wrap_style "Starting 'formal dirs', hold on please"
+    echo_style_wrap_text "Starting 'formal dirs', hold on please"
 
     # 开始标准化
     ## 还原 & 创建 & 迁移
@@ -184,7 +184,7 @@ function formal_dc_browserless_chrome() {
 function conf_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo_text_wrap_style "Starting 'configuration', hold on please"
+    echo_style_wrap_text "Starting 'configuration', hold on please"
 
     # 开始配置
     # docker exec docker exec -u root -w /usr/src/app -it ${TMP_DC_BLC_SETUP_CTN_ID} sh -c "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js"
@@ -199,7 +199,7 @@ function test_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     # 实验部分
-    echo_text_wrap_style "Starting 'test', hold on please"
+    echo_style_wrap_text "Starting 'test', hold on please"
 
     return $?
 }
@@ -216,7 +216,7 @@ function boot_check_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
     # 实验部分
-    echo_text_wrap_style "Starting 'boot check', hold on please"
+    echo_style_wrap_text "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_BLC_SETUP_CTN_PORT}" ]; then
         echo_style_text "View the 'container visit'↓:"
@@ -230,7 +230,7 @@ function boot_check_dc_browserless_chrome() {
 function down_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo_text_wrap_style "Starting 'download exts', hold on please"
+    echo_style_wrap_text "Starting 'download exts', hold on please"
 
     return $?
 }
@@ -239,7 +239,7 @@ function down_ext_dc_browserless_chrome() {
 function setup_ext_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_WORK_DIR}
 
-    echo_text_wrap_style "Starting 'install exts', hold on please"
+    echo_style_wrap_text "Starting 'install exts', hold on please"
 
     return $?
 }
@@ -249,7 +249,7 @@ function setup_ext_dc_browserless_chrome() {
 # 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_dc_browserless_chrome()
 {
-    echo_text_wrap_style "Starting 'reconf', hold on please"
+    echo_style_wrap_text "Starting 'reconf', hold on please"
 
     # 授权iptables端口访问
     # echo_soft_port ${2}
@@ -300,7 +300,7 @@ function exec_step_browserless_chrome() {
     local TMP_DC_BLC_SETUP_DATA_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_DATA_MARK}
     local TMP_DC_BLC_SETUP_ETC_DIR=${TMP_DC_BLC_SETUP_DIR}/${TMP_DC_BLC_SETUP_ETC_MARK}
     
-    echo_text_wrap_style "Starting 'execute step' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_CTN_VER}]('${TMP_DC_BLC_SETUP_CTN_ID}'), hold on please"
+    echo_style_wrap_text "Starting 'execute step' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_CTN_VER}]('${TMP_DC_BLC_SETUP_CTN_ID}'), hold on please"
 
     set_env_dc_browserless_chrome
 
@@ -342,7 +342,7 @@ function boot_build_dc_browserless_chrome() {
     local TMP_DC_BLC_SETUP_IMG_SNAP_TYPE="${5}"
     local TMP_DC_BLC_SETUP_IMG_STORE="${6}"
 
-    echo_text_wrap_style "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
+    echo_style_wrap_text "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
     
     # 标准启动参数
     local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
@@ -369,7 +369,7 @@ function boot_build_dc_browserless_chrome() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_browserless_chrome() {
-    echo_text_wrap_style "Checking 'install' <${1}>, hold on please"
+    echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装
     soft_docker_check_upgrade_action "${1}" "boot_build_dc_browserless_chrome"

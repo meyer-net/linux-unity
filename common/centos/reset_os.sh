@@ -9,8 +9,8 @@ function reset_passwd()
 {
     local _TMP_RESET_PASSWD_USR=`whoami`
     local _TMP_RESET_PASSWD_STR=""
-	bind_if_inputty "_TMP_RESET_PASSWD_USR" "[${FUNCNAME[0]}] Please sure 'which user' if u want to change password"
-	bind_if_inputty "_TMP_RESET_PASSWD_STR" "[${FUNCNAME[0]}] Please sure 'the new password of user@${_TMP_RESET_PASSWD_USR}', if u want to change" "y"
+	bind_if_input "_TMP_RESET_PASSWD_USR" "[${FUNCNAME[0]}] Please sure 'which user' if u want to change password"
+	bind_if_input "_TMP_RESET_PASSWD_STR" "[${FUNCNAME[0]}] Please sure 'the new password of user@${_TMP_RESET_PASSWD_USR}', if u want to change" "y"
 
     if [ -n "${_TMP_RESET_PASSWD_STR}" ]; then
         echo "${_TMP_RESET_PASSWD_STR}" | passwd ${_TMP_RESET_PASSWD_USR} --stdin > /dev/null 2>&1
@@ -23,7 +23,7 @@ function reset_dns()
 {
     cp /etc/resolv.conf /etc/resolv.${LOCAL_TIMESTAMP}.conf
 
-	bind_if_inputty "COUNTRY_CODE" "[${FUNCNAME[0]}] Please sure 'your country code'"
+	bind_if_input "COUNTRY_CODE" "[${FUNCNAME[0]}] Please sure 'your country code'"
 
 	echo_style_text "The final checked country code is '${COUNTRY_CODE}'"
 
@@ -56,7 +56,7 @@ function reset_ip()
 
     if [ -n "${_TMP_RESET_IP_NETWORK_FILE}" ]; then
         local _TMP_RESET_IP_ADDR="${LOCAL_HOST}"
-        bind_if_inputty "_TMP_RESET_IP_ADDR" "[${FUNCNAME[0]}] Please ender new ip address like '${LOCAL_HOST}' or else"
+        bind_if_input "_TMP_RESET_IP_ADDR" "[${FUNCNAME[0]}] Please ender new ip address like '${LOCAL_HOST}' or else"
 
         if [ -n "${_TMP_RESET_IP_ADDR}" ]; then
             sed -i "s@^IPADDR=.*@IPADDR=\"${_TMP_RESET_IP_ADDR}\"@g" ${_TMP_RESET_IP_NETWORK_FILE}
@@ -72,7 +72,7 @@ function reset_ip()
 
 function reset_os()
 {
-    bind_if_inputty "SYS_NEW_NAME" "[${FUNCNAME[0]}] Please ender 'system name' like '${SYS_NEW_NAME}' or else"
+    bind_if_input "SYS_NEW_NAME" "[${FUNCNAME[0]}] Please ender 'system name' like '${SYS_NEW_NAME}' or else"
 
     if [ -n "${SYS_NEW_NAME}" ]; then
         hostnamectl set-hostname ${SYS_NEW_NAME}

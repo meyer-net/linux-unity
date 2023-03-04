@@ -136,19 +136,19 @@ EOF
 
 	#echo "ulimit -SHn 65536" >> /etc/rc.local
 	ulimit -SHn 65536
-	echo_if_content_not_exists "ulimit -SHn 65536" "/etc/rc.local"
+	content_not_exists_echo "ulimit -SHn 65536" "/etc/rc.local"
 
 	#单个用户可用的最大进程数量(软限制)
-	echo_if_content_not_exists "^\* soft nofile 65536" "/etc/security/limits.conf" '* soft nofile 65536'
+	content_not_exists_echo "^\* soft nofile 65536" "/etc/security/limits.conf" '* soft nofile 65536'
 
 	#单个用户可用的最大进程数量(硬限制)
-	echo_if_content_not_exists "^\* hard nofile 65536" "/etc/security/limits.conf" '* hard nofile 65536'
+	content_not_exists_echo "^\* hard nofile 65536" "/etc/security/limits.conf" '* hard nofile 65536'
 
 	#单个用户可打开的最大文件描述符数量(软限制)
-	echo_if_content_not_exists "^\* soft nproc 65536" "/etc/security/limits.conf" '* soft nproc 65536'
+	content_not_exists_echo "^\* soft nproc 65536" "/etc/security/limits.conf" '* soft nproc 65536'
 
 	#单个用户可打开的最大文件描述符数量(硬限制)
-	echo_if_content_not_exists "^\* hard nproc 65536" "/etc/security/limits.conf" '* hard nproc 65536'
+	content_not_exists_echo "^\* hard nproc 65536" "/etc/security/limits.conf" '* hard nproc 65536'
    
     # 修改字符集,否则可能报 input/output error的问题,因为日志里打印了中文
     localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
@@ -164,7 +164,7 @@ EOF
 
 	#安装软件设定
 	if [ ! -f "${SETUP_DIR}/.sys_domain" ]; then
-		bind_if_inputty "SYS_DOMAIN" "[${FUNCNAME[0]}]: Please ender 'system domain' like 'myvnc.com' or else"
+		bind_if_input "SYS_DOMAIN" "[${FUNCNAME[0]}] Please ender 'system domain' like <myvnc.com> or else"
 		echo "${SYS_DOMAIN}" > ${SETUP_DIR}/.sys_domain
 	fi
 	
@@ -181,13 +181,13 @@ EOF
 			echo ${TMP_SPLITER}
 			echo 
 			echo 
-			echo_style_text "*** For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', Please remember it."
+			echo_style_text "*** For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', please <remember> it."
 			echo 
 			echo 
 			echo ${TMP_SPLITER}
 		}
 
-		confirm_y_action "Y" "${FUNCNAME[0]} System find there's 'ssh port is 22 defult', please sure if u want to change" "_change_ssh_port"
+		confirm_y_action "Y" "[${FUNCNAME[0]}] System find there is 'ssh port' is <22> 'defult', please sure if u want to <change>" "_change_ssh_port"
 	fi
 
 	function _change_root_passwd()
@@ -202,7 +202,7 @@ EOF
 
 	local TMP_IS_PASSWORD_SETED=`egrep "^PasswordAuthentication" /etc/ssh/sshd_config | awk '{print $NF}'`
 	if [ "${TMP_IS_PASSWORD_SETED}" != "yes" ]; then
-		confirm_y_action "Y" "${FUNCNAME[0]} Sys find there's 'no root password set', please sure if u want to change" "_change_root_passwd"
+		confirm_y_action "Y" "[${FUNCNAME[0]}] Sys find there is 'no root password set', please sure if u want to <change>" "_change_root_passwd"
 	fi
 
 	semanage port -a -t ssh_port_t -p tcp ${TMP_SSH_NEW_PORT}
@@ -219,7 +219,7 @@ EOF
 	}
 
 	# echo "lnxc7@GCPOS!m" | passwd --stdin oshit
-	confirm_y_action "N" "${FUNCNAME[0]} User of 'oshit' created, please sure the password u want to set" "_change_oshit_passwd"
+	confirm_y_action "N" "[${FUNCNAME[0]}] User of 'oshit' created, please sure the password u want to set" "_change_oshit_passwd"
 
 	systemctl restart sshd.service
 

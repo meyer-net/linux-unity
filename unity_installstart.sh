@@ -21,7 +21,7 @@ readonly __DIR __FILE __CONF
 function choice_type() {
     echo_title
 
-    exec_if_choice "TMP_CHOICE_CTX" "Please choice your setup type" "Update_Libs,From_Clean,From_Bak,Mount_Unmount_Disks,Gen_Ngx_Conf,Gen_Sup_Conf,Share_Dir,SSH_Transfer,Proxy_By_SS,Exit" "${TMP_SPLITER}"
+    exec_if_choice "TMP_CHOICE_CTX" "Please 'choice' your 'setup type'" "Update_Libs,From_Clean,From_Bak,Mount_Unmount_Disks,Gen_Ngx_Conf,Gen_Sup_Conf,Share_Dir,SSH_Transfer,Proxy_By_SS,Exit" "${TMP_SPLITER}"
 
     return $?
 }

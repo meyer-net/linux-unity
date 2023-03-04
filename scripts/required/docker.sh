@@ -29,6 +29,7 @@
 #   比如在 A 机器上运行的 X 容器是基于 TEST 这个镜像跑起来的, 那么我就可以通过 commit 参数, 将 X 容器的所有内容保存为一个新的镜像, 名字叫 私人订制 (内含一梗哦) 最后我再通过镜像导出工具 save 就可以完整的将 私人订制镜像(也就是 X容器 )导出为一个 tar 包了
 #   而且包含了 X+1 层镜像, X 层是原镜像 TEST 的所有镜像层数, 1是容器 X 多的那一层可写层的镜像
 # ??? 安装Portainer
+# 暂不支持跨版本还原，例如安装第一次容器备份，第二次容器备份。但docker重装备份后再启动已存的镜像，将无法启动。
 #------------------------------------------------
 local TMP_SETUP_DOCKER_BC_PS_PORT=13000
 
@@ -49,7 +50,7 @@ function set_env_docker()
 # *-特殊备份，会嵌入在备份时执行
 function special_backup_docker()
 {
-    echo_text_wrap_style "Starting 'create' the 'containers snapshop' of soft <docker>"
+    echo_style_wrap_text "Starting 'create' the 'containers snapshop' of soft <docker>"
 
     # 参数1：e75f9b427730
     # 参数2：browserless/chrome:latest
@@ -141,7 +142,7 @@ function special_backup_docker()
 # 2-安装软件
 function setup_docker()
 {
-    echo_text_wrap_style "Starting 'install' <docker>, hold on please"
+    echo_style_wrap_text "Starting 'install' <docker>, hold on please"
 
     # 预先删除运行时文件 
     rm -rf /run/containerd/containerd.sock
@@ -167,7 +168,7 @@ function formal_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo_text_wrap_style "Starting 'formal dirs' <docker>, hold on please"
+    echo_style_wrap_text "Starting 'formal dirs' <docker>, hold on please"
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
@@ -217,7 +218,7 @@ function conf_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo_text_wrap_style "Starting 'configuration' <docker>, hold on please"
+    echo_style_wrap_text "Starting 'configuration' <docker>, hold on please"
 
 	# 开始配置
     ## 目录调整完重启进程(目录调整是否有效的验证点)
@@ -265,7 +266,7 @@ function test_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo_text_wrap_style "Starting 'restore' <docker> snapshot, hold on please"
+    echo_style_wrap_text "Starting 'restore' <docker> snapshot, hold on please"
     
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
@@ -303,7 +304,7 @@ function test_docker()
         local TMP_DOCKER_SETUP_IMG_MARK_NAME="${1/\//_}"
         local TMP_DOCKER_SETUP_IMG_LOCAL_SH=${__DIR}/scripts/required/docker/${TMP_DOCKER_SETUP_IMG_MARK_NAME}.sh
         if [[ -a "${TMP_DOCKER_SETUP_IMG_LOCAL_SH}" ]]; then
-            echo_text_wrap_style "Starting 'rebuild' <docker> snapshot struct, hold on please"
+            echo_style_wrap_text "Starting 'rebuild' <docker> snapshot struct, hold on please"
             cp ${TMP_DOCKER_SETUP_IMG_LOCAL_SH} ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
             sed -i '/^soft_setup_basic/d' ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
             source ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
@@ -337,7 +338,7 @@ function boot_docker()
 
 	# 验证安装/启动
     ## 当前启动命令 && 等待启动
-    echo_text_wrap_style "Starting 'boot' <docker>, hold on please"
+    echo_style_wrap_text "Starting 'boot' <docker>, hold on please"
 
     ## 设置系统管理，开机启动
     echo_style_text "View the 'systemctl info'↓:"
@@ -409,7 +410,7 @@ function setup_ext_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
 
-    echo_text_wrap_style "Starting 'install' <docker> exts, hold on please"
+    echo_style_wrap_text "Starting 'install' <docker> exts, hold on please"
 
     # # 安装测试镜像
     # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
