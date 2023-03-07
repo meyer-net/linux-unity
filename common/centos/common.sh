@@ -3065,9 +3065,9 @@ function echo_mount_root() {
 function resolve_unmount_disk () {
 
 	local _TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE="MountDisk"
-	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR=${1:-}
+	local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_STR=${1:-}
 	# http://wxnacy.com/2018/05/26/shell-split/
-	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX=(${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR//,/ })
+	local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_ARR=(${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_STR//,/ })
 	
 	# 获取当前磁盘的格式，例如sd,vd
 	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print $1}')
@@ -3113,16 +3113,14 @@ function resolve_unmount_disk () {
 			# 必要判断项
 			# 1：数组为空，检测到所有项都提示
 			# 2：数组不为空，多余的略过
-			local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=""
-			if [ ${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX_STR} -eq 0 ]; then
+			local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_ARR[${2}]}
+			if [ -z "${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}" ]; then
 				bind_if_input "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads'"
-			else
-				_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT=${_TMP_RESOLVE_UNMOUNT_DISK_ARR_MOUNT_PATH_PREFIX[${2}]}
 			fi
 
-			if [[ -a ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT} ]]; then
+			while [ -a ${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT} ]; do
 				bind_if_input "_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT" "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked path <${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}> exists, please ender the disk of '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' mount path prefix like '/tmp/downloads' and sure it not exists"
-			fi
+			done
 
 			if [ -n "${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}" ]; then
 				# 挂载

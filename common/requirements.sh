@@ -24,6 +24,12 @@ function setup_requriements()
     if [ "${SYS_SETUP_COMMAND}" == "yum" ]; then
         yum -y update && yum makecache fast
     fi
+    
+    # 检测到有未挂载磁盘，默认将挂载第一个磁盘为/mountdisk，并重置变量
+    if [ ${#LSBLK_DISKS_STR} -gt 0 ] && [ -z "${LSBLK_MOUNT_ROOT}" ]; then
+        echo_style_wrap_text "'Checked' some disk no mount。Please step by step to create & format"
+        resolve_unmount_disk "${MOUNT_ROOT}"
+    fi
 
     soft_${SYS_SETUP_COMMAND}_check_setup "epel-release"
     soft_${SYS_SETUP_COMMAND}_check_setup "vim-enhanced"
