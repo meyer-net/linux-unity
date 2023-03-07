@@ -15,6 +15,8 @@ function set_env_nvm()
 {
     cd ${__DIR}
 
+    echo_style_wrap_text "Starting 'configuare' <nvm> 'install envs', hold on please"
+
     # soft_${SYS_SETUP_COMMAND}_check_setup ""
 
 	return $?
@@ -25,6 +27,8 @@ function set_env_nvm()
 # 2-安装软件
 function setup_nvm()
 {
+    echo_style_wrap_text "Starting 'install' <nvm>, hold on please"
+    
 	## 直装模式
     cd ${SH_DIR}
 
@@ -57,6 +61,8 @@ function change_down_nvm()
 function formal_nvm()
 {
 	cd ${TMP_NVM_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'formal dirs' <nvm>, hold on please"
 
 	# 开始标准化	
     # 还原 & 创建 & 迁移
@@ -79,6 +85,8 @@ function formal_nvm()
 function conf_nvm()
 {
 	cd ${TMP_NVM_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'configuration' <nvm>, hold on please"
 	
 	# echo
     # echo_style_text "Configuration <nvm>, wait for a moment"
@@ -92,6 +100,10 @@ function conf_nvm()
 # 5-测试软件
 function test_nvm()
 {
+	cd ${TMP_NVM_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'restore' <nvm> snapshot, hold on please"
+
 	# 实验部分
 
 	return $?
@@ -103,15 +115,13 @@ function test_nvm()
 function boot_nvm()
 {
 	cd ${TMP_NVM_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'boot' <nvm>, hold on please"
 	
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
-	echo
-    echo_style_text "Starting <nvm>, wait for a moment"
-    echo "${TMP_SPLITER}"
 	
 	# 启动及状态检测
-    echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'version'↓:"
     nvm --version
 	
@@ -132,6 +142,9 @@ function boot_nvm()
 # 下载驱动/插件
 function down_plugin_nvm()
 {
+	cd ${TMP_NVM_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'install' <nvm> exts, hold on please"
 
 	return $?
 }
@@ -139,7 +152,10 @@ function down_plugin_nvm()
 # 安装驱动/插件
 function setup_plugin_nvm()
 {
-	echo
+	cd ${TMP_NVM_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'install' <nvm> exts, hold on please"
+    ## 版本检测
     echo_style_text "Starting install the popular 'nodejs vers' for most users, wait for a moment"
     echo "${TMP_SPLITER}"
     echo_style_text "View the 'remote list'↓:"
@@ -233,9 +249,7 @@ function reconf_nvm()
 {
 	cd ${TMP_NVM_SETUP_DIR}
 	
-	echo
-    echo_style_text "[Re configuration] <nvm>, wait for a moment"
-    echo "${TMP_SPLITER}"
+    echo_style_wrap_text "Starting 're-configuration' <nvm>, hold on please"
 
     # 安装nrm
     echo_style_text "Starting install the tool of 'nrm'"
@@ -310,6 +324,8 @@ function exec_step_nvm()
 # x1-下载软件
 function check_setup_nvm()
 {
+    echo_style_wrap_text "Checking <nvm> 'install', hold on please"
+
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_NVM_SETUP_DIR=${SETUP_DIR}/nvm
 	local TMP_NVM_CURRENT_DIR=$(pwd)
@@ -323,7 +339,6 @@ function check_setup_nvm()
 	soft_cmd_check_git_upgrade_action "nvm" "nvm-sh/nvm" "https://raw.githubusercontent.com/creationix/nvm/v%s/install.sh" "0.39.3" "exec_step_nvm" "su_bash_nvm_channel_exec 'nvm --version'"
 
 	source ${NVM_PATH}
-read -e TTTT
 
 	return $?
 }

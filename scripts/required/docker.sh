@@ -40,6 +40,8 @@ function set_env_docker()
 {
     cd ${__DIR}
 
+    echo_style_wrap_text "Starting 'configuare' <docker> 'install envs', hold on please"
+
     #对应删除
     #${SYS_SETUP_COMMAND} remove docker-ce
     #rm -rf /mountdisk/logs/docker && rm -rf /mountdisk/data/docker* && rm -rf /opt/docker && rm -rf /etc/docker && rm -rf /var/lib/docker && rm -rf /opt/.requriements_ivhed && rm -rf /mountdisk/etc/docker && rm -rf /var/run/docker && systemctl daemon-reload && systemctl disable docker.service
@@ -50,7 +52,7 @@ function set_env_docker()
 # *-特殊备份，会嵌入在备份时执行
 function special_backup_docker()
 {
-    echo_style_wrap_text "Starting 'create' the 'containers snapshop' of soft <docker>"
+    echo_style_wrap_text "Starting 'create' <docker> 'containers snapshop'"
 
     # 参数1：e75f9b427730
     # 参数2：browserless/chrome:latest
@@ -230,7 +232,7 @@ EOF
     
     ## 授权权限，否则无法写入
     ### 默认的安装有docker组，无docker用户
-    create_user_if_not_exists docker docker
+    create_user_if_not_exists docker docker true
 
     ## 修改服务运行用户
     change_service_user docker docker
@@ -402,6 +404,10 @@ function boot_docker()
 # 下载扩展/驱动/插件
 function down_ext_docker()
 {
+	cd ${TMP_DOCKER_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'install' <docker> exts, hold on please"
+
 	return $?
 }
 
@@ -465,6 +471,10 @@ function setup_ext_docker()
 # 重新配置（有些软件安装完后需要重新配置）
 function reconf_docker()
 {
+	cd ${TMP_DOCKER_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 're-configuration' <docker>, hold on please"
+
 	return $?
 }
 
@@ -498,6 +508,8 @@ function exec_step_docker()
 # x1-下载软件
 function check_setup_docker()
 {
+    echo_style_wrap_text "Checking <docker> 'install', hold on please"
+
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 

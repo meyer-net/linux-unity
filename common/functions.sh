@@ -242,7 +242,7 @@ function share_dir_server()
     local _TMP_SHARE_DIR_SVR_LCL_DIR="${PRJ_DIR}"
     bind_if_input "_TMP_SHARE_DIR_SVR_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to share"
 
-    local _TMP_SHARE_DIR_SVR_ALLOWS=$(echo ${LOCAL_HOST} | sed "s@\.${LOCAL_ID}$@.0/24@G")
+    local _TMP_SHARE_DIR_SVR_ALLOWS=$(echo ${LOCAL_HOST} | sed "s@\.${LOCAL_ID}\$@.0/24@G")
     bind_if_input "_TMP_SHARE_DIR_SVR_ALLOWS" "${FUNCNAME[0]} Please ender 'the host network area' which u allows to share"
 
     local _TMP_SHARE_DIR_SVR_PERS="rw,no_root_squash"

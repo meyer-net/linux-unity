@@ -108,7 +108,7 @@ function softs() {
 # }
 
 function from_bak() {
-    source common/${MAJOR_OS_LOWER}/reset_os.sh
+    source common/reset_os.sh
 
     return $?
 }
@@ -123,10 +123,10 @@ function bootstrap() {
     source common/common_vars.sh
     source common/${MAJOR_OS_LOWER}/common.sh
     source common/${MAJOR_OS_LOWER}/${MAJOR_VERS}/overwrite_vars.sh
-    source common/${MAJOR_OS_LOWER}/bind_vars.sh
+    source common/bind_vars.sh
 
     source common/requirements.sh
-    source common/${MAJOR_OS_LOWER}/functions.sh
+    source common/functions.sh
 
     #---------- BASE ---------- {
     # 迁移packages

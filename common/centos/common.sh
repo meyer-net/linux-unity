@@ -2228,7 +2228,7 @@ function bind_if_input()
 			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
 			# 必须转义，否则带样式的前提下会解析冲突
 			_TMP_BIND_IF_INPUT_ECHO=${_TMP_BIND_IF_INPUT_ECHO//\"/\\\"}
-			local _TMP_BIND_IF_INPUT_GUM_ARGS="--placeholder '${_TMP_BIND_IF_INPUT_VAR_VAL}' --prompt '${_TMP_BIND_IF_INPUT_ECHO}, default: ' --value '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
+			local _TMP_BIND_IF_INPUT_GUM_ARGS="--placeholder '${_TMP_BIND_IF_INPUT_VAR_VAL}' --prompt '${reset}${_TMP_BIND_IF_INPUT_ECHO}, default: ' --value '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
 			
 			case ${_TMP_BIND_IF_INPUT_VAR_SEC} in
 				"y" | "Y")
@@ -2604,15 +2604,20 @@ function curx_line_insert()
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：执行用户，默认$(whoami)
-# 例：
+# 示例：
 #   su_bash_channel_exec "source /etc/profile && source ~/.bashrc && conda update -y conda"
 function su_bash_channel_exec()
 {
 	local _TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
     local _TMP_SU_BASH_CHANNEL_EXEC_USER=${2:-$(whoami)}
+	local _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=$(pwd)
 
-	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd $(pwd)"
-	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && ${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS}"
+	# 尝试进入
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR="/home/${_TMP_SU_BASH_CHANNEL_EXEC_USER}"
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=";"
+
+	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}"
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS})"
 
 	return $?
 }
@@ -2620,12 +2625,24 @@ function su_bash_channel_exec()
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：执行用户，默认$(whoami)
-# 例：
+# 示例：
 #   su_bash_env_channel_exec "conda update conda"
 function su_bash_env_channel_exec()
 {
-	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source /etc/bashrc && source ~/.bashrc"
-	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${2}"
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_USER=${2:-$(whoami)}
+	
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="PATH=${PATH}:\$PATH && export PATH && source /etc/profile && source /etc/bashrc"
+	if [ "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}" == "root" ]; then
+		if [[ -a /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc ]]; then
+			_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc"
+		fi
+	fi
+
+	if [[ -a /home/${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc ]]; then
+		_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source /home/${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc"
+	fi
+
+	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}"
 
 	return $?
 }
@@ -2633,7 +2650,7 @@ function su_bash_env_channel_exec()
 # 通过指定用户，通过管道执行脚本
 # 参数1：执行脚本
 # 参数2：执行用户，默认$(whoami)
-# 例：
+# 示例：
 #   su_bash_nvm_channel_exec "conda update conda"
 function su_bash_nvm_channel_exec()
 {
@@ -2645,19 +2662,50 @@ function su_bash_nvm_channel_exec()
 
 # 通过指定用户，指定conda环境下，通过管道执行脚本
 # 参数1：执行脚本
-# 参数2：pyenv环境，默认${PY_ENV}
-# 参数3：执行用户，默认$(whoami)
-# 例：
-#	su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_docker_hub_vers.py 'labring/sealos'"
-function su_bash_channel_conda_exec()
+# 示例：
+#   su_bash_conda_channel_exec 'condabin/conda info'
+#	su_bash_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
+function su_bash_conda_channel_exec()
 {
-	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS=${1:-"echo"}
-    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV=${2:-"${PY_ENV}"}
-    local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER=${3:-$(whoami)}
+	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
 
-	local _TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT="conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_ENV}"
-	su_bash_env_channel_exec "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_SCRIPTS})" "${_TMP_SU_BASH_CHANNEL_CONDA_EXEC_USER}"
+	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME="${CONDA_HOME}"
+	if [ -z "${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME}" ]; then
+		_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME=$(whereis conda | awk '{print $2}' | awk -F'/' '{print "/"$2"/"$3}')
+	fi
 
+	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_BASIC_SCRIPT="CONDA_HOME=\${CONDA_HOME:-${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME}} && PATH=\$CONDA_HOME/bin:\$PATH && export CONDA_HOME PATH"
+	su_bash_env_channel_exec "${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_SCRIPTS})" "conda"
+
+	return $?
+}
+
+# 通过指定用户，指定conda环境下，通过管道执行脚本
+# 参数1：执行脚本
+# 参数2：pyenv环境，默认${PY_ENV}
+# 示例：
+#	su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
+function su_bash_env_conda_channel_exec()
+{
+    local _TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV=${2:-"${PY_ENV}"}
+
+	su_bash_env_channel_exec "conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV} && (${1})" "conda"
+
+	return $?
+}
+
+
+# 通过指定用户，指定conda环境下，通过管道执行脚本
+# 参数1：pyenv环境名称
+# 参数2：pyenv环境对应python版本
+# 示例：
+#      su_bash_conda_create_env 'pyenv37' '3.7'
+function su_bash_conda_create_env()
+{
+    echo_style_wrap_text "Starting 'create' <conda> env(<${1}> [python==${2}]), hold on please"
+	local _TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT="conda info -e | cut -d' ' -f1 | grep -v '#' | grep -v 'base' | grep -v '^$' | egrep '${1}'"
+	su_bash_conda_channel_exec "(${_TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT}) || conda create -n ${1} -y python=${2}"
+	
 	return $?
 }
 
@@ -2738,12 +2786,14 @@ function nopwd_login () {
 # 创建用户及组，如果不存在
 # 参数1：组
 # 参数2：用户
-# 参数3：默认目录
+# 参数3：SUDOER
+# 参数4：默认目录
 function create_user_if_not_exists() 
 {
 	local _TMP_CREATE_USER_IF_NOT_EXISTS_GROUP="${1}"
 	local _TMP_CREATE_USER_IF_NOT_EXISTS_USER="${2}"
-	local _TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR="${3}"
+	local _TMP_CREATE_USER_IF_NOT_EXISTS_SUDOER=${3}
+	local _TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR="${4:-/home/${2}}"
 
 	# local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_DATA=$(id ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 
@@ -2757,7 +2807,7 @@ function create_user_if_not_exists()
 	egrep "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:" /etc/passwd >& /dev/null
 	if [ $? -ne 0 ]; then
 		local _TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT=""
-		if [ -n "${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}" ] && [ ! -d "${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}" ]; then
+		if [ ! -d "${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}" ]; then
 			_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT="-d ${_TMP_CREATE_USER_IF_NOT_EXISTS_DFT_DIR}"
 		fi
 
@@ -2780,13 +2830,8 @@ function create_user_if_not_exists()
 			useradd -g ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT}
 		fi
 
-		# docker用户及组的情况
+		# docker用户及组的情况???授权待优化
 		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
-			# 给docker添加sudo权限
-			chmod -v u+w /etc/sudoers
-			curx_line_insert "_TMP_LINE" "/etc/sudoers" "root    ALL=(ALL)       ALL" "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}  ALL=(ALL)       ALL"
-			chmod -v u-w /etc/sudoers
-
 			# 以当前用户修改docker对应的用户UID
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID=$(id -u $(whoami))
@@ -2803,6 +2848,17 @@ function create_user_if_not_exists()
 		# 	 -a|--append，把用户追加到某些组中，仅与-G选项一起使用
 		# 	 -G|--groups，把用户追加到某些组中，仅与-a选项一起使用
 		usermod -a -G ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}
+	fi
+
+	if [[ ${_TMP_CREATE_USER_IF_NOT_EXISTS_SUDOER} ]]; then
+		function _create_user_if_not_exists_insert_sudoer()
+		{
+			chmod -v u+w /etc/sudoers
+			curx_line_insert "_TMP_LINE" "/etc/sudoers" "root    ALL=(ALL)       ALL" "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}  ALL=(ALL)      NOPASSWD: ALL"
+			chmod -v u-w /etc/sudoers
+		}
+
+		content_not_exists_action "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}[[:space:]]+" "/etc/sudoers" "_create_user_if_not_exists_insert_sudoer"
 	fi
 
 	return $?
@@ -3559,7 +3615,7 @@ function set_github_soft_releases_newer_version()
 # 参数1：获取URL的地址
 # 参数2：内容选择器
 # 参数3：获取属性，默认inner_text
-# 例：
+# 示例：
 #	fetch_url_selector_attr 'https://nodejs.org/en/' 'a[class=home-downloadbutton]:has-text("Recommended For Most Users")'
 function fetch_url_selector_attr()
 {
@@ -3569,7 +3625,7 @@ function fetch_url_selector_attr()
 
 	function _fetch_url_selector_attr_by_pw()
 	{
-		su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_url_selector_attr.py '${_TMP_FETCH_URL_SELECTOR_ATTR_URL}' '${_TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR}' '${_TMP_FETCH_URL_SELECTOR_ATTR_ATTR}'"
+		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_url_selector_attr.py '${_TMP_FETCH_URL_SELECTOR_ATTR_URL}' '${_TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR}' '${_TMP_FETCH_URL_SELECTOR_ATTR_ATTR}'"
 	}
 	
 	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_url_selector_attr.py" "_fetch_url_selector_attr_by_pw" "not implement"
@@ -4035,7 +4091,7 @@ function dirs_trail_clear()
 	local _TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP=$(date -d "${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME}" +%s)
 	local _TMP_DIRS_TRAIL_CLEAR_BACKUP_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_style_text \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}>\") || echo_style_text 'Backup dir <%s> not found'"
 	# local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT=${_TMP_DIRS_TRAIL_CLEAR_SOFT_SCRIPT//tmp\/backup/tmp\/force}
-	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_style_text \"Dir of '%s' was [force deleted]。if u want to <restore>, please find it manual from '${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}'\") || echo_style_text 'Force [delete] dir <%s> not found'"
+	local _TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP} && rm -rf %s && echo_style_text \"Dir of '%s' was [force deleted]。if u want to <restore>, please find it manually from '${FORCE_DIR}%s/${_TMP_DIRS_TRAIL_CLEAR_CURRENT_TIME_STAMP}'\") || echo_style_text 'Force [delete] dir <%s> not found'"
 	function _dirs_trail_clear_exec_backup()
 	{
 		local _TMP_DIRS_TRAIL_CLEAR_SOFT_ECHO="([${_TMP_DIRS_TRAIL_CLEAR_NAME}]) Checked the trail dir of '${1}', please 'sure' u will <backup> 'still or not'"
@@ -4121,7 +4177,7 @@ function soft_trail_clear()
 			
 			items_split_action "_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS" "_soft_trail_clear_docker_container"
 		fi
-		
+				
 		## 清理服务残留（备份前执行，否则会有资源占用的问题）
 		function _soft_trail_clear_svr_remove() 
 		{
@@ -4136,6 +4192,9 @@ function soft_trail_clear()
 	}
 		
 	dirs_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_soft_trail_clear_remove_all" "${2}"
+	
+	# 删除特定用户
+	(id ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null) && userdel -r ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null
 
 	systemctl daemon-reload
 
@@ -4201,8 +4260,8 @@ function docker_soft_dirs_bind()
 	}
 	
 	# 下述管道内赋值无法改变数组
-	# su_bash_channel_conda_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort | eval "script_channel_action '_docker_soft_dirs_bind_combine_filter'"
-	items_split_action "$(su_bash_channel_conda_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort)" "_docker_soft_dirs_bind_combine_filter"
+	# su_bash_env_conda_channel_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort | eval "script_channel_action '_docker_soft_dirs_bind_combine_filter'"
+	items_split_action "$(su_bash_env_conda_channel_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort)" "_docker_soft_dirs_bind_combine_filter"
 
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
@@ -4315,7 +4374,7 @@ function soft_path_restore_confirm_action()
 	function _soft_path_restore_confirm_action_force_exec()
 	{
 		# 移动到备份，再覆盖
-		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_style_text \"Dir of '%s' was <force deleted>。if u want to <restore>，please find it manual from <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_style_text 'Force delete dir of <%s> not found'"
+		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT="[[ -a '%s' ]] && (mkdir -pv ${FORCE_DIR}%s && cp -Rp %s ${FORCE_DIR}%s/${LOCAL_TIMESTAMP} && rm -rf %s && echo_style_text \"Dir of '%s' was <force deleted>。if u want to <restore>，please find it manually from <${FORCE_DIR}%s/${LOCAL_TIMESTAMP}>\") || echo_style_text 'Force delete dir of <%s> not found'"
 
 		local _TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT="${1}"
 		exec_text_printf "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_FORCE_SCRIPT" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_FORCE_SCRIPT}"
@@ -4491,7 +4550,7 @@ function soft_path_restore_confirm_swap()
 ##########################################################################################################
 # 获取docker-hub仓库发布版本列表
 # 参数1：获取docker-hub仓库地址
-# 例：
+# 示例：
 #	fetch_docker_hub_release_vers 'labring/sealos'
 function fetch_docker_hub_release_vers()
 {
@@ -4499,7 +4558,7 @@ function fetch_docker_hub_release_vers()
 
 	function _fetch_docker_hub_release_vers_by_pw()
 	{
-		su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
+		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
 	}
 	
 	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
@@ -4508,7 +4567,7 @@ function fetch_docker_hub_release_vers()
 # 获取docker-hub仓库发布版本的数字标记
 # 参数1：获取docker-hub仓库地址
 # 参数2：对应版本
-# 例：
+# 示例：
 #	fetch_docker_hub_release_ver_digests 'labring/sealos' 'imgver111111'
 function fetch_docker_hub_release_ver_digests()
 {
@@ -4517,7 +4576,7 @@ function fetch_docker_hub_release_ver_digests()
 
 	function _fetch_docker_hub_release_ver_digests_by_pw()
 	{
-		su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_ver_digests.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO} ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO_VER}"
+		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_ver_digests.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO} ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO_VER}"
 	}
 	
 	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_ver_digests.py" "_fetch_docker_hub_release_ver_digests_by_pw" "not implement"
@@ -4556,7 +4615,7 @@ function docker_change_container_inspect_wrap()
 	fi
 
 	# 挂载可能产生等待
-	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_channel_conda_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_env_conda_channel_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" ]; then
 		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
 	fi
@@ -5143,7 +5202,7 @@ function docker_image_args_combine_bind()
 #       参数2：镜像名称
 #       参数3：保存路径
 #       参数4：快照版本
-# 例：
+# 示例：
 #    docker_snap_create_action 'e75f9b427730' '/mountdisk/repo/migrate/snapshot' '1670329246'
 function docker_snap_create_action()
 {
@@ -5297,7 +5356,7 @@ EOF
 	# 创建挂载盘备份
 	echo "${TMP_SPLITER2}"
 	echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_channel_conda_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}" | grep -oP "(?<=^b').*(?='$)")
+	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}" | grep -oP "(?<=^b').*(?='$)")
 	function _docker_snap_create_action_volume_path_restore()
 	{
 		# 还原挂载的路径
@@ -5609,7 +5668,7 @@ function docker_snap_restore_choice_action()
 #       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
 #       参数5：快照类型(还原时有效)，例 image/container/dockerfile
 #       参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
-# 例：
+# 示例：
 #   docker_snap_restore_action "browserless/chrome" "1673604625" "container" "clean"
 function docker_snap_restore_action()
 {
@@ -6025,7 +6084,7 @@ function docker_image_boot_print()
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'boot info'↓:"
-    local _TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE=$(su_bash_channel_conda_exec "runlike ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" | grep -oP "(?<=^b').*(?='$)")
+    local _TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" | grep -oP "(?<=^b').*(?='$)")
 	echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}"
 	
 	function _docker_image_boot_print_ls_mounts()
@@ -6268,7 +6327,8 @@ function soft_setup_git()
 # PIP安装软件下载模式
 # 参数1：软件安装名称
 # 参数2：软件安装后，在管道中执行的脚本
-# 参数3：软件安装环境，默认取全局变量${PY_ENV}
+# 参数3：软件安装版本
+# 参数4：软件安装环境，默认取全局变量${PY_ENV}
 # 示例：
 #	   soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
 function soft_setup_conda_pip() 
@@ -6277,24 +6337,26 @@ function soft_setup_conda_pip()
 		return $?
 	fi
 
-	local _TMP_SOFT_SETUP_CONDA_PIP_NAME=${1}
 	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS=${2:-"echo"}
-	local _TMP_SOFT_SETUP_CONDA_PIP_ENV=${3:-"${PY_ENV}"}
-
-	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_channel_conda_exec "pip show ${_TMP_SOFT_SETUP_CONDA_PIP_NAME} | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${_TMP_SOFT_SETUP_CONDA_PIP_NAME}'")
+	local _TMP_SOFT_SETUP_CONDA_PIP_ENV=${4:-"${PY_ENV}"}
 	
-	echo_style_text "Checking pip package '${_TMP_SOFT_SETUP_CONDA_PIP_NAME}' from <conda> env <${_TMP_SOFT_SETUP_CONDA_PIP_ENV}>"
-	echo ${TMP_SPLITER}
+	local _TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME=${1}
+	if [ -n "${3}" ]; then
+		_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME="${1}==${3}"
+	fi
+
+	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
+	
+	echo_style_wrap_text "Checking <conda> pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	if [ -z "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}" ]; then
-		echo_style_text "Starting <install> the pip package '${_TMP_SOFT_SETUP_CONDA_PIP_NAME}' to env <${_TMP_SOFT_SETUP_CONDA_PIP_ENV}>"
+		echo_style_text "Starting <install> the <conda> pip package '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 		echo ${TMP_SPLITER2}
-		su_bash_channel_conda_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_NAME} && ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS}"
+		su_bash_env_conda_channel_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME} && ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
 		echo ${TMP_SPLITER2}
-		echo_style_text "Pip package installed '${_TMP_SOFT_SETUP_CONDA_PIP_NAME}' to env <${_TMP_SOFT_SETUP_CONDA_PIP_ENV}>"
+		echo_style_text "Pip package installed '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	else
-		echo_style_text "Pip package '${_TMP_SOFT_SETUP_CONDA_PIP_NAME}' from env <${_TMP_SOFT_SETUP_CONDA_PIP_ENV}> exists:"
-		ls -d ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}
-		su_bash_channel_conda_exec "pip list | grep '${_TMP_SOFT_SETUP_CONDA_PIP_NAME}'"
+		echo_style_text "Pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}] exists in [${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}]"
+		su_bash_env_conda_channel_exec "pip list | grep '${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
 
 		return 1
 	fi
@@ -6832,7 +6894,7 @@ function soft_docker_check_upgrade_action()
 					_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER="latest"
 				fi
 				
-				echo_style_text "Starting 'pull' 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}]"
+				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}]"
 				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}" in 
 					"hub")
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS=$(docker images --digests | grep "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" | grep "sha256:" | awk -F' ' '{print $3}')

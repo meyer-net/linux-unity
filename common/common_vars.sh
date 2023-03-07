@@ -52,7 +52,7 @@ MEMORY_GB_FREE=${MEMORY_FREE%.*}
 
 # 机器环境信息
 SYSTEMD_DETECT_VIRT=$(systemd-detect-virt)
-DMIDECODE_MANUFACTURER=$(dmidecode -t system | grep "Manufacturer" | awk -F':' '{print \$NF}' | xargs echo)
+DMIDECODE_MANUFACTURER=$(dmidecode -t system | grep "Manufacturer" | awk -F':' '{print $NF}' | xargs echo)
 
 #---------- HARDWARE ---------- }
 

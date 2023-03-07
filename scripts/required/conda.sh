@@ -44,6 +44,8 @@ local TMP_MCD_SETUP_BC_PS_PORT=13000
 # 1-配置环境
 function set_env_miniconda()
 {
+    echo_style_wrap_text "Starting 'configuare' <conda> 'install envs', hold on please"
+
     cd ${__DIR}
 
     # soft_${SYS_SETUP_COMMAND}_check_setup ""
@@ -56,6 +58,8 @@ function set_env_miniconda()
 # 2-安装软件(本安装利用头部有多余的注释字符串来控制长度，避免ER)提取执行文件原始变量
 function setup_miniconda()
 {
+    echo_style_wrap_text "Starting 'install' <conda>, hold on please"
+
     # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
 
     ## 脚本安装(文件被下载在shell目录)
@@ -136,22 +140,27 @@ function change_down_miniconda()
 function formal_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'formal dirs' <conda>, hold on please"
 
 	# 开始标准化	    
-    # # 预先初始化一次，启动后才有文件生成
-    # systemctl start miniconda.service
+    # 预先初始化一次，启动后才有文件生成 & 创建conda用户，以用于执行安装操作
+    create_user_if_not_exists "conda" "conda" true
 	
     # 还原 & 创建 & 迁移
 	## 数据
-    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_ENVS_DIR}" "${TMP_MCD_SETUP_ENVS_DIR}"
+    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_ENVS_DIR}" "${TMP_MCD_SETUP_DATA_ENVS_DIR}"
+    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_PKGS_DIR}" "${TMP_MCD_SETUP_DATA_PKGS_DIR}"
+    soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_HOME_DIR}" "${TMP_MCD_SETUP_DATA_HOME_DIR}"
+    ### 自定义-脚本
+    soft_path_restore_confirm_create "${TMP_MCD_SETUP_LNK_DATA_SCRIPTS_DIR}"
+    # soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_ENVS_DIR}" "/home/conda/.conda/envs"
 	## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_MCD_SETUP_LNK_ETC_DIR}" "${TMP_MCD_SETUP_ETC_DIR}"
-    ## 自定义-脚本
-    soft_path_restore_confirm_create "${TMP_MCD_SETUP_LNK_SCRIPTS_DIR}"
-
+    
 	# 创建链接规则
 	## 自定义-脚本
-	path_not_exists_link "${TMP_MCD_SETUP_SCRIPTS_DIR}" "" "${TMP_MCD_SETUP_LNK_SCRIPTS_DIR}" 
+	path_not_exists_link "${TMP_MCD_SETUP_SCRIPTS_DIR}" "" "${TMP_MCD_SETUP_LNK_DATA_SCRIPTS_DIR}" 
 
 	return $?
 }
@@ -163,22 +172,39 @@ function conf_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
     
-	echo
-    echo_style_text "Configuration 'conda packages', wait for a moment"
-    echo "${TMP_SPLITER}"
+    echo_style_wrap_text "Starting 'configuration' <conda>, hold on please"
 
-    # ~/.bashrc 中存在，故不启用
-	# # 环境变量或软连接
-	# echo_etc_profile "MINICONDA_HOME=${TMP_MCD_SETUP_DIR}"
-	# echo_etc_profile 'PATH=$MINICONDA_HOME/condabin:$PATH'
-	# echo_etc_profile 'export PATH MINICONDA_HOME'
+    # 同步新增的bashrc内容
+    function _conf_miniconda_append_rc()
+    {
+        local TMP_MCD_SETUP_BASHRC_LINE_START=$(cat ~/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
+        tail -n +${TMP_MCD_SETUP_BASHRC_LINE_START} ~/.bashrc >> /home/conda/.bashrc
+    }
+    content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
 
-    # # 重新加载profile文件
-	# source /etc/profile
-    
+    # 授权
+	chown -R conda:conda "/home/conda"
+	chown -R conda:conda ${TMP_MCD_SETUP_DIR}
+    chown -R conda:conda ${TMP_MCD_SETUP_LNK_DATA_DIR}
+	chown -R conda:conda ${TMP_MCD_SETUP_LNK_ETC_DIR}
+
+    # 同步环境变量
+    ## ~/.bashrc 中存在，故不启用，仅记录
+	## 环境变量或软连接
+	echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	echo_etc_profile 'export CONDA_HOME'
+
+    # 重新加载profile文件
+	source /etc/profile
+
+    # 开始配置
     # 生成 ~/.condarc配置文件
-    condabin/conda config --set auto_activate_base false
-    condabin/conda config --set show_channel_urls yes
+    su_bash_conda_channel_exec "conda config --set auto_activate_base false"
+    su_bash_conda_channel_exec "conda config --set show_channel_urls yes"
+
+    local TMP_CMD_SETUP_CNLS=$(su_bash_conda_channel_exec "conda config --show-sources | grep '^  -' | cut -d' ' -f4")
+    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels conda-forge'"
+    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels microsoft'"
 
 	return $?
 }
@@ -188,6 +214,10 @@ function conf_miniconda()
 # 5-测试软件
 function test_miniconda()
 {
+	cd ${TMP_MCD_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'test' <conda> snapshot, hold on please"
+
 	# 实验部分
 
 	return $?
@@ -201,6 +231,8 @@ function boot_miniconda()
 	cd ${TMP_MCD_SETUP_DIR}
     
 	# 验证安装
+    echo_style_wrap_text "Starting 'boot' <conda>, hold on please"
+
     ## 当前启动命令 && 等待启动
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'channels'↓:"
@@ -244,24 +276,21 @@ function down_ext_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
 
+    echo_style_wrap_text "Starting 'download' <conda> exts, hold on please"
+
     # 环境预装
-    local TMP_CMD_SETUP_CNLS=$(condabin/conda config --show-sources | grep "^  -" | cut -d' ' -f4)
     # condabin/conda run -n pyenv36 python --version | grep 'EnvironmentLocationNotFound'
-    local TMP_MCD_SETUP_ENVS=$(condabin/conda info -e | cut -d' ' -f1 | grep -v "#" | grep -v "base" | grep -v "^$")
 
-    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "condabin/conda config --add channels conda-forge"
-    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "condabin/conda config --add channels microsoft"
-
-    item_not_exists_action "^pyenv36$" "${TMP_MCD_SETUP_ENVS}" "condabin/conda create -n pyenv36 -y python=3.6"
+    su_bash_conda_create_env "pyenv36" "3.6"
     # conda activate pyenv36
         
-    item_not_exists_action "^pyenv37$" "${TMP_MCD_SETUP_ENVS}" "condabin/conda create -n pyenv37 -y python=3.7"
+    su_bash_conda_create_env "pyenv37" "3.7"
     # conda activate pyenv37
         
-    item_not_exists_action "^pyenv38$" "${TMP_MCD_SETUP_ENVS}" "condabin/conda create -n pyenv38 -y python=3.8"
+    su_bash_conda_create_env "pyenv38" "3.8"
     # conda activate pyenv38
         
-    item_not_exists_action "^pyenv39$" "${TMP_MCD_SETUP_ENVS}" "condabin/conda create -n pyenv39 -y python=3.9"
+    su_bash_conda_create_env "pyenv39" "3.9"
     # conda activate pyenv39
 
 	return $?
@@ -272,18 +301,16 @@ function setup_ext_miniconda()
 {
 	cd ${TMP_MCD_SETUP_DIR}
     
-	echo
-    echo_style_text "Starting install 'plugin-ext' 'playwright'@[${PY_ENV}], wait for a moment"
+    echo_style_wrap_text "Starting install 'plugin-ext' <playwright>@[${PY_ENV}], wait for a moment"
 
-    # 安装playwright插件
-    soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
-    echo ${TMP_SPLITER2}
-    soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
-    echo_style_text "Plugin 'playwright'@[${PY_ENV}] installed"
-    echo ${TMP_SPLITER2}
+    # 安装必要依赖插件
     soft_setup_conda_pip "runlike" "whereis runlike"
+    soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
+    
+    # 安装playwright插件，版本只能1.30.0，不然GLIBC不匹配
     echo ${TMP_SPLITER2}
-    soft_setup_conda_pip "whaler" "whereis whaler"
+    soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install" "1.30.0"
+    echo_style_text "Plugin 'playwright'@[${PY_ENV}] installed"
  
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - $(whoami) -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"
     ## 参考：https://zhuanlan.zhihu.com/p/347213089
@@ -447,11 +474,11 @@ EOF
     # 测试插件
 	echo ${TMP_SPLITER2}
     echo_style_text "Testing ext 'playwright'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
-    su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
+    su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 
     echo ${TMP_SPLITER2}
     echo_style_text "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
-    su_bash_channel_conda_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
+    su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
 
 	return $?
 }
@@ -485,16 +512,23 @@ function exec_step_miniconda()
 
 function check_setup_miniconda()
 {
+    echo_style_wrap_text "Checking <conda> 'install', hold on please"
+
 	# 变量覆盖特性，其它方法均可读取
 	local TMP_MCD_SETUP_DIR=${SETUP_DIR}/conda
     
 	# 统一编排到的路径
-	local TMP_MCD_SETUP_LNK_ENVS_DIR=${DATA_DIR}/conda
-    local TMP_MCD_SETUP_LNK_SCRIPTS_DIR=${DATA_DIR}/conda_scripts
+	local TMP_MCD_SETUP_LNK_DATA_DIR=${DATA_DIR}/conda
+	local TMP_MCD_SETUP_LNK_DATA_ENVS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/envs
+	local TMP_MCD_SETUP_LNK_DATA_PKGS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/pkgs
+	local TMP_MCD_SETUP_LNK_DATA_HOME_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/home
+    local TMP_MCD_SETUP_LNK_DATA_SCRIPTS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/scripts
 	local TMP_MCD_SETUP_LNK_ETC_DIR=${ATT_DIR}/conda
     
 	# 安装后的真实路径（此处依据实际路径名称修改）
-	local TMP_MCD_SETUP_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
+	local TMP_MCD_SETUP_DATA_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
+	local TMP_MCD_SETUP_DATA_PKGS_DIR=${TMP_MCD_SETUP_DIR}/pkgs
+	local TMP_MCD_SETUP_DATA_HOME_DIR="/home/conda"
 	local TMP_MCD_SETUP_ETC_DIR=${TMP_MCD_SETUP_DIR}/etc
 	local TMP_MCD_SETUP_SCRIPTS_DIR=${TMP_MCD_SETUP_DIR}/scripts
 

@@ -214,7 +214,7 @@ EOF
 		passwd oshit
 
 		chmod -v u+w /etc/sudoers
-		sed -i "100aoshit   ALL=(ALL)       NOPASSWD: ALL" /etc/sudoers
+		sed -i "100aoshit   ALL=(ALL)       ALL" /etc/sudoers
 		chmod -v u-w /etc/sudoers
 	}
 
