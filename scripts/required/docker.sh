@@ -193,7 +193,12 @@ function formal_docker()
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     ## soft_path_restore_confirm_action "/etc/docker"
     # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
-    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
+    # if [[ -a /etc/docker ]]; then
+        soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main" "/etc/docker"
+    # else
+        # soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main"
+        # path_not_exists_link "/etc/docker" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main"
+    # fi
     soft_path_restore_confirm_create "${DOCKER_APP_ATT_DIR}"
 
 	# 创建链接规则
@@ -202,7 +207,6 @@ function formal_docker()
 	# ## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
-    # path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "/etc/docker"
     path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
@@ -222,11 +226,11 @@ function conf_docker()
     
     echo_style_wrap_text "Starting 'configuration' <docker>, hold on please"
 
-	# 开始配置
+	# 开始配置，iptables为false时，容器间通讯会存在问题。但不影响安装
     ## 目录调整完重启进程(目录调整是否有效的验证点)
-    cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/daemon.json << 'EOF'
+    cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json << 'EOF'
 {
-  "registry-mirrors": ["https://hub.docker.com/", "https://quay.io/search", "https://hub.daocloud.io/"]
+  "registry-mirrors": ["https://hub.docker.com/", "https://hub.daocloud.io/"]
 }
 EOF
     
@@ -394,7 +398,7 @@ function boot_docker()
     exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay 10 secs to exit"
 
 	# 授权iptables端口访问
-	# echo_soft_port ${TMP_SETUP_DOCKER_BC_PS_PORT}
+	echo_soft_port ${TMP_SETUP_DOCKER_BC_PS_PORT}
 
 	return $?
 }
@@ -406,7 +410,7 @@ function down_ext_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
     
-    echo_style_wrap_text "Starting 'install' <docker> exts, hold on please"
+    echo_style_wrap_text "Starting 'download' <docker> exts, hold on please"
 
 	return $?
 }

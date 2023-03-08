@@ -67,20 +67,7 @@ function formal_dc_browserless_chrome() {
     ## 还原 & 创建 & 迁移
     ### 日志
     #### /mountdisk/logs/docker_apps/browserless_chrome/imgver111111
-    # function _formal_dc_browserless_chrome_cp_logs() {
-    #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'logs copy'↓:"
-
-    #     # 拷贝日志目录
-    #     ## /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/app_output
-    #     # mkdir -pv ${1}/app_output
-    #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app_output >& /dev/null
-    #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK} ${1}/app_output >& /dev/null
-    #
-    #     # 查看列表
-    #     ls -lia ${1}
-    # }
-    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}" "_formal_dc_browserless_chrome_cp_logs"
+    soft_path_restore_confirm_create "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
 
     ### 数据
     #### /mountdisk/data/docker_apps/browserless_chrome/imgver111111
@@ -166,11 +153,11 @@ function formal_dc_browserless_chrome() {
     # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK}
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_BLC_SETUP_APP_MARK}
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting 'inspect change', hold on please"
+    # echo "${TMP_SPLITER2}"
+    # echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
-    docker_change_container_volume_migrate "${TMP_DC_BLC_SETUP_CTN_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
+    # docker_change_container_volume_migrate "${TMP_DC_BLC_SETUP_CTN_ID}" "${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
     # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
@@ -222,6 +209,8 @@ function boot_check_dc_browserless_chrome() {
         echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
     fi
+
+    echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
 }
 
 ##########################################################################################################
@@ -356,12 +345,13 @@ function boot_build_dc_browserless_chrome() {
     echo "${TMP_SPLITER2}"
     echo_style_text "<Container> 'pre' args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
     echo_style_text "<Container> 'ctn' args(${TMP_DC_BLC_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
+
     docker_image_args_combine_bind "TMP_DC_BLC_SETUP_PRE_ARGS" "TMP_DC_BLC_SETUP_CTN_ARGS"
     echo_style_text "<Container> 'combine' args(${TMP_DC_BLC_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_BLC_SETUP_CTN_ARG_CMD:-"None"})"
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
-
+    
     return $?
 }
 

@@ -34,6 +34,7 @@
 #         conda update requests	                        更新 requests 包
 #         conda env export > environment.yaml	        出当前环境的包信息
 #         conda env create -f environment.yaml	        用配置文件创建新的虚拟环境
+#         conda deactivate                              退出虚拟环境
 #------------------------------------------------
 local TMP_MCD_SETUP_CPU_STRUCT=$(uname -m)
 local TMP_MCD_SETUP_DOWN_SH_FILE_NAME="Miniconda3-latest-Linux-${TMP_MCD_SETUP_CPU_STRUCT}.sh"
@@ -48,7 +49,8 @@ function set_env_miniconda()
 
     cd ${__DIR}
 
-    # soft_${SYS_SETUP_COMMAND}_check_setup ""
+    # playwright插件需要
+    soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
 
 	return $?
 }
@@ -180,7 +182,7 @@ function conf_miniconda()
         local TMP_MCD_SETUP_BASHRC_LINE_START=$(cat ~/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
         tail -n +${TMP_MCD_SETUP_BASHRC_LINE_START} ~/.bashrc >> /home/conda/.bashrc
     }
-    content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
+    file_content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
 
     # 授权
 	chown -R conda:conda "/home/conda"
@@ -199,7 +201,7 @@ function conf_miniconda()
 
     # 开始配置
     # 生成 ~/.condarc配置文件
-    su_bash_conda_channel_exec "conda config --set auto_activate_base false"
+    condabin/conda config --set auto_activate_base false
     su_bash_conda_channel_exec "conda config --set show_channel_urls yes"
 
     local TMP_CMD_SETUP_CNLS=$(su_bash_conda_channel_exec "conda config --show-sources | grep '^  -' | cut -d' ' -f4")
@@ -234,37 +236,36 @@ function boot_miniconda()
     echo_style_wrap_text "Starting 'boot' <conda>, hold on please"
 
     ## 当前启动命令 && 等待启动
-    echo "${TMP_SPLITER2}"
     echo_style_text "View the 'channels'↓:"
-    condabin/conda config --get show_channel_urls
-    condabin/conda config --get channels
+    su_bash_conda_channel_exec "conda config --get show_channel_urls"
+    su_bash_conda_channel_exec "conda config --get channels"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'sources'↓:"
-    condabin/conda config --show-sources
+    su_bash_conda_channel_exec "conda config --show-sources"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'list'↓:"
-	condabin/conda list
+	su_bash_conda_channel_exec "conda list"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'env list'↓:"
-	condabin/conda env list
+	su_bash_conda_channel_exec "conda env list"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'update'↓:"
-    condabin/conda update -y conda
+    su_bash_conda_channel_exec "conda update -y conda"
     
     echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'version'↓:"
-    condabin/conda --version
+    su_bash_conda_channel_exec "conda --version"
 
     echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'info'↓:"
-    condabin/conda info -e
+    su_bash_conda_channel_exec "conda info -e"
 
     # 结束
-    exec_sleep 10 "Search <miniconda> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Install <miniconda> over, please checking the setup log, this will stay 10 secs to exit"
 
 	return $?
 }
@@ -305,7 +306,6 @@ function setup_ext_miniconda()
 
     # 安装必要依赖插件
     soft_setup_conda_pip "runlike" "whereis runlike"
-    soft_${SYS_SETUP_COMMAND}_check_setup 'atk at-spi2-atk cups-libs libxkbcommon libXcomposite libXdamage libXrandr mesa-libgbm gtk3'
     
     # 安装playwright插件，版本只能1.30.0，不然GLIBC不匹配
     echo ${TMP_SPLITER2}

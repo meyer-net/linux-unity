@@ -15,7 +15,7 @@ function check_epel()
 
 function setup_epel()
 {
-	echo_style_text "Starting init '${MAJOR_OS}${MAJOR_VERS}_64bit EPEL Repository'"
+	echo_style_wrap_text "Starting init '${MAJOR_OS}${MAJOR_VERS}_64bit EPEL Repository'"
 
 	bind_if_input "COUNTRY_CODE" "Please sure 'your country code'"
 

@@ -837,7 +837,7 @@ function bind_style_text()
 					_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=""
 				fi
 
-				_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM="${_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE:-"${red}"}${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}${reset}"
+				_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM="${_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE:-"${green}"}${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}${reset}"
 
 				return $?
 			}
@@ -2545,56 +2545,57 @@ function exec_if_choice_onece()
 # 文件操作类
 ##########################################################################################################
 # 查询内容所在行
+# 参数1：文件路径
+# 参数2：关键字
+# 示例：
+#      echo_line "_LINE_ROW_CONTENT" "/usr/lib/systemd/system/docker.service" "User="
+#      -> 10:User=docker -> 10
+function echo_line()
+{
+	cat ${1} | grep -nE "${2}" | sort | awk 'NR==1' | cut -d':' -f1
+
+	return $?
+}
+
+# 查询内容所在行
 # 参数1：需要设置的变量名
 # 参数2：文件路径
 # 参数3：关键字
 # 示例：
-#      get_line "_LINE_ROW_CONTENT" "/usr/lib/systemd/system/docker.service" "User="
+#      bind_line "_LINE_ROW_CONTENT" "/usr/lib/systemd/system/docker.service" "User="
 #      -> 10:User=docker -> 10
-function get_line()
+function bind_line()
 {
-	function _get_line()
+	function _bind_line()
 	{
-		local _TMP_GET_LINE_FILE_PATH="${2}"
-		local _TMP_GET_LINE_KEY_WORDS="${3}"
-
-		local TMP_KEY_WORDS_LINE=$(cat ${_TMP_GET_LINE_FILE_PATH} | grep -nE "${_TMP_GET_LINE_KEY_WORDS}" | cut -d':' -f1 | awk NR==1)
+		local TMP_KEY_WORDS_LINE=$(echo_line "${2}" "${3}")
 
 		eval ${1}='$TMP_KEY_WORDS_LINE'
 	}
 
-	discern_exchange_var_action "${1}" "_get_line" "${@}"
+	discern_exchange_var_action "${1}" "_bind_line" "${@}"
 	return $?
 }
 
 # 关键行插入
-# 参数1：需要设置的变量名
-# 参数2：文件路径
-# 参数3：关键字
-# 参数4：插入内容
+# 参数1：文件路径
+# 参数2：关键字
+# 参数3：插入内容
 # 示例：
-#      curx_line_insert "_TMP_LINE" "/etc/sudoer" "root    ALL=(ALL)       ALL" "docker    ALL=(ALL)       ALL"
+#      curx_line_insert "/etc/sudoer" "^## Allows people in group wheel" "docker    ALL=(ALL)       ALL"
 function curx_line_insert()
 {
-	get_line "${1}" "${2}" "${3}"
+	local _TMP_CURX_LINE_INSERT_CURX_LINE=$(echo_line "${1}" "${2}")
 
-	function _curx_line_insert()
-	{
-		local _TMP_CURX_LINE_INSERT_CURX_LINE=$(eval echo '${'"${1}"'}')
-
-		if [ ${#_TMP_CURX_LINE_INSERT_CURX_LINE} -gt 0 ]; then
-			# 插入行内容相同则不插入
-			local _TMP_CURX_LINE_INSERT_LINE=$((_TMP_CURX_LINE_INSERT_CURX_LINE+1))
-			local _TMP_CURX_LINE_INSERT_TEXT=$(cat ${2} | awk "NR==${_TMP_CURX_LINE_INSERT_LINE}")
-			if [ "${_TMP_CURX_LINE_INSERT_TEXT}" != "${4}" ]; then
-				sed -i "${_TMP_CURX_LINE_INSERT_LINE}i ${4}" ${2}
-			fi
-		else
-			eval ${1}=$(echo -1)
+	if [ ${_TMP_CURX_LINE_INSERT_CURX_LINE:-0} -gt 0 ]; then
+		# 插入行内容相同则不插入
+		local _TMP_CURX_LINE_INSERT_LINE=$((_TMP_CURX_LINE_INSERT_CURX_LINE+1))
+		local _TMP_CURX_LINE_INSERT_TEXT=$(cat ${1} | awk "NR==${_TMP_CURX_LINE_INSERT_LINE}")
+		if [ "${_TMP_CURX_LINE_INSERT_TEXT}" != "${3}" ]; then
+			sed -i "${_TMP_CURX_LINE_INSERT_LINE}i ${3}" ${1}
 		fi
-	}
-
-	discern_exchange_var_action "${1}" "_curx_line_insert" "${@}"
+	fi
+	
 	return $?
 }
 
@@ -2631,7 +2632,7 @@ function su_bash_env_channel_exec()
 {
 	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_USER=${2:-$(whoami)}
 	
-	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="PATH=${PATH}:\$PATH && export PATH && source /etc/profile && source /etc/bashrc"
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source /etc/bashrc"
 	if [ "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}" == "root" ]; then
 		if [[ -a /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc ]]; then
 			_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc"
@@ -2831,8 +2832,8 @@ function create_user_if_not_exists()
 		fi
 
 		# docker用户及组的情况???授权待优化
-		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
-			# 以当前用户修改docker对应的用户UID
+		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "conda" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "conda" ]; then
+			# 以当前用户修改docker、conda对应的用户UID
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID=$(id -u $(whoami))
 			sed -i "s@^\(${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:x\):${_TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID}@\1:${_TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID}@g" /etc/passwd
@@ -2854,11 +2855,11 @@ function create_user_if_not_exists()
 		function _create_user_if_not_exists_insert_sudoer()
 		{
 			chmod -v u+w /etc/sudoers
-			curx_line_insert "_TMP_LINE" "/etc/sudoers" "root    ALL=(ALL)       ALL" "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}  ALL=(ALL)      NOPASSWD: ALL"
+			curx_line_insert "/etc/sudoers" "^## Allows people in group wheel" "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}  ALL=(ALL)      NOPASSWD: ALL"
 			chmod -v u-w /etc/sudoers
 		}
 
-		content_not_exists_action "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}[[:space:]]+" "/etc/sudoers" "_create_user_if_not_exists_insert_sudoer"
+		file_content_not_exists_action "^${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}[[:space:]]+" "/etc/sudoers" "_create_user_if_not_exists_insert_sudoer"
 	fi
 
 	return $?
@@ -2912,12 +2913,12 @@ function change_service_user()
 	local _TMP_CHANGE_SERVICE_USER_SERVICE_PATH="/usr/lib/systemd/system/${1}.service"
 	local _TMP_CHANGE_SERVICE_USER_SOCKET_PATH="/usr/lib/systemd/system/${1}.socket"
 	local _TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=""
-	# get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" "^([#]*[[:space:]]*)User="
-	get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^([[:space:]]*)User='
+	# bind_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" "^([#]*[[:space:]]*)User="
+	bind_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^([[:space:]]*)User='
 
 	# 不存在用户设置
 	if [ -z "${_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE}" ]; then
-		get_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^\[Service\]$'
+		bind_line "_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE" "${_TMP_CHANGE_SERVICE_USER_SERVICE_PATH}" '^\[Service\]$'
 		_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE=$((_TMP_CHANGE_SERVICE_USER_SNAME_SET_LINE+1))
 	else
 		# 删除用户设置
@@ -3052,30 +3053,30 @@ function exec_sleep_until_not_empty()
 
 # 获取挂载根路径，取第一个挂载的磁盘
 function echo_mount_root() {
-	local _TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk 'NR==1{print $1}' | xargs -I {} echo '/dev/{}')
-	if [ -n "${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" ]; then
-		echo "$(df -h | grep "^${_TMP_GET_MOUNT_ROOT_LSBLK_DISKS_STR}" | awk -F' ' '{print $NF}')"
-	fi
+	lsblk | awk "{if(\$1!=\"${FDISK_L_SYS_DEFAULT}\" && \$6==\"disk\" && \$7!=\"\"){print \$7}}"
 
 	return $?
 }
 
 # 识别磁盘挂载
-# 参数1：磁盘挂载数组，当带入参数时，以带入的参数来决定脚本挂载几块硬盘
+# 参数1：磁盘挂载数组键/值 （当带入参数时，以带入的参数来决定脚本挂载几块硬盘）,为空时格式化所有硬盘
 function resolve_unmount_disk () {
-
 	local _TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE="MountDisk"
 	local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_STR=${1:-}
 	# http://wxnacy.com/2018/05/26/shell-split/
 	local _TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_ARR=(${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_STR//,/ })
 	
 	# 获取当前磁盘的格式，例如sd,vd
-	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | grep "0 disk" | grep -v "^${FDISK_L_SYS_DEFAULT}" | awk '{print $1}')
+	local _TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR=$(lsblk | awk "{if(\$1!=\"${FDISK_L_SYS_DEFAULT}\" && \$6==\"disk\" && \$7==\"\"){print \$1}}")
 	
 	local _TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT=(${_TMP_RESOLVE_UNMOUNT_DISK_LSBLK_DISKS_STR// / })
 	
 	function _resolve_unmount_disk_mount()
 	{
+		if [ ${#_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_ARR[@]} != 0 ] && [ ${2} -eq ${#_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_LOCAL_ARR[@]} ]; then
+			break
+		fi
+
 		local _TMP_RESOLVE_UNMOUNT_DISK_POINT="/dev/${1}"
 
 		# 判断未格式化
@@ -3084,25 +3085,22 @@ function resolve_unmount_disk () {
 		if [ ${_TMP_RESOLVE_UNMOUNT_DISK_FORMATED_COUNT} -eq 0 ]; then
 			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Checked there is one of disk(<$((${2}+1))>/[${#_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT[@]}]) '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not format]"
 			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Suggest step："
-			echo_style_text "                                Type 'n', <enter>"
-			echo_style_text "                                Type 'p', <enter>"
-			echo_style_text "                                Type '1', <enter>"
+			echo_style_text "                                Type 'n', then <enter>"
+			echo_style_text "                                Type 'p', then <enter>"
+			echo_style_text "                                Type '1', then <enter>"
 			echo_style_text "                                Type <enter>"
 			echo_style_text "                                Type <enter>"
-			echo_style_text "                                Type 'w', <enter>"
-			echo "---------------------------------------------"
-
+			echo_style_text "                                Type 'w', then <enter>"
+			echo "${TMP_SPLITER2}"
 			fdisk ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
-			
-			echo "---------------------------------------------"
+			echo "${TMP_SPLITER2}"
 
 			# 格式化：
 			mkfs.ext4 ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
 
 			fdisk -l | grep "^${_TMP_RESOLVE_UNMOUNT_DISK_POINT}"
-			echo "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of <${_TMP_RESOLVE_UNMOUNT_DISK_POINT}> 'formated'"
-	
-			echo "---------------------------------------------"
+			echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Disk of <${_TMP_RESOLVE_UNMOUNT_DISK_POINT}> 'formated'"
+			echo "${TMP_SPLITER2}"
 		fi
 
 		# 判断未挂载
@@ -3134,7 +3132,7 @@ function resolve_unmount_disk () {
 				echo_style_text "${_TMP_RESOLVE_UNMOUNT_DISK_FUNC_TITLE}: Path of <${_TMP_RESOLVE_UNMOUNT_DISK_MOUNT_PATH_PREFIX_CURRENT}> error，the disk '${_TMP_RESOLVE_UNMOUNT_DISK_POINT}' [not mount]"
 			fi
 
-			echo "---------------------------------------------"
+			echo "${TMP_SPLITER2}"
 		fi
 	}
 
@@ -3144,14 +3142,14 @@ function resolve_unmount_disk () {
 }
 
 # 新增一个授权端口
-# 参数1：需放开端口
+# 参数1：需放开端口变量名/值
 # 参数2：授权IP
 # 参数3：ALL/TCP/UDP
 function echo_soft_port()
 {
-	local _TMP_ECHO_SOFT_PORT=${1}
+	local _TMP_ECHO_SOFT_PORT=$(echo_discern_exchange_var_val "${1}")
 	local _TMP_ECHO_SOFT_PORT_IP=${2}
-	local _TMP_ECHO_SOFT_PORT_TYPE=${3}
+	local _TMP_ECHO_SOFT_PORT_TYPE=${3:-tcp}
 
 	# 非VmWare产品的情况下，不安装iptables，给个假iptables文件
 	if [ "${DMIDECODE_MANUFACTURER}" != "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then	
@@ -3178,36 +3176,40 @@ EOF
 	else
 		if [ ! -f "/etc/sysconfig/iptables" ]; then
 			soft_yum_check_setup "iptables-services"
-			
-			echo_startup_config "iptables" "/usr/bin" "systemctl restart iptables.service" "" "999"
+			systemctl enable iptables.service
+			# echo_startup_config "iptables" "/usr/bin" "systemctl restart iptables.service" "" "999"
 		fi
 	fi
 
-	# 判断是否加端口类型
-	local _TMP_ECHO_SOFT_PORT_GREP_TYPE="-p ${_TMP_ECHO_SOFT_PORT_TYPE}"
-
+	# 判断是否加端口类型，
+	# 注意 -s 一定要放在ALL	的上面（如果放在下面是不生效的！！！！）
 	#cat /etc/sysconfig/iptables | grep "\-A INPUT -p" | awk -F' ' '{print $(NF-2)}' | awk '{for (i=1;i<=NF;i++) {if ($i=="801") {print i}}}'
-	local _TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS="cat /etc/sysconfig/iptables | grep \"\-A INPUT ${_TMP_ECHO_SOFT_PORT_GREP_TYPE}\" | grep \"\-\-dport ${_TMP_ECHO_SOFT_PORT}\""
+	local _TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_SCRIPT="cat /etc/sysconfig/iptables | grep -oE '^-A INPUT -p ${_TMP_ECHO_SOFT_PORT_TYPE} .+ --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT'"
 
+	local _TMP_ECHO_SOFT_PORT_IP_RULE_ECHO=""
 	if [ -n "${_TMP_ECHO_SOFT_PORT_IP}" ]; then
-		_TMP_ECHO_SOFT_PORT_IP="-s ${_TMP_ECHO_SOFT_PORT_IP} "
-		_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS="${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS} | grep '\\${_TMP_ECHO_SOFT_PORT_IP}'"
+		_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO="-s ${_TMP_ECHO_SOFT_PORT_IP} "
+		_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_SCRIPT="${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_SCRIPT} | grep ' ${_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO}'"
 	fi
+	
+	local _TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_GREP=$(script_check_action "_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_SCRIPT")
+	if [ -n "${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_GREP}" ]; then
+		echo_style_text "'Port' <${_TMP_ECHO_SOFT_PORT_TYPE}:${_TMP_ECHO_SOFT_PORT}> accept [${_TMP_ECHO_SOFT_PORT_IP:-"ALL"}] exists"
+		echo_style_text "Grep 'rule' follows↓:"
+		echo "                   ${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_GREP}"
 
-	local _TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT=$(eval ${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS})
-	if [ -n "${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT}" ]; then
-		echo_style_text "Port <${_TMP_ECHO_SOFT_PORT}> for '${_TMP_ECHO_SOFT_PORT_IP:-"all"}' exists。"
-		echo_style_text "Get data <${_TMP_ECHO_SOFT_PORT_QUERY_IPTABLES_EXISTS_RESULT}>"
 		return $?
 	fi
 	
 	# firewall-cmd --zone=public --add-port=80/tcp --permanent  # nginx 端口
 	# firewall-cmd --zone=public --add-port=2222/tcp --permanent  # 用户SSH登录端口 coco
-	sed -i "11a-A INPUT ${_TMP_ECHO_SOFT_PORT_IP}-p tcp -m state --state NEW -m tcp --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT" /etc/sysconfig/iptables
+	curx_line_insert "/etc/sysconfig/iptables" "^-A INPUT -p" "-A INPUT -p ${_TMP_ECHO_SOFT_PORT_TYPE} ${_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO}-m state --state NEW -m ${_TMP_ECHO_SOFT_PORT_TYPE} --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT"
 
 	# firewall-cmd --reload  # 重新载入规则
 	if [ "${DMIDECODE_MANUFACTURER}" == "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then	
+		iptables-save > ~/iptables.rules
 		service iptables restart
+		iptables-restore < ~/iptables.rules
 	fi
 
 	# local TMP_FIREWALL_STATE=$(firewall-cmd --state)
@@ -3216,9 +3218,7 @@ EOF
 	# firewall-cmd --permanent --add-port=${_TMP_ECHO_SOFT_PORT}/udp
 	# firewall-cmd --reload
 
-	path_exists_yn_action "${GUM_PATH}" "gum spin --spinner monkey --title \"Echoing port to cross firewall...\" -- sleep 3" "sleep 3"	
-
-	lsof -i:${_TMP_ECHO_SOFT_PORT}
+	exec_sleep 3 "Echoing port to cross firewall..."
 
 	return $?
 }
@@ -3588,7 +3588,6 @@ function set_github_soft_releases_newer_version()
 		
 		local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
-		echo ${TMP_SPLITER}
 		echo_style_text "Checking 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>), default 'val' is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
 		# local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1)
 		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}')
@@ -4010,17 +4009,10 @@ function exec_funcs_repeat_until_output()
 # 参数1：内容正则
 # 参数2：内容路径
 # 参数3：执行脚本
-function content_not_exists_action() 
+function file_content_not_exists_action() 
 {
-	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_REGEX="${1}"
-	local _TMP_ACTION_IF_CONTENT_NOT_EXISTS_PATH="${2}"
-
-	#create group if not exists
-	egrep "${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_REGEX}" ${_TMP_ACTION_IF_CONTENT_NOT_EXISTS_PATH} >& /dev/null
+	egrep "${2}" ${1} >& /dev/null
 	if [ $? -ne 0 ]; then
-		# if [ -n "${3}" ]; then
-		# 	eval "${3}"
-		# fi
 		script_check_action "${3}"
 	fi
 
@@ -4031,9 +4023,9 @@ function content_not_exists_action()
 # 参数1：内容正则
 # 参数2：内容路径
 # 参数3：输出内容
-function content_not_exists_echo() 
+function file_content_not_exists_echo() 
 {
-	content_not_exists_action "${1}" "${2}" "echo '${3:-${1}}' >> ${2}"
+	file_content_not_exists_action "${1}" "${2}" "echo '${3:-${1}}' >> ${2}"
 
 	return $?
 }
@@ -4158,7 +4150,7 @@ function soft_trail_clear()
 		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_SETUP_DIR}"
 		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${DOCKER_APP_LOGS_DIR}"
 
-		_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=($(docker ps -a | awk 'NR>1' | cut -d' ' -f1))
+		_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=($(docker ps -a | awk 'NR>1' | cut -d' ' -f1 2>/dev/null))
 	fi
 	
 	# 已经进入清理流程，不管选择是否备份。都要执行删除服务
@@ -4603,13 +4595,15 @@ function docker_change_container_inspect_wrap()
 	
 	echo "${TMP_SPLITER2}"
 	echo_style_text "Starting 'boot' docker 'service', hold on please"
-	systemctl start docker
+	systemctl start docker.service
+	systemctl start docker.socket
 	
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}" ]; then
 		# 启动容器
 		echo "${TMP_SPLITER2}"
 		echo_style_text "Starting 'boot' all 'stopped containers'(<${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}>), hold on please"
 		echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}" | xargs docker container start
+		exec_sleep 5 "Starting wait boot 'containers'(<${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}>)"
 	fi
 
 	# 挂载可能产生等待
@@ -4821,8 +4815,11 @@ function docker_change_container_volume_migrate()
 		confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
 	}
 
-	echo_style_text "Staring sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]) will <remove>"
-	items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
+	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR[*]}" ]; then
+		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]) will <remove>"
+		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
+	fi
+
 	return $?
 }
 
@@ -5354,7 +5351,8 @@ EOF
 	# 创建挂载盘备份
 	echo "${TMP_SPLITER2}"
 	echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}" | grep -oP "(?<=^b').*(?='$)")
+	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}")
+
 	function _docker_snap_create_action_volume_path_restore()
 	{
 		# 还原挂载的路径
@@ -5935,7 +5933,10 @@ function docker_image_boot_print()
 		trim_str "_TMP_DOCKER_IMG_BOOT_PRINT_ARGS"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
 		echo_style_text "Booting <${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}] by args(${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}) && cmd(${_TMP_DOCKER_IMG_BOOT_PRINT_CMD:-"None"})"
+
+		# 挂载盘的情况下，此步会生成一个overlay
         _TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID=$(docker run -d ${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS} ${1}:${_TMP_DOCKER_IMG_BOOT_PRINT_VER} ${_TMP_DOCKER_IMG_BOOT_PRINT_CMD})
+
 		if [ -z "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" ]; then
 			echo "${TMP_SPLITER2}"
 			echo_style_text "Boot <${1}> failure, exit"
@@ -6046,7 +6047,6 @@ function docker_image_boot_print()
 	
 	# 修改授权
 	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" ]; then
-		echo "${TMP_SPLITER2}"
 		echo_style_text "View the 'dockerfile chowns'↓:"
 		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}"
 
@@ -6061,7 +6061,7 @@ function docker_image_boot_print()
 		echo "${TMP_SPLITER2}"
 		echo_style_text "View the 'restart'↓:"
 		docker container restart ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}
-
+		
 		# 二次等待
 		_docker_image_boot_print_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Rebooting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' over chown mounts, wait for a moment"
 	fi
@@ -6082,9 +6082,9 @@ function docker_image_boot_print()
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'boot info'↓:"
-    local _TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" | grep -oP "(?<=^b').*(?='$)")
+    local _TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}")
 	echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}"
-	
+		
 	function _docker_image_boot_print_ls_mounts()
 	{
 		echo "${TMP_SPLITER2}"
@@ -6892,7 +6892,7 @@ function soft_docker_check_upgrade_action()
 					_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER="latest"
 				fi
 				
-				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}]"
+				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}], hold on please"
 				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}" in 
 					"hub")
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS=$(docker images --digests | grep "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" | grep "sha256:" | awk -F' ' '{print $3}')
