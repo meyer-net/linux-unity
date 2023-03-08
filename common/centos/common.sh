@@ -3206,19 +3206,19 @@ EOF
 	curx_line_insert "/etc/sysconfig/iptables" "^-A INPUT -p" "-A INPUT -p ${_TMP_ECHO_SOFT_PORT_TYPE} ${_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO}-m state --state NEW -m ${_TMP_ECHO_SOFT_PORT_TYPE} --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT"
 
 	# firewall-cmd --reload  # 重新载入规则
-	if [ "${DMIDECODE_MANUFACTURER}" == "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then	
-		iptables-save > ~/iptables.rules
-		service iptables restart
-		iptables-restore < ~/iptables.rules
+	iptables-save > /home/$(whoami)/iptables.rules
+	if [ "${DMIDECODE_MANUFACTURER}" == "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then
+		exec_sleep 3 "Starting reboot firewall..."
+		systemctl restart iptables.service
+		exec_sleep 3 "Firewall was rebooted"
 	fi
+	iptables-restore < /home/$(whoami)/iptables.rules
 
 	# local TMP_FIREWALL_STATE=$(firewall-cmd --state)
 	
 	# firewall-cmd --permanent --add-port=${_TMP_ECHO_SOFT_PORT}/tcp
 	# firewall-cmd --permanent --add-port=${_TMP_ECHO_SOFT_PORT}/udp
 	# firewall-cmd --reload
-
-	exec_sleep 3 "Echoing port to cross firewall..."
 
 	return $?
 }
