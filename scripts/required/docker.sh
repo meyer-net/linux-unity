@@ -362,7 +362,6 @@ function boot_docker()
 
     echo "[-]">> logs/boot.log
     nohup systemctl status docker.service >> logs/boot.log 2>&1 &
-
     cat logs/boot.log
 
     echo "${TMP_SPLITER2}"	
@@ -380,8 +379,7 @@ function boot_docker()
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'bridge inspect'↓:"
     docker inspect bridge
-    
-    
+        
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'images'↓:"
     docker images
@@ -396,9 +394,6 @@ function boot_docker()
 
     # 结束
     exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay 10 secs to exit"
-
-	# 授权iptables端口访问
-	echo_soft_port ${TMP_SETUP_DOCKER_BC_PS_PORT}
 
 	return $?
 }
@@ -465,8 +460,6 @@ function setup_ext_docker()
     # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
     # https://github.com/containrrr/watchtower 
 
-    echo_style_text "Install <docker> exts completed"
-
 	return $?
 }
 
@@ -487,6 +480,21 @@ function reconf_docker()
 # x2-执行步骤
 function exec_step_docker()
 {
+	# 变量覆盖特性，其它方法均可读取
+	local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
+
+	# 统一编排到的路径
+    local TMP_DOCKER_SETUP_LNK_BIN_DIR=${TMP_DOCKER_SETUP_DIR}/bin
+    local TMP_DOCKER_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/docker
+    local TMP_DOCKER_SETUP_LNK_DATA_DIR=${DATA_DIR}/docker
+	local TMP_DOCKER_SETUP_LNK_ETC_DIR=${ATT_DIR}/docker
+
+	# 安装后的真实路径
+    local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/logs
+    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/main
+    local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/apps
+	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
+
 	set_env_docker 
 
 	setup_docker 
@@ -513,21 +521,6 @@ function exec_step_docker()
 function check_setup_docker()
 {
     echo_style_wrap_text "Checking <docker> 'install', hold on please"
-
-	# 变量覆盖特性，其它方法均可读取
-	local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
-
-	# 统一编排到的路径
-    local TMP_DOCKER_SETUP_LNK_BIN_DIR=${TMP_DOCKER_SETUP_DIR}/bin
-    local TMP_DOCKER_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/docker
-    local TMP_DOCKER_SETUP_LNK_DATA_DIR=${DATA_DIR}/docker
-	local TMP_DOCKER_SETUP_LNK_ETC_DIR=${ATT_DIR}/docker
-
-	# 安装后的真实路径
-    local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/logs
-    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/main
-    local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/apps
-	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
 
     # 重装/更新/安装
     soft_${SYS_SETUP_COMMAND}_check_upgrade_action "docker" "exec_step_docker" "yum -y update docker"

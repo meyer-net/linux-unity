@@ -200,7 +200,8 @@ function conf_miniconda()
 	source /etc/profile
 
     # 开始配置
-    # 生成 ~/.condarc配置文件
+    ## 生成 ~/.condarc配置文件
+    ### 配置主环境登录不进入虚拟环境
     condabin/conda config --set auto_activate_base false
     su_bash_conda_channel_exec "conda config --set show_channel_urls yes"
 
@@ -305,11 +306,11 @@ function setup_ext_miniconda()
     echo_style_wrap_text "Starting install 'plugin-ext' <playwright>@[${PY_ENV}], wait for a moment"
 
     # 安装必要依赖插件
-    soft_setup_conda_pip "runlike" "whereis runlike"
+    soft_setup_conda_channel_pip "runlike" "whereis runlike"
     
     # 安装playwright插件，版本只能1.30.0，不然GLIBC不匹配
     echo ${TMP_SPLITER2}
-    soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install" "1.30.0"
+    soft_setup_conda_channel_pip "playwright" "export DISPLAY=:0 && playwright install" "1.30.0"
     echo_style_text "Plugin 'playwright'@[${PY_ENV}] installed"
  
     # 写入playwright依赖，用于脚本查询dockerhub中的版本信息。su - $(whoami) -c "source activate ${PY_ENV} && python ${CONDA_PW_SCRIPTS_DIR}/pw_sync_fetch_docker_hub_vers.py | grep -v '\-rc' | cut -d '-' -f1 | uniq"

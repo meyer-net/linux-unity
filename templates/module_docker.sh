@@ -22,6 +22,8 @@ local TMP_$soft_upper_short_name_SETUP_OPN_PORT=1${TMP_$soft_upper_short_name_SE
 
 # 1-配置环境
 function set_env_dc_$setup_name() {
+    echo_style_wrap_text "Starting 'configuare install envs', hold on please"
+
     cd ${__DIR}
 
     return $?
@@ -250,6 +252,8 @@ function setup_ext_dc_$setup_name() {
 # 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_dc_$setup_name()
 {
+    cd ${TMP_$soft_upper_short_name_SETUP_WORK_DIR}
+	
     echo_style_wrap_text "Starting 'reconf', hold on please"
 
     # 授权iptables端口访问

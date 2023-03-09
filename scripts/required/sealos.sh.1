@@ -165,7 +165,7 @@ function boot_sealos()
 	bin/sealos status  
 
 	# 添加系统启动命令
-    echo_startup_config "sealos" "${TMP_SLS_SETUP_DIR}" "bin/sealos" "" "100"
+    echo_startup_supervisor_config "sealos" "${TMP_SLS_SETUP_DIR}" "bin/sealos" "" "100"
 #     systemctl enable sealos.service
 	
 	# 授权iptables端口访问

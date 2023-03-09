@@ -80,87 +80,87 @@ function fill_right()
 # 参数5：优先级序号
 # 参数6：运行环境，默认/etc/profile
 # 参数7：运行所需的用户，默认root
-function echo_startup_config()
+function echo_startup_supervisor_config()
 {
 	set_if_empty "SUPERVISOR_ATT_DIR" "${ATT_DIR}/supervisor"
 
-	local _TMP_STARTUP_SUPERVISOR_NAME=${1}
-	local _TMP_STARTUP_SUPERVISOR_FILENAME=${_TMP_STARTUP_SUPERVISOR_NAME}.conf
-	local _TMP_STARTUP_SUPERVISOR_BOOT_DIR=${2}
-	local _TMP_STARTUP_SUPERVISOR_COMMAND=${3}
-	local _TMP_STARTUP_SUPERVISOR_ENV=${4}
-	local _TMP_STARTUP_SUPERVISOR_PRIORITY=${5:-99}
-	local _TMP_STARTUP_SUPERVISOR_SOURCE=${6}
-	local _TMP_STARTUP_SUPERVISOR_USER=${7:-root}
+	local _TMP_ECHO_STARTUP_SUP_CONF_NAME=${1}
+	local _TMP_ECHO_STARTUP_SUP_CONF_FILENAME=${_TMP_ECHO_STARTUP_SUP_CONF_NAME}.conf
+	local _TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR=${2}
+	local _TMP_ECHO_STARTUP_SUP_CONF_COMMAND=${3}
+	local _TMP_ECHO_STARTUP_SUP_CONF_ENV=${4}
+	local _TMP_ECHO_STARTUP_SUP_CONF_PRIORITY=${5:-99}
+	local _TMP_ECHO_STARTUP_SUP_CONF_SOURCE=${6}
+	local _TMP_ECHO_STARTUP_SUP_CONF_USER=${7:-root}
 
-	local _TMP_STARTUP_SUPERVISOR_DFT_ENV="/usr/bin:/usr/local/bin:"
+	local _TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV="/usr/bin:/usr/local/bin:"
     # 设置默认的源环境，并检测是否为NPM启动方式
-	if [ -z "${_TMP_STARTUP_SUPERVISOR_SOURCE}" ]; then
-		_TMP_STARTUP_SUPERVISOR_SOURCE="/etc/profile"
+	if [ -z "${_TMP_ECHO_STARTUP_SUP_CONF_SOURCE}" ]; then
+		_TMP_ECHO_STARTUP_SUP_CONF_SOURCE="/etc/profile"
 
 		# 因konga的关系，此处启动暂时注释自动修改环境的操作（建议可自动修改环境变量至当前的npm版本，并取消原始bin环境）
-		# local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
+		# local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_ECHO_STARTUP_SUP_CONF_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
 		# if [ "${_TMP_STARTUP_BY_NPM_CHECK}" == "npm" ]; then
-		# 	_TMP_STARTUP_SUPERVISOR_SOURCE=$(dirname ${NVM_PATH})
+		# 	_TMP_ECHO_STARTUP_SUP_CONF_SOURCE=$(dirname ${NVM_PATH})
 		# fi
 
 		# 上述调整后，解决环境冲突问题
-		local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_STARTUP_SUPERVISOR_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
+		local _TMP_STARTUP_BY_NPM_CHECK=$(echo "${_TMP_ECHO_STARTUP_SUP_CONF_COMMAND}" | sed "s@^sudo@@g" | awk '{sub("^ *","");sub(" *$","");print}' | grep -o "^npm")
 		if [ "${_TMP_STARTUP_BY_NPM_CHECK}" == "npm" ]; then
-			_TMP_STARTUP_SUPERVISOR_DFT_ENV=""
+			_TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV=""
 		fi
 	fi
 
-	if [ -n "${_TMP_STARTUP_SUPERVISOR_BOOT_DIR}" ]; then
-		_TMP_STARTUP_SUPERVISOR_BOOT_DIR="directory = ${_TMP_STARTUP_SUPERVISOR_BOOT_DIR}  ; 程序的启动目录"
+	if [ -n "${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}" ]; then
+		_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR="directory = ${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}  ; 程序的启动目录"
 	fi
 
-	if [ -n "${_TMP_STARTUP_SUPERVISOR_ENV}" ]; then
-		_TMP_STARTUP_SUPERVISOR_ENV="${_TMP_STARTUP_SUPERVISOR_ENV}:"
+	if [ -n "${_TMP_ECHO_STARTUP_SUP_CONF_ENV}" ]; then
+		_TMP_ECHO_STARTUP_SUP_CONF_ENV="${_TMP_ECHO_STARTUP_SUP_CONF_ENV}:"
 	fi
 
 	# 类似的：environment = ANDROID_HOME="/opt/android-sdk-linux",PATH="/usr/bin:/usr/local/bin:%(ENV_ANDROID_HOME)s/tools:%(ENV_ANDROID_HOME)s/tools/bin:%(ENV_ANDROID_HOME)s/platform-tools:%(ENV_PATH)s"
-	_TMP_STARTUP_SUPERVISOR_ENV="environment = PATH=\"${_TMP_STARTUP_SUPERVISOR_DFT_ENV}${_TMP_STARTUP_SUPERVISOR_ENV}%(ENV_PATH)s\"  ; 程序启动的环境变量信息"
+	_TMP_ECHO_STARTUP_SUP_CONF_ENV="environment = PATH=\"${_TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV}${_TMP_ECHO_STARTUP_SUP_CONF_ENV}%(ENV_PATH)s\"  ; 程序启动的环境变量信息"
 
-	_TMP_STARTUP_SUPERVISOR_PRIORITY="priority = ${_TMP_STARTUP_SUPERVISOR_PRIORITY}"
+	_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY="priority = ${_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY}"
 	
-	local _TMP_STARTUP_SUPERVISOR_CONF_DIR=${SUPERVISOR_ATT_DIR}/conf
-	local _TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH=${_TMP_STARTUP_SUPERVISOR_CONF_DIR}/${_TMP_STARTUP_SUPERVISOR_FILENAME}
-    local _TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
+	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR=${SUPERVISOR_ATT_DIR}/conf
+	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH=${_TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_FILENAME}
+    local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
 	
-	path_not_exists_create $(dirname ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH})
+	path_not_exists_create $(dirname ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH})
 
-	path_not_exists_create "${_TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR}"
+	path_not_exists_create "${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}"
 
 	echo
     echo ${TMP_SPLITER}
-	if [ ! -f "${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}" ]; then
-		echo_style_text "Supervisor：Gen startup config of <${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}>"
+	if [ ! -f "${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}" ]; then
+		echo_style_text "Supervisor：Gen startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}>"
 		echo
-		tee ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH} <<-EOF
-[program:${_TMP_STARTUP_SUPERVISOR_NAME}]
-command = /bin/bash -c 'source "\$0" && exec "\$@"' ${_TMP_STARTUP_SUPERVISOR_SOURCE} ${_TMP_STARTUP_SUPERVISOR_COMMAND} ; 启动命令，可以看出与手动在命令行启动的命令是一样的
+		tee ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH} <<-EOF
+[program:${_TMP_ECHO_STARTUP_SUP_CONF_NAME}]
+command = /bin/bash -c 'source "\$0" && exec "\$@"' ${_TMP_ECHO_STARTUP_SUP_CONF_SOURCE} ${_TMP_ECHO_STARTUP_SUP_CONF_COMMAND} ; 启动命令，可以看出与手动在命令行启动的命令是一样的
 autostart = true                                                                     ; 在 supervisord 启动的时候也自动启动
 startsecs = 240                                                                      ; 启动 60 秒后没有异常退出，就当作已经正常启动了
 autorestart = true                                                                   ; 程序异常退出后自动重启
 startretries = 10                                                                    ; 启动失败自动重试次数，默认是 3
-user = ${_TMP_STARTUP_SUPERVISOR_USER}                                                ; 用哪个用户启动
+user = ${_TMP_ECHO_STARTUP_SUP_CONF_USER}                                                ; 用哪个用户启动
 redirect_stderr = true                                                               ; 把 stderr 重定向到 stdout，默认 false
 stdout_logfile_maxbytes = 20MB                                                       ; stdout 日志文件大小，默认 50MB
 stdout_logfile_backups = 20                                                          ; stdout 日志文件备份数
 
-${_TMP_STARTUP_SUPERVISOR_PRIORITY}                                                     ; 启动优先级，默认999
-${_TMP_STARTUP_SUPERVISOR_BOOT_DIR}                                                        
+${_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY}                                                     ; 启动优先级，默认999
+${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}                                                        
 
-${_TMP_STARTUP_SUPERVISOR_ENV}                                                        
+${_TMP_ECHO_STARTUP_SUP_CONF_ENV}                                                        
 
-stdout_logfile = ${_TMP_STARTUP_SUPERVISOR_LNK_LOGS_DIR}/${_TMP_STARTUP_SUPERVISOR_NAME}_stdout.log  ; stdout 日志文件，需要注意当指定目录不存在时无法正常启动，所以需要手动创建目录（supervisord 会自动创建日志文件）
+stdout_logfile = ${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_NAME}_stdout.log  ; stdout 日志文件，需要注意当指定目录不存在时无法正常启动，所以需要手动创建目录（supervisord 会自动创建日志文件）
 numprocs = 1                                                                           ;
 EOF
 	else
-		echo_style_text "Supervisor：The startup config of <${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}> created"
+		echo_style_text "Supervisor：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created"
 		echo
-		cat ${_TMP_STARTUP_SUPERVISOR_CONF_CURRENT_OUTPUT_PATH}
+		cat ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
 	fi
 
     echo ${TMP_SPLITER}
@@ -330,7 +330,7 @@ function cp_nginx_starter()
 	bash start.sh master
 
     echo_soft_port ${_TMP_CP_NGX_STT_RUNNING_PORT}
-    echo_startup_config "${_TMP_CP_NGX_STT_NAME}" "${_TMP_CP_NGX_STT_CONTAINER_DIR}" "bash start.sh master" "" "99"
+    echo_startup_supervisor_config "${_TMP_CP_NGX_STT_NAME}" "${_TMP_CP_NGX_STT_CONTAINER_DIR}" "bash start.sh master" "" "99"
 
 	return $?
 }
@@ -357,7 +357,7 @@ function gen_nginx_starter()
 	cp_nginx_starter "${_TMP_GEN_NGX_STT_BOOT_NAME}" "${_TMP_GEN_NGX_STT_NGX_BOOT_PATH}" "${_TMP_GEN_NGX_STT_BOOT_PORT}"
 	
 	# 添加系统启动命令
-    echo_startup_config "ngx_${_TMP_GEN_NGX_STT_BOOT_NAME}" "${_TMP_GEN_NGX_STT_NGX_BOOT_PATH}" "bash start.sh" "" "999"
+    echo_startup_supervisor_config "ngx_${_TMP_GEN_NGX_STT_BOOT_NAME}" "${_TMP_GEN_NGX_STT_NGX_BOOT_PATH}" "bash start.sh" "" "999"
 
     # 生成web授权访问脚本
     echo_web_service_init_scripts "${_TMP_GEN_NGX_STT_BOOT_NAME}${LOCAL_ID}" "${_TMP_GEN_NGX_STT_BOOT_NAME}${LOCAL_ID}.${SYS_DOMAIN}" ${_TMP_GEN_NGX_STT_BOOT_PORT} "${LOCAL_HOST}"
@@ -2706,6 +2706,7 @@ function su_bash_conda_create_env()
     echo_style_wrap_text "Starting 'create' <conda> env(<${1}> [python==${2}]), hold on please"
 	local _TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT="conda info -e | cut -d' ' -f1 | grep -v '#' | grep -v 'base' | grep -v '^$' | egrep '${1}'"
 	su_bash_conda_channel_exec "(${_TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT}) || conda create -n ${1} -y python=${2}"
+	su_bash_env_conda_channel_exec "pip install --upgrade pip && pip install --upgrade setuptools" "${1}"
 	
 	return $?
 }
@@ -3138,6 +3139,9 @@ function resolve_unmount_disk () {
 
 	items_split_action "_TMP_RESOLVE_UNMOUNT_DISK_ARR_DISK_POINT" "_resolve_unmount_disk_mount"
 
+	# 更新全局变量
+	source ${__DIR}/common/common_vars.sh
+
 	return $?
 }
 
@@ -3176,8 +3180,10 @@ EOF
 	else
 		if [ ! -f "/etc/sysconfig/iptables" ]; then
 			soft_yum_check_setup "iptables-services"
+			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
-			# echo_startup_config "iptables" "/usr/bin" "systemctl restart iptables.service" "" "999"
+
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service && iptables-restore < /home/$(whoami)/iptables.rules" "" "999"
 		fi
 	fi
 
@@ -3206,13 +3212,15 @@ EOF
 	curx_line_insert "/etc/sysconfig/iptables" "^-A INPUT -p" "-A INPUT -p ${_TMP_ECHO_SOFT_PORT_TYPE} ${_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO}-m state --state NEW -m ${_TMP_ECHO_SOFT_PORT_TYPE} --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT"
 
 	# firewall-cmd --reload  # 重新载入规则
-	iptables-save > /home/$(whoami)/iptables.rules
 	if [ "${DMIDECODE_MANUFACTURER}" == "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then
+		iptables-save > /home/$(whoami)/iptables.rules
 		exec_sleep 3 "Starting reboot firewall..."
 		systemctl restart iptables.service
-		exec_sleep 3 "Firewall was rebooted"
+		exec_sleep 3 "Waitting firewall reboot..."
+		iptables-restore < /home/$(whoami)/iptables.rules
+
+		
 	fi
-	iptables-restore < /home/$(whoami)/iptables.rules
 
 	# local TMP_FIREWALL_STATE=$(firewall-cmd --state)
 	
@@ -3223,16 +3231,87 @@ EOF
 	return $?
 }
 
+# 如果内容不存在则执行脚本
+# 参数1：内容正则
+# 参数2：内容路径
+# 参数3：执行脚本
+function file_content_not_exists_action() 
+{
+	egrep "${1}" ${2} >& /dev/null
+	if [ $? -ne 0 ]; then
+		script_check_action "${3}"
+	fi
+
+	return $?
+}
+
+# 如果内容不存在则输出信息
+# 参数1：内容正则
+# 参数2：内容路径
+# 参数3：输出内容
+function file_content_not_exists_echo() 
+{
+	file_content_not_exists_action "${1}" "${2}" "echo '${3:-${1}}' >> ${2}"
+
+	return $?
+}
+
 # 输出文本至/etc/profile，避免重复项
 # 参数1：需要输出的内容
+# 参数2：内容匹配正则
 function echo_etc_profile()
 {
-	local _TMP_ECHO_ETC_PROFILE_INPUT="${1}"
-	local _TMP_ECHO_ETC_PROFILE_GREP=$(cat /etc/profile | grep "^${_TMP_ECHO_ETC_PROFILE_INPUT}$")
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/profile" "${1}"
 
-	if [ -z "${_TMP_ECHO_ETC_PROFILE_GREP}" ]; then
-		echo "${_TMP_ECHO_ETC_PROFILE_INPUT}" >> /etc/profile
-	fi
+	return $?
+}
+
+# 输出文本至/etc/locale.conf，避免重复项
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+function echo_etc_locale()
+{
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/locale.conf" "${1}"
+
+	return $?
+}
+
+# 输出文本至/etc/sysconfig/i18n，避免重复项
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+function echo_etc_i18n()
+{
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/sysconfig/i18n" "${1}"
+
+	return $?
+}
+
+# 输出文本至/etc/rc.d/rc.local，避免重复项
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+function echo_etc_rcd_rclocal()
+{
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/rc.d/rc.local" "${1}"
+
+	return $?
+}
+
+# 输出文本至/etc/rc.local，避免重复项
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+function echo_etc_rc_local()
+{
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/rc.local" "${1}"
+
+	return $?
+}
+
+# 输出文本至/etc/security/limits.conf，避免重复项
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+function echo_etc_sec_limits()
+{
+	file_content_not_exists_echo "${2:-^${1}$}" "/etc/security/limits.conf" "${1}"
 
 	return $?
 }
@@ -4005,31 +4084,6 @@ function exec_funcs_repeat_until_output()
 	return $?
 }
 
-# 如果内容不存在则执行脚本
-# 参数1：内容正则
-# 参数2：内容路径
-# 参数3：执行脚本
-function file_content_not_exists_action() 
-{
-	egrep "${2}" ${1} >& /dev/null
-	if [ $? -ne 0 ]; then
-		script_check_action "${3}"
-	fi
-
-	return $?
-}
-
-# 如果内容不存在则输出信息
-# 参数1：内容正则
-# 参数2：内容路径
-# 参数3：输出内容
-function file_content_not_exists_echo() 
-{
-	file_content_not_exists_action "${1}" "${2}" "echo '${3:-${1}}' >> ${2}"
-
-	return $?
-}
-
 ##########################################################################################################
 # 备份还原操作类
 ##########################################################################################################
@@ -4135,20 +4189,21 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[1]="/var/log/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[2]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[3]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.conf"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	# docker的情况
 	local _TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=()
 	if [ "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}" == "docker" ]; then
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${DOCKER_APP_SETUP_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_DATA_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_ATT_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_SETUP_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${DOCKER_APP_LOGS_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_SETUP_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_DATA_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_ATT_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${DOCKER_APP_SETUP_DIR}"
+		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[15]="${DOCKER_APP_LOGS_DIR}"
 
 		_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=($(docker ps -a | awk 'NR>1' | cut -d' ' -f1 2>/dev/null))
 	fi
@@ -6328,8 +6383,8 @@ function soft_setup_git()
 # 参数3：软件安装版本
 # 参数4：软件安装环境，默认取全局变量${PY_ENV}
 # 示例：
-#	   soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
-function soft_setup_conda_pip() 
+#	   soft_setup_conda_channel_pip "playwright" "export DISPLAY=:0 && playwright install"
+function soft_setup_conda_channel_pip() 
 {
 	if [ $? -ne 0 ]; then
 		return $?
@@ -6352,6 +6407,57 @@ function soft_setup_conda_pip()
 		su_bash_env_conda_channel_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME} && ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
 		echo ${TMP_SPLITER2}
 		echo_style_text "Pip package installed '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+	else
+		echo_style_text "Pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}] exists in [${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}]"
+		su_bash_env_conda_channel_exec "pip list | grep '${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
+
+		return 1
+	fi
+	
+	return $?
+}
+
+# PIP安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件安装后，执行的脚本
+#       参数1：安装包名称
+#       参数2：安装包版本
+#       参数3：安装包环境
+#       参数4：安装路径
+# 参数3：软件安装版本
+# 参数4：软件安装环境，默认取全局变量${PY_ENV}
+# 示例：
+#	   soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
+function soft_setup_conda_pip() 
+{
+	if [ $? -ne 0 ]; then
+		return $?
+	fi
+
+	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS=${2:-"echo"}
+	local _TMP_SOFT_SETUP_CONDA_PIP_ENV=${4:-"${PY_ENV}"}
+	
+	local _TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME=${1}
+	if [ -n "${3}" ]; then
+		_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME="${1}==${3}"
+	fi
+
+	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
+	
+	echo_style_wrap_text "Checking <conda> pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+	if [ -z "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}" ]; then
+		echo_style_text "Starting <install> the <conda> pip package '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+		echo ${TMP_SPLITER2}
+		su_bash_env_conda_channel_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
+		echo ${TMP_SPLITER2}
+		echo_style_text "Pip package installed '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+		echo
+
+		#安装后配置函数
+		local _TMP_SOFT_SETUP_CONDA_PIP_SHOW=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
+		local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_VER=${3:-$(echo "${_TMP_SOFT_SETUP_CONDA_PIP_SHOW}" | grep 'Version' | awk '{print $2}')}
+		local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(echo "${_TMP_SOFT_SETUP_CONDA_PIP_SHOW}" | grep 'Location' | awk '{print $2}')
+		script_check_action "${2}" "${1}" "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_VER}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}" "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}/${1}"
 	else
 		echo_style_text "Pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}] exists in [${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}]"
 		su_bash_env_conda_channel_exec "pip list | grep '${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"

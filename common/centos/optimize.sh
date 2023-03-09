@@ -136,26 +136,26 @@ EOF
 
 	#echo "ulimit -SHn 65536" >> /etc/rc.local
 	ulimit -SHn 65536
-	file_content_not_exists_echo "ulimit -SHn 65536" "/etc/rc.local"
+	echo_etc_rc_local "ulimit -SHn 65536"
 
 	#单个用户可用的最大进程数量(软限制)
-	file_content_not_exists_echo "^\* soft nofile 65536" "/etc/security/limits.conf" '* soft nofile 65536'
+	echo_etc_sec_limits '* soft nofile 65536' "^\* soft nofile 65536"
 
 	#单个用户可用的最大进程数量(硬限制)
-	file_content_not_exists_echo "^\* hard nofile 65536" "/etc/security/limits.conf" '* hard nofile 65536'
+	echo_etc_sec_limits '* hard nofile 65536' "^\* hard nofile 65536"
 
 	#单个用户可打开的最大文件描述符数量(软限制)
-	file_content_not_exists_echo "^\* soft nproc 65536" "/etc/security/limits.conf" '* soft nproc 65536'
+	echo_etc_sec_limits'* soft nproc 65536' "^\* soft nproc 65536"
 
 	#单个用户可打开的最大文件描述符数量(硬限制)
-	file_content_not_exists_echo "^\* hard nproc 65536" "/etc/security/limits.conf" '* hard nproc 65536'
+	echo_etc_sec_limits'* hard nproc 65536' "^\* hard nproc 65536"
    
     # 修改字符集,否则可能报 input/output error的问题,因为日志里打印了中文
     localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
     export LC_ALL=zh_CN.UTF-8
-    echo 'LANG="zh_CN.UTF-8"' > /etc/locale.conf
-    echo 'LANG=zh_CN.UTF-8' >> /etc/sysconfig/i18n
-	echo "export LANG=zh_CN.utf-8" > /etc/profile
+    echo_etc_locale 'LANG="zh_CN.UTF-8"'
+    echo_etc_i18n 'LANG=zh_CN.UTF-8'
+	echo_etc_profile "export LANG=zh_CN.utf-8"
 
 	sysctl -p
 
@@ -180,7 +180,7 @@ EOF
 			echo_soft_port "TMP_SSH_NEW_PORT"
 
 			echo 
-			echo_style_wrap_text "👉👉👉 For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', please <remember> it."
+			echo_style_wrap_text "👉 For 'security', the 'default ssh connect port' changed to '${TMP_SSH_NEW_PORT}', please <remember> it."
 			echo 
 		}
 

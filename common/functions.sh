@@ -225,7 +225,7 @@ function gen_sup_conf()
         ln -sf ${LOGS_DIR}/${_TMP_GEN_SUP_CONF_NAME} ${_TMP_GEN_SUP_CONF_BOOT_DIR}/logs
     fi
     
-    echo_startup_config "${_TMP_GEN_SUP_CONF_NAME}" "${_TMP_GEN_SUP_CONF_BOOT_DIR}" "${_TMP_GEN_SUP_CONF_COMMAND}" "${_TMP_GEN_SUP_CONF_ENV}" ${_TMP_GEN_SUP_CONF_PRIORITY} "${_TMP_GEN_SUP_CONF_SOURCE}" "${_TMP_GEN_SUP_CONF_USER}"
+    echo_startup_supervisor_config "${_TMP_GEN_SUP_CONF_NAME}" "${_TMP_GEN_SUP_CONF_BOOT_DIR}" "${_TMP_GEN_SUP_CONF_COMMAND}" "${_TMP_GEN_SUP_CONF_ENV}" ${_TMP_GEN_SUP_CONF_PRIORITY} "${_TMP_GEN_SUP_CONF_SOURCE}" "${_TMP_GEN_SUP_CONF_USER}"
 
 	return $?
 }
@@ -379,12 +379,12 @@ function ssh_transfer()
     local TMP_SSH_TRANS_SUP_NAME="ssh_transfer_${_TMP_SSH_TRANS_TUNNEL_MODE}_${_TMP_SSH_TRANS_DEST_USER}_${_TMP_SSH_TRANS_DEST_HOST}_${_TMP_SSH_TRANS_TUNNEL_HOST1}_${_TMP_SSH_TRANS_TUNNEL_PORT1}_${_TMP_SSH_TRANS_TUNNEL_HOST2}_${_TMP_SSH_TRANS_TUNNEL_PORT2}"
     local TMP_SSH_TRANS_ETC_FILE="${SUPERVISOR_HOME}/etc/${TMP_SSH_TRANS_SUP_NAME}.conf"
 
-    function _echo_startup_config()
+    function _echo_startup_supervisor_config()
     {
-        echo_startup_config "${TMP_SSH_TRANS_SUP_NAME}" "${SUPERVISOR_HOME}/scripts" "ssh ${_TMP_SSH_TRANS_SCRIPTS}" "" 1
+        echo_startup_supervisor_config "${TMP_SSH_TRANS_SUP_NAME}" "${SUPERVISOR_HOME}/scripts" "ssh ${_TMP_SSH_TRANS_SCRIPTS}" "" 1
     }
 
-    path_not_exists_action "${TMP_SSH_TRANS_ETC_FILE}" "_echo_startup_config"
+    path_not_exists_action "${TMP_SSH_TRANS_ETC_FILE}" "_echo_startup_supervisor_config"
 
     echo
     echo "${FUNCNAME[0]} Done -> (ssh ${_TMP_SSH_TRANS_SCRIPTS})"
