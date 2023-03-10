@@ -65,7 +65,12 @@ function setup_miniconda()
     # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
 
     ## 脚本安装(文件被下载在shell目录)
-    while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && bash ${SH_DIR}/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} && source ~/.bashrc"
+    function _setup_miniconda_down_install()
+    {
+        while_wget "https://repo.anaconda.com/miniconda/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}" "change_down_miniconda && bash ${SH_DIR}/${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} && source ~/.bashrc"
+    }
+    soft_path_restore_confirm_custom "${TMP_MCD_SETUP_DIR}" "_setup_miniconda_down_install"
+    soft_path_restore_confirm_create "${CONDA_APP_SETUP_DIR}"
     
 	# 轻量级安装的情况下不进行安装包还原操作
 	cd ${TMP_MCD_SETUP_DIR}
@@ -147,18 +152,21 @@ function formal_miniconda()
 
 	# 开始标准化	    
     # 预先初始化一次，启动后才有文件生成 & 创建conda用户，以用于执行安装操作
-    create_user_if_not_exists "conda" "conda" true
+    create_user_if_not_exists "root" "conda" true
 	
     # 还原 & 创建 & 迁移
+    soft_path_restore_confirm_create "${CONDA_APP_LOGS_DIR}"
 	## 数据
     soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_ENVS_DIR}" "${TMP_MCD_SETUP_DATA_ENVS_DIR}"
     soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_PKGS_DIR}" "${TMP_MCD_SETUP_DATA_PKGS_DIR}"
     soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_HOME_DIR}" "${TMP_MCD_SETUP_DATA_HOME_DIR}"
+    soft_path_restore_confirm_create "${CONDA_APP_DATA_DIR}"
     ### 自定义-脚本
     soft_path_restore_confirm_create "${TMP_MCD_SETUP_LNK_DATA_SCRIPTS_DIR}"
     # soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_ENVS_DIR}" "/home/conda/.conda/envs"
 	## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_MCD_SETUP_LNK_ETC_DIR}" "${TMP_MCD_SETUP_ETC_DIR}"
+    soft_path_restore_confirm_create "${CONDA_APP_ATT_DIR}"
     
 	# 创建链接规则
 	## 自定义-脚本
@@ -185,10 +193,10 @@ function conf_miniconda()
     file_content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
 
     # 授权
-	chown -R conda:conda "/home/conda"
-	chown -R conda:conda ${TMP_MCD_SETUP_DIR}
-    chown -R conda:conda ${TMP_MCD_SETUP_LNK_DATA_DIR}
-	chown -R conda:conda ${TMP_MCD_SETUP_LNK_ETC_DIR}
+	chown -R conda:root "/home/conda"
+	chown -R conda:root ${TMP_MCD_SETUP_DIR}
+    chown -R conda:root ${TMP_MCD_SETUP_LNK_DATA_DIR}
+	chown -R conda:root ${TMP_MCD_SETUP_LNK_ETC_DIR}
 
     # 同步环境变量
     ## ~/.bashrc 中存在，故不启用，仅记录
@@ -480,6 +488,11 @@ EOF
     echo ${TMP_SPLITER2}
     echo_style_text "Testing ext 'playwright-async'@[${PY_ENV}] for <labring/sealos> to get ver list, wait for a moment"
     su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py 'labring/sealos'"
+    	
+    local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
+    source ${__TMP_DIR}/conda/*.sh
+    # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
+    # https://github.com/containrrr/watchtower 
 
 	return $?
 }

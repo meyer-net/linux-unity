@@ -65,6 +65,7 @@ LOCAL_TIMESTAMP=$(date -d "${LOCAL_TIME}" +%s)
 SETUP_DIR=/opt
 DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 DOCKER_APP_SETUP_DIR=${SETUP_DIR}/docker_apps
+CONDA_APP_SETUP_DIR=${SETUP_DIR}/conda_apps
 # NVM_PATH=~/.nvm/nvm.sh
 NVM_PATH=${SETUP_DIR}/nvm/nvm.sh
 CURRENT_USER=$(whoami)
@@ -102,6 +103,9 @@ DOCKER_LOGS_DIR=${LOGS_DIR}/docker
 DOCKER_APP_ATT_DIR=${ATT_DIR}/docker_apps
 DOCKER_APP_DATA_DIR=${DATA_DIR}/docker_apps
 DOCKER_APP_LOGS_DIR=${LOGS_DIR}/docker_apps
+CONDA_APP_ATT_DIR=${ATT_DIR}/conda_apps
+CONDA_APP_DATA_DIR=${DATA_DIR}/conda_apps
+CONDA_APP_LOGS_DIR=${LOGS_DIR}/conda_apps
 
 BACKUP_DIR=${MOUNT_DIR}/repo/backup
 COVER_DIR=${MOUNT_DIR}/repo/cover
@@ -131,7 +135,7 @@ CONDA_PW_SCRIPTS_DIR=${CONDA_SCRIPTS_DIR}/playwright/py
 PY_ENV="pyenv37"
 PY_PKGS_SETUP_DIR=${SETUP_DIR}/python_packages
 PY3_PKGS_SETUP_DIR=${SETUP_DIR}/python3_packages
-SUPERVISOR_ATT_DIR=${ATT_DIR}/supervisor
+SUPERVISOR_ATT_DIR=${CONDA_APP_ATT_DIR}/supervisor
 DOCKER_NETWORK="cuckoo-network"
 
 #---------- DIR ---------- }

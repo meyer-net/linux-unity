@@ -121,11 +121,11 @@ function conf_$soft_name()
     # change_service_user conda conda
 
 	# ## 授权权限，否则无法写入
-	## create_user_if_not_exists conda conda
-	# chown -R conda:conda ${TMP_$soft_upper_short_name_SETUP_DIR}
-	# chown -R conda:conda ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}
-	# chown -R conda:conda ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
-	# chown -R conda:conda ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
+	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_DIR}
+	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_WORK_DIR}
+	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}
+	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
+	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
 
     # # 中止进程
     # systemctl stop $soft_name.service
@@ -289,10 +289,10 @@ function exec_step_$soft_name()
 
 	## 统一编排到的路径
     local TMP_$soft_upper_short_name_CURRENT_DIR=$(pwd)
-	local TMP_$soft_upper_short_name_SETUP_DIR=${SETUP_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
-	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
-	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
-	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
+	local TMP_$soft_upper_short_name_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${CONDA_APP_LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${CONDA_APP_DATA_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${CONDA_APP_ATT_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
 
 	## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_$soft_upper_short_name_SETUP_BIN_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/bin

@@ -237,10 +237,9 @@ function formal_supervisor()
     path_not_exists_link "${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf" "" "/etc/supervisor.conf"
     # 安装不产生规格下的bin目录，所以手动还原创建
 	path_not_exists_create "${TMP_SUP_SETUP_BIN_DIR}" "" "path_not_exists_link '${TMP_SUP_SETUP_BIN_DIR}/supervisor' '' '${TMP_SUP_SETUP_MCD_ENVS_DIR}/bin/supervisor'"
+	path_not_exists_create "${TMP_SUP_SETUP_LNK_ETC_DIR}/boots"
 
 	# 预实验部分
-    ## 目录调整完重启进程(目录调整是否有效的验证点)
-    su_bash_env_conda_channel_exec "supervisor start"
 
 	return $?
 }
@@ -264,16 +263,20 @@ function conf_supervisor()
 	source /etc/profile
 
 	## 授权权限，否则无法写入
-	chown -R conda:conda ${TMP_SUP_SETUP_DIR}
-	chown -R conda:conda ${TMP_SUP_SETUP_LNK_LOGS_DIR}
-	chown -R conda:conda ${TMP_SUP_SETUP_LNK_DATA_DIR}
-	chown -R conda:conda ${TMP_SUP_SETUP_LNK_ETC_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_LNK_WORK_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_LNK_LOGS_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_LNK_DATA_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_LNK_ETC_DIR}
 	
 	## 修改配置文件
-    sed -i "s@9001@${TMP_SUP_SETUP_HTTP_PORT}@g" etc/supervisor.conf
-    sed -i "s@^[;]*logfile=.*@logfile=`pwd`/logs/supervisor.log@g" etc/supervisor.conf
+    sed -i "s@^[;]*port=.*@port=127.0.0.1:${TMP_SUP_SETUP_HTTP_PORT}@g" etc/supervisor.conf
+    sed -i "s@^[;]*logfile=.*@logfile=${TMP_SUP_SETUP_LNK_LOGS_DIR}/supervisor.log@g" etc/supervisor.conf
     sed -i "s@^[;]*\[include\]@\[include\]@g" etc/supervisor.conf
-    sed -i "s@^[;]*files = .*@files = `pwd`/etc/conf/*.conf@g" etc/supervisor.conf
+    sed -i "s@^[;]*files = .*@files = ${TMP_SUP_SETUP_LNK_ETC_DIR}/boots/*.conf@g" etc/supervisor.conf
+	
+    ## 目录调整完重启进程(目录调整是否有效的验证点)
+    su_bash_env_conda_channel_exec "supervisor status"
 
 	return $?
 }
@@ -305,6 +308,8 @@ function boot_supervisor()
 
 	# 配置服务
 	## 启动配置加载
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View the 'systemctl conf'↓:"
 	local TMP_SUP_SETUP_MCD_ENV_HOME=$(su_bash_env_conda_channel_exec "cd;pwd" "${TMP_SUP_SETUP_ENV}")
 	tee /usr/lib/systemd/system/supervisor.service <<-EOF
 # supervisord service for systemd (CentOS 7.0+)
@@ -316,7 +321,7 @@ After=rc-local.service docker.service
 [Service]
 Type=forking
 User=conda
-Group=conda
+Group=root
 WorkingDirectory=${TMP_SUP_SETUP_MCD_ENV_HOME}
 ExecStart=/bin/bash -c "source .bashrc && conda activate ${TMP_SUP_SETUP_ENV} && supervisor start"
 ExecStop=/bin/bash -c "source .bashrc && conda activate ${TMP_SUP_SETUP_ENV} && supervisor stop"
@@ -333,6 +338,7 @@ EOF
     systemctl daemon-reload
 
     ## 设置系统管理，开机启动
+    echo "${TMP_SPLITER2}"
     echo_style_text "View the 'systemctl info'↓:"
     chkconfig supervisor on
 	systemctl enable supervisor.service
@@ -392,11 +398,6 @@ function setup_ext_supervisor()
     cd ${TMP_SUP_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install exts', hold on please"
-	
-    local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
-    source ${__TMP_DIR}/conda/*.sh
-    # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
-    # https://github.com/containrrr/watchtower 
 
 	return $?
 }
@@ -432,16 +433,16 @@ function exec_step_supervisor()
 	
 	## 统一编排到的路径
     local TMP_SUP_CURRENT_DIR=$(pwd)
-	local TMP_SUP_SETUP_DIR=${SETUP_DIR}/${TMP_SUP_SETUP_MARK_NAME}
-	local TMP_SUP_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/${TMP_SUP_SETUP_MARK_NAME}
-	local TMP_SUP_SETUP_LNK_DATA_DIR=${DATA_DIR}/${TMP_SUP_SETUP_MARK_NAME}
-	local TMP_SUP_SETUP_LNK_ETC_DIR=${ATT_DIR}/${TMP_SUP_SETUP_MARK_NAME}
+	local TMP_SUP_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${TMP_SUP_SETUP_MARK_NAME}
+	local TMP_SUP_SETUP_LNK_LOGS_DIR=${CONDA_APP_LOGS_DIR}/${TMP_SUP_SETUP_MARK_NAME}
+	local TMP_SUP_SETUP_LNK_DATA_DIR=${CONDA_APP_DATA_DIR}/${TMP_SUP_SETUP_MARK_NAME}
+	local TMP_SUP_SETUP_LNK_ETC_DIR=${CONDA_APP_ATT_DIR}/${TMP_SUP_SETUP_MARK_NAME}
 
 	## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_SUP_SETUP_BIN_DIR=${TMP_SUP_SETUP_DIR}/bin
 	local TMP_SUP_SETUP_WORK_DIR=${TMP_SUP_SETUP_DIR}/work
 	local TMP_SUP_SETUP_LOGS_DIR=${TMP_SUP_SETUP_DIR}/logs
-	local TMP_SUP_SETUP_DATA_DIR=${TMP_SUP_SETUP_DIR}/scrips
+	local TMP_SUP_SETUP_DATA_DIR=${TMP_SUP_SETUP_DIR}/scripts
 	local TMP_SUP_SETUP_ETC_DIR=${TMP_SUP_SETUP_DIR}/etc
 
 	set_env_supervisor 

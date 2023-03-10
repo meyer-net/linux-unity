@@ -80,9 +80,11 @@ function fill_right()
 # 参数5：优先级序号
 # 参数6：运行环境，默认/etc/profile
 # 参数7：运行所需的用户，默认root
+# 参数8：是否自动重启，默认true
+# 参数9：自动重启次数，默认10
 function echo_startup_supervisor_config()
 {
-	set_if_empty "SUPERVISOR_ATT_DIR" "${ATT_DIR}/supervisor"
+	set_if_empty "SUPERVISOR_ATT_DIR" "${CONDA_APP_ATT_DIR}/supervisor"
 
 	local _TMP_ECHO_STARTUP_SUP_CONF_NAME=${1}
 	local _TMP_ECHO_STARTUP_SUP_CONF_FILENAME=${_TMP_ECHO_STARTUP_SUP_CONF_NAME}.conf
@@ -92,6 +94,8 @@ function echo_startup_supervisor_config()
 	local _TMP_ECHO_STARTUP_SUP_CONF_PRIORITY=${5:-99}
 	local _TMP_ECHO_STARTUP_SUP_CONF_SOURCE=${6}
 	local _TMP_ECHO_STARTUP_SUP_CONF_USER=${7:-root}
+	local _TMP_ECHO_STARTUP_SUP_CONF_AUTO_RESTART=${8:-true}
+	local _TMP_ECHO_STARTUP_SUP_CONF_RETRY_COUNT=${9:-10}
 
 	local _TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV="/usr/bin:/usr/local/bin:"
     # 设置默认的源环境，并检测是否为NPM启动方式
@@ -124,7 +128,7 @@ function echo_startup_supervisor_config()
 
 	_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY="priority = ${_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY}"
 	
-	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR=${SUPERVISOR_ATT_DIR}/conf
+	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR=${SUPERVISOR_ATT_DIR}/boots
 	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH=${_TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_FILENAME}
     local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
 	
@@ -141,10 +145,10 @@ function echo_startup_supervisor_config()
 [program:${_TMP_ECHO_STARTUP_SUP_CONF_NAME}]
 command = /bin/bash -c 'source "\$0" && exec "\$@"' ${_TMP_ECHO_STARTUP_SUP_CONF_SOURCE} ${_TMP_ECHO_STARTUP_SUP_CONF_COMMAND} ; 启动命令，可以看出与手动在命令行启动的命令是一样的
 autostart = true                                                                     ; 在 supervisord 启动的时候也自动启动
-startsecs = 240                                                                      ; 启动 60 秒后没有异常退出，就当作已经正常启动了
-autorestart = true                                                                   ; 程序异常退出后自动重启
-startretries = 10                                                                    ; 启动失败自动重试次数，默认是 3
-user = ${_TMP_ECHO_STARTUP_SUP_CONF_USER}                                                ; 用哪个用户启动
+startsecs = 240                                                                      ; 启动 240 秒后没有异常退出，就当作已经正常启动了
+autorestart = ${_TMP_ECHO_STARTUP_SUP_CONF_AUTO_RESTART}                             ; 程序异常退出后自动重启
+startretries = ${_TMP_ECHO_STARTUP_SUP_CONF_RETRY_COUNT}                             ; 启动失败自动重试次数，默认是 10
+user = ${_TMP_ECHO_STARTUP_SUP_CONF_USER}                                            ; 用哪个用户启动
 redirect_stderr = true                                                               ; 把 stderr 重定向到 stdout，默认 false
 stdout_logfile_maxbytes = 20MB                                                       ; stdout 日志文件大小，默认 50MB
 stdout_logfile_backups = 20                                                          ; stdout 日志文件备份数
@@ -2833,7 +2837,7 @@ function create_user_if_not_exists()
 		fi
 
 		# docker用户及组的情况???授权待优化
-		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "conda" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "conda" ]; then
+		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
 			# 以当前用户修改docker、conda对应的用户UID
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID=$(id -u $(whoami))
@@ -3183,7 +3187,7 @@ EOF
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
 
-			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service && iptables-restore < /home/$(whoami)/iptables.rules" "" "999"
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service && (iptables-restore < /home/$(whoami)/iptables.rules)" "" "999" false 1
 		fi
 	fi
 
@@ -4192,19 +4196,18 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.conf"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+
 	# docker的情况
 	local _TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=()
 	if [ "${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}" == "docker" ]; then
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${DOCKER_APP_SETUP_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DOCKER_APP_DATA_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DOCKER_APP_ATT_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${DOCKER_APP_SETUP_DIR}"
-		_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[15]="${DOCKER_APP_LOGS_DIR}"
-
 		_TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=($(docker ps -a | awk 'NR>1' | cut -d' ' -f1 2>/dev/null))
 	fi
 	
