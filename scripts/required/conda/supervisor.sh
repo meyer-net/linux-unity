@@ -311,12 +311,14 @@ function boot_supervisor()
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'systemctl conf'↓:"
 	local TMP_SUP_SETUP_MCD_ENV_HOME=$(su_bash_env_conda_channel_exec "cd;pwd" "${TMP_SUP_SETUP_ENV}")
+	### 服务必须再docker.service启动之前运行
 	tee /usr/lib/systemd/system/supervisor.service <<-EOF
 # supervisord service for systemd (CentOS 7.0+)
 
 [Unit]
 Description=Supervisor daemon
-After=rc-local.service docker.service
+After=rc-local.service
+Before=docker.service
 
 [Service]
 Type=forking

@@ -3187,7 +3187,7 @@ EOF
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
 
-			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service && (iptables-restore < /home/$(whoami)/iptables.rules)" "" "999" false 1
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "999" false 0
 		fi
 	fi
 
@@ -3215,8 +3215,9 @@ EOF
 	# firewall-cmd --zone=public --add-port=2222/tcp --permanent  # 用户SSH登录端口 coco
 	curx_line_insert "/etc/sysconfig/iptables" "^-A INPUT -p" "-A INPUT -p ${_TMP_ECHO_SOFT_PORT_TYPE} ${_TMP_ECHO_SOFT_PORT_IP_RULE_ECHO}-m state --state NEW -m ${_TMP_ECHO_SOFT_PORT_TYPE} --dport ${_TMP_ECHO_SOFT_PORT} -j ACCEPT"
 
-	# firewall-cmd --reload  # 重新载入规则
+	# firewall-cmd --reload  # 重新载入规则，
 	if [ "${DMIDECODE_MANUFACTURER}" == "VMware, Inc." ] && [ "${DMIDECODE_MANUFACTURER}" != "QEMU" ]; then
+		# *** 必须存储iptables规则，否则会与docker容器冲突
 		iptables-save > /home/$(whoami)/iptables.rules
 		exec_sleep 3 "Starting reboot firewall..."
 		systemctl restart iptables.service
