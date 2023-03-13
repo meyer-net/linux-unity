@@ -67,13 +67,16 @@ function special_backup_docker()
         echo "${TMP_SPLITER3}"
         echo_style_text "View the 'container tmp files clear -> /tmp'↓:"
         echo_style_text "[before]:"
-        docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        docker_bash_channel_exec "${1}" "ls -lia" "" "" "/tmp"
         ## 前几行内容无效，如下 2>/dev/null
         #  .
         #  ..
-        docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
+        docker_bash_channel_exec "${1}" "ls -a | tail -n +3 | xargs rm -rfv" "" "" "/tmp"
         echo_style_text "[after]:"
-        docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
+        docker_bash_channel_exec "${1}" "ls -lia" "" "" "/tmp"
 
         # 停止容器
         echo "${TMP_SPLITER3}"

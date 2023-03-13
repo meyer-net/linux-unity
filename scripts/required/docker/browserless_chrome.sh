@@ -48,7 +48,7 @@ function setup_dc_browserless_chrome() {
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_pcreate ${TMP_DC_BLC_SETUP_WORK_DIR} "_setup_dc_browserless_chrome_cp_source"
 
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     # 开始安装
 
@@ -59,7 +59,7 @@ function setup_dc_browserless_chrome() {
 
 # 3-规格化软件目录格式
 function formal_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'formal dirs', hold on please"
 
@@ -169,12 +169,12 @@ function formal_dc_browserless_chrome() {
 
 # 4-设置软件
 function conf_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'configuration', hold on please"
 
     # 开始配置
-    # docker exec docker exec -u root -w /usr/src/app -it ${TMP_DC_BLC_SETUP_CTN_ID} sh -c "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js"
+    # docker exec -u root -w /usr/src/app -it ${TMP_DC_BLC_SETUP_CTN_ID} sh -c "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js"
 
     return $?
 }
@@ -183,7 +183,7 @@ function conf_dc_browserless_chrome() {
 
 # 5-测试软件
 function test_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     # 实验部分
     echo_style_wrap_text "Starting 'test', hold on please"
@@ -200,7 +200,7 @@ function test_dc_browserless_chrome() {
 # 参数3：最终启动命令
 # 参数4：最终启动参数
 function boot_check_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     # 实验部分
     echo_style_wrap_text "Starting 'boot check', hold on please"
@@ -208,6 +208,7 @@ function boot_check_dc_browserless_chrome() {
     if [ -n "${TMP_DC_BLC_SETUP_CTN_PORT}" ]; then
         echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
+        echo
     fi
 
     echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
@@ -217,7 +218,7 @@ function boot_check_dc_browserless_chrome() {
 
 # 7-1 下载扩展/驱动/插件
 function down_ext_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'download exts', hold on please"
 
@@ -226,7 +227,7 @@ function down_ext_dc_browserless_chrome() {
 
 # 7-2 安装与配置扩展/驱动/插件
 function setup_ext_dc_browserless_chrome() {
-    cd ${TMP_DC_BLC_SETUP_WORK_DIR}
+    cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install exts', hold on please"
 
@@ -334,11 +335,11 @@ function boot_build_dc_browserless_chrome() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
     
     # 标准启动参数
-    local TMP_DC_BLC_SETUP_PRE_ARG_TIME="--volume=/etc/localtime:/etc/localtime"
+    local TMP_DC_BLC_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime"
     # local TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
-    local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_TIME}"
+    local TMP_DC_BLC_SETUP_PRE_ARGS="${TMP_DC_BLC_SETUP_PRE_ARG_PORTS} ${TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_BLC_SETUP_PRE_ARG_ENVS} ${TMP_DC_BLC_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "Starting 'combine container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}] boot args, hold on please"
@@ -351,7 +352,7 @@ function boot_build_dc_browserless_chrome() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
-    
+
     return $?
 }
 

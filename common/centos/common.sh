@@ -2619,7 +2619,7 @@ function su_bash_channel_exec()
 
 	# 尝试进入
 	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR="/home/${_TMP_SU_BASH_CHANNEL_EXEC_USER}"
-	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=";"
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=""
 
 	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}"
 	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "${_TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CHANNEL_EXEC_SCRIPTS})"
@@ -2727,6 +2727,38 @@ function su_bash_conda_echo_profile()
 	local _TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT="egrep '${2:-^${1}$}' /home/conda/.bashrc >& /dev/null"
 	su_bash_env_conda_channel_exec "(${_TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT}) || echo '${1}' >> /home/conda/.bashrc && conda deactivate" "${3}"
 	
+	return $?
+}
+
+# 通过指定用户，通过管道执行脚本
+# 参数1：容器ID
+# 参数2：执行脚本
+# 参数3：管道参数
+# 参数4：执行用户，默认$(whoami)
+# 参数5：工作目录
+# 示例：
+#       docker_bash_channel_exec "" "whoami" 
+#       docker_bash_channel_exec "" "whoami" "t"
+#       docker_bash_channel_exec "" "whoami" "" "root"
+function docker_bash_channel_exec()
+{
+	local _TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID=${1}
+	local _TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS=${2:-"echo"}
+    local _TMP_DOCKER_BASH_CHANNEL_EXEC_USER=${4:-$(whoami)}
+	local _TMP_DOCKER_BASH_CHANNEL_EXEC_DEFAULT_DIR="${5}"
+	if [ -n "${_TMP_DOCKER_BASH_CHANNEL_EXEC_DEFAULT_DIR}" ]; then
+		_TMP_DOCKER_BASH_CHANNEL_EXEC_DEFAULT_DIR="-w ${_TMP_DOCKER_BASH_CHANNEL_EXEC_DEFAULT_DIR}"
+	fi
+
+	local _TMP_DOCKER_BASH_CHANNEL_EXEC_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | egrep "^/var/run/docker.sock$")
+	
+	if [ -z "${_TMP_DOCKER_BASH_CHANNEL_EXEC_RUNLIKE}" ]; then
+		# 尝试进入
+		docker exec -u ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER} -i${3} ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID} sh -c "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}"
+	else
+		echo_style_text "'|👉' Script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
+	fi
+
 	return $?
 }
 
@@ -4328,7 +4360,7 @@ function docker_soft_dirs_bind()
 	
 	# 下述管道内赋值无法改变数组
 	# su_bash_env_conda_channel_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort | eval "script_channel_action '_docker_soft_dirs_bind_combine_filter'"
-	items_split_action "$(su_bash_env_conda_channel_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | sort)" "_docker_soft_dirs_bind_combine_filter"
+	items_split_action "$(su_bash_env_conda_channel_exec "runlike ${2}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | grep -v '^/etc/localtime$' | grep -v '^/var/run/docker.sock$' | sort)" "_docker_soft_dirs_bind_combine_filter"
 
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
@@ -4686,7 +4718,7 @@ function docker_change_container_inspect_wrap()
 	# 挂载可能产生等待
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_env_conda_channel_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" ]; then
-		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${TMP_DC_BLC_SETUP_OPN_PORT}" 180 3
+		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" 180 3
 	fi
 
     return $?
@@ -4867,7 +4899,7 @@ function docker_change_container_volume_migrate()
 	}
 
 	# 挂载
-	docker_change_container_inspect_wrap "${TMP_DC_BLC_SETUP_CTN_ID}" "_docker_change_container_volume_migrate_mount"
+	docker_change_container_inspect_wrap "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}" "_docker_change_container_volume_migrate_mount"
 
 	# 移除已被替换的挂载卷，或使用如下直接清理
 	# docker volume ls --quiet --filter 'dangling=true'
@@ -4908,13 +4940,13 @@ function docker_change_container_volume_migrate()
 function docker_change_container_inspect_mounts()
 {
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID="${1}"
-	
+
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_DATA_PATH=$(find ${DOCKER_DATA_DIR} -name ${1}* | grep "/container[s]*/" | awk 'NR==1')
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_DATA_PATH}/hostconfig.json"
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF_PATH})
 
     # local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(docker container inspect ${1} | jq ".[0].HostConfig.Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"$)")
-	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -oP "(?<=^\").*(?=\"[,]*$)" | sort)
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_HOSTCONF}" | jq ".Binds" | awk '$1=$1' | grep -v "/etc/localtime:/etc/localtime" | grep -v "/var/run/docker.sock:/var/run/docker.sock" | grep -oP "(?<=^\").*(?=\"[,]*$)" | sort)
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 
 	if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" ]; then
@@ -5414,7 +5446,8 @@ EOF
 		
 		# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
 		echo "#!/bin/sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-		docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+		# docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+		docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 		grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 		echo "[-]"
@@ -5551,7 +5584,8 @@ EOF
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
 	if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
 		local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
-		if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
+		# if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
+		if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" == "1" ]; then
 			echo "${TMP_SPLITER2}"
 			echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
 			docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
@@ -6029,8 +6063,10 @@ function docker_image_boot_print()
 			echo "${TMP_SPLITER2}"
 			echo_style_text "View the 'update dependency exec'↓:"
 			docker cp ${_TMP_DOCKER_IMG_BOOT_PRINT_NONE_PATH}.init.depend.sh ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}:/tmp
-			docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
-			docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
+			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
+			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
+			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
+			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh" "t"
 			
 			# 停止，后续再启动，预防依赖生效问题
 			echo "${TMP_SPLITER2}"
@@ -6073,15 +6109,18 @@ function docker_image_boot_print()
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'container user'↓:"
-    docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "whoami"
+    # docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "whoami"
+	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "whoami" "t"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'container time'↓:"
-    docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "date"
+    # docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "date"
+	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "date" "t"
 
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'container occupancy rate'↓:"
-    docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
+    # docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
+	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls / | grep -v 'proc' | xargs -I {} du -sh /{}" "t"
 
 	# 展开Dockerfile，用于后续提取信息
 	local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID})
@@ -6089,31 +6128,35 @@ function docker_image_boot_print()
 
 	local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
 	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}" ]; then
-		local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
-		if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" ]; then
-			_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
-		else
-			local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
-			local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS=()
-			function _docker_image_boot_print_chown_workspace()
-			{
-				local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR=$(echo ${1} | cut -d' ' -f2)
-				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" != ".." ]; then
+		if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "echo 1")" == "1" ]; then
+			# local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
+			local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "test -f ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile" "t")
+			if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" ]; then
+				_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
+			else
+				# local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
+				local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls -la /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" "t" | tr -d "\r")
+				local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS=()
+				function _docker_image_boot_print_chown_workspace()
+				{
+					local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR=$(echo ${1} | cut -d' ' -f2)
+					if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" != ".." ]; then
 
-					local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT=""
-					if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
-						local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
-						_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}"
-					else
-						_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
+						local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT=""
+						if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
+							local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
+							_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}"
+						else
+							_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
+						fi
+					
+						_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[${#_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[@]}]="${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT}"
 					fi
-				
-					_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[${#_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[@]}]="${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT}"
-				fi
-			}
+				}
 
-			echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS}" | eval "script_channel_action '_docker_image_boot_print_chown_workspace'"
-			_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS}"
+				echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS}" | eval "script_channel_action '_docker_image_boot_print_chown_workspace'"
+				_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS}"
+			fi
 		fi
 	fi
 	
@@ -6129,7 +6172,8 @@ function docker_image_boot_print()
 
 		function _docker_image_boot_print_chown_mounts()
 		{
-			docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "${1}"
+			# docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "${1}"
+			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "${1}"
 		}
 
 		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" | eval "script_channel_action '_docker_image_boot_print_chown_mounts'"
@@ -6166,10 +6210,11 @@ function docker_image_boot_print()
 	{
 		echo "${TMP_SPLITER2}"
 		echo_style_text "View the 'mount dir(${1})'↓:"
-		docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -lia ${1}"
+		# docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -lia ${1}"
+		docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls -lia ${1}"
 	}
 	
-	local _TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR=($(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | sort | tr -d '\r'))
+	local _TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR=($(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | grep -v '^/var/run/docker.sock$' | sort | tr -d '\r'))
 	items_split_action "${_TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
 	
     # 查看日志（config/image）
@@ -6190,7 +6235,8 @@ function docker_image_boot_print()
 		# 最后更新一次容器内包
 		echo "${TMP_SPLITER2}"
 		echo_style_text "View the 'container update'↓:"
-		docker exec -u root -w /tmp -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
+		# docker exec -u root -w /tmp -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
+		docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
 		
 		# 备份当前容器，仅在第一次 	
 		local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
