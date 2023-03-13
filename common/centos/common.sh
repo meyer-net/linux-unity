@@ -4926,7 +4926,7 @@ function docker_change_container_volume_migrate()
 			docker volume rm ${1}
 		}
 
-		if [ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} ]; then
+		if [[ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} ]]; then
 			echo_style_text "Starting auto [remove unuse] volume(<${1}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
 			docker volume rm ${1}
 		else
