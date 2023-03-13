@@ -4864,12 +4864,15 @@ function docker_change_container_volume_migrate()
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME="$(echo_docker_volume_name "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}")"
+
+		# 非挂载盘的情况
 		if [ -z "$(docker volume ls | grep "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}")" ]; then
 			# 如果容器中盘有相同挂载的目录
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME=$(docker inspect ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID} | jq --arg TYPE 'volume' --arg DEST "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}" '.[0].Mounts[] | select(.Type == $TYPE ) | select(.Destination == $DEST) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
 			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}" ]; then
+				# 此处主要是新装可能产生（提示应该去除，但未去除） 及 备份还原后可能产生卷（已验证）
 				item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}$" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}"
-				echo_style_text "'→' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}])"
+				echo_style_text "'|👉' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}])"
 			fi
 			
 			docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
@@ -4921,11 +4924,11 @@ function docker_change_container_volume_migrate()
 		}
 
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE="N"
-		confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
+		confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
 	}
 
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR[*]}" ]; then
-		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID}]) will <remove>"
+		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]) will <remove>"
 		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
 	fi
 
