@@ -112,7 +112,7 @@ function formal_dc_portainer() {
     echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
-    docker_change_container_volume_migrate "${TMP_DC_PTN_SETUP_CTN_ID}" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}:/${TMP_DC_PTN_SETUP_DATA_MARK}" $([[ -z "${TMP_DC_PTN_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    docker_change_container_volume_migrate "${TMP_DC_PTN_SETUP_CTN_ID}" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}:/${TMP_DC_PTN_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_PTN_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
 
     return $?
 }

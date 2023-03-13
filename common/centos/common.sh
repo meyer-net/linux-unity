@@ -2756,7 +2756,7 @@ function docker_bash_channel_exec()
 		# 尝试进入
 		docker exec -u ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER} -i${3} ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID} sh -c "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}"
 	else
-		echo_style_text "'|👉' Script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
+		echo_style_text "'|👉' Docker channel script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
 	fi
 
 	return $?
@@ -4860,6 +4860,7 @@ function docker_change_container_volume_migrate()
 	
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL=${4:-false}
+	
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR=()
 	function _docker_change_container_volume_migrate_create()
 	{
@@ -4873,13 +4874,8 @@ function docker_change_container_volume_migrate()
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME=$(docker inspect ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID} | jq --arg TYPE 'volume' --arg DEST "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}" '.[0].Mounts[] | select(.Type == $TYPE ) | select(.Destination == $DEST) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
 			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}" ]; then
 				# 此处主要是新装可能产生（提示应该去除，但未去除） 及 备份还原后可能产生卷（已验证）
-				if [ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} ]; then
-					docker volume rm ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}
-				else
-					item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}$" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}"
-				fi
-				
-				echo_style_text "'|👉' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}], auto remove <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL}>)"
+				item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}$" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}"
+				echo_style_text "'|👉' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]"
 			fi
 			
 			docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
@@ -4930,12 +4926,17 @@ function docker_change_container_volume_migrate()
 			docker volume rm ${1}
 		}
 
-		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE="N"
-		confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
+		if [ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} ]; then
+			echo_style_text "Starting auto [remove unuse] volume(<${1}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
+			docker volume rm ${1}
+		else
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE="N"
+			confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
+		fi
 	}
 
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR[*]}" ]; then
-		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]) will <remove>"
+		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]) will <remove>, auto remove <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL}>)"
 		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
 	fi
 
@@ -7066,7 +7067,7 @@ function soft_docker_check_upgrade_action()
 						fi
 
 						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
-						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}' '' '' 'image' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
+						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}' '' '' '' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}'"
 					;;
 					*)
 						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_IMG}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_ACTION_STORE_TYPE}"
