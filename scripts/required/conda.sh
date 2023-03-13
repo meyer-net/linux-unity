@@ -291,17 +291,17 @@ function down_ext_miniconda()
     # 环境预装
     # condabin/conda run -n pyenv36 python --version | grep 'EnvironmentLocationNotFound'
 
-    # su_bash_conda_create_env "pyenv36" "3.6"
-    # # conda activate pyenv36
+    su_bash_conda_create_env "pyenv36" "3.6"
+    # conda activate pyenv36
         
     su_bash_conda_create_env "pyenv37" "3.7"
     # conda activate pyenv37
         
-    # su_bash_conda_create_env "pyenv38" "3.8"
-    # # conda activate pyenv38
+    su_bash_conda_create_env "pyenv38" "3.8"
+    # conda activate pyenv38
         
-    # su_bash_conda_create_env "pyenv39" "3.9"
-    # # conda activate pyenv39
+    su_bash_conda_create_env "pyenv39" "3.9"
+    # conda activate pyenv39
 
 	return $?
 }
