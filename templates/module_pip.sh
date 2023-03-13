@@ -10,10 +10,9 @@
 # 安装标题：$title_name
 # 软件名称：$soft_name
 # 软件端口：$soft_port
+# 软件大写名称：$soft_upper_name
 # 软件大写分组与简称：$soft_upper_short_name
 # 软件安装名称：$setup_name
-# 软件授权用户名称&组：conda/conda
-# 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
 local TMP_$soft_upper_short_name_SETUP_PORT=1$soft_port
 
@@ -22,7 +21,7 @@ local TMP_$soft_upper_short_name_SETUP_PORT=1$soft_port
 # 1-配置环境
 function set_env_$soft_name()
 {
-    echo_style_wrap_text "Starting 'configuare install envs', hold on please"
+    echo_style_wrap_text "Starting 'configuare install envs' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
     cd ${__DIR}
 
@@ -36,19 +35,16 @@ function set_env_$soft_name()
 # 2-安装软件
 function setup_$soft_name()
 {
-    echo_style_wrap_text "Starting 'install', hold on please"
-
-	# local TMP_$soft_upper_short_name_SETUP_SH_NEWER="v0.0.0"
-	# local TMP_$soft_upper_short_name_SETUP_SH_FILE_NEWER="install_$soft_name.sh"
-	# set_github_soft_releases_newer_version "TMP_$soft_upper_short_name_SETUP_SH_NEWER" "${git_repo}"
-	# exec_text_printf "TMP_$soft_upper_short_name_SETUP_SH_NEWER" "https://raw.githubusercontent.com/${git_repo}/%s/install.sh"
-    # while_curl "${TMP_$soft_upper_short_name_SETUP_SH_NEWER} -o ${TMP_$soft_upper_short_name_SETUP_SH_FILE_NEWER} | bash ${TMP_$soft_upper_short_name_SETUP_SH_FILE_NEWER}"
+    echo_style_wrap_text "Starting 'install' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_DIR}"
 	
 	# 开始安装
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+	
+    # # 执行环境内二次安装
+    # su_bash_env_conda_channel_exec "export DISPLAY=:0 && $setup_name install" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 
 	return $?
 }
@@ -60,7 +56,7 @@ function formal_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'formal dirs', hold on please"
+    echo_style_wrap_text "Starting 'formal dirs' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	# 开始标准化	    
     # # 预先初始化一次，启动后才有文件生成
@@ -106,29 +102,29 @@ function conf_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 	
-    echo_style_wrap_text "Starting 'configuration', hold on please"
+    echo_style_wrap_text "Starting 'configuration' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	# 开始配置
 	## 环境变量或软连接 /etc/profile写进函数
-	echo_etc_profile "$soft_upper_name_HOME=${TMP_$soft_upper_short_name_SETUP_DIR}"
-	echo_etc_profile 'PATH=$$soft_upper_name_HOME/bin:$PATH'
-	echo_etc_profile 'export PATH $soft_upper_name_HOME'
-
-    ## 重新加载profile文件
-	source /etc/profile
+	su_bash_conda_echo_profile "$soft_upper_name_HOME=${TMP_$soft_upper_short_name_SETUP_DIR}" "${TMP_$soft_upper_short_name_SETUP_ENV}"
+	su_bash_conda_echo_profile 'PATH=$$soft_upper_name_HOME/bin:$PATH' "${TMP_$soft_upper_short_name_SETUP_ENV}"
+	su_bash_conda_echo_profile 'export PATH $soft_upper_name_HOME' "${TMP_$soft_upper_short_name_SETUP_ENV}"
 
     # ## 修改服务运行用户
     # change_service_user conda conda
 
-	# ## 授权权限，否则无法写入
-	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_DIR}
-	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_WORK_DIR}
-	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}
-	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
-	# chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
+	## 授权权限，否则无法写入
+	chown -R conda:root /etc/$setup_name.conf
+	chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_DIR}
+	chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_WORK_DIR}
+	chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}
+	chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
+	chown -R conda:root ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
+	
+	## 修改配置文件
 
-    # # 中止进程
-    # systemctl stop $soft_name.service
+    # # 调整进程
+    # su_bash_env_conda_channel_exec "$soft_name status"
 	
 	return $?
 }
@@ -140,7 +136,7 @@ function test_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'test', hold on please"
+    echo_style_wrap_text "Starting 'test' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	# 实验部分
 
@@ -156,7 +152,7 @@ function boot_$soft_name()
 	
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
-    echo_style_wrap_text "Starting 'boot check', hold on please"
+    echo_style_wrap_text "Starting 'boot check' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 	
 	# 配置服务
 	## 启动配置加载
@@ -185,35 +181,37 @@ function boot_$soft_name()
 # WantedBy=multi-user.target
 # EOF
 
-    ## 设置系统管理，开机启动
-    echo_style_text "View the 'systemctl info'↓:"
-    chkconfig $setup_name on
-	systemctl enable $setup_name.service
-	systemctl list-unit-files | grep $setup_name
+    # ## 设置系统管理，开机启动
+    # echo_style_text "View the 'systemctl info'↓:"
+    # chkconfig $setup_name on
+	# systemctl enable $setup_name.service
+	# systemctl list-unit-files | grep $setup_name
 	
-	# 启动及状态检测
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'service status'↓:"
-    systemctl start $setup_name.service
+	# # 启动及状态检测
+    # echo "${TMP_SPLITER2}"
+    # echo_style_text "View the 'service status'↓:"
+    # systemctl start $setup_name.service
 
-	exec_sleep 3 "Initing <$setup_name>, hold on please"
+	# exec_sleep 3 "Initing <$setup_name> in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 	
-    echo "[-]">> logs/boot.log
-	nohup systemctl status $setup_name.service >> logs/boot.log 2>&1 &
-    cat logs/boot.log
+    # echo "[-]">> logs/boot.log
+	# systemctl status $setup_name.service >> logs/boot.log
+    # cat logs/boot.log
 
     # echo "${TMP_SPLITER3}"
     # cat /var/log/$setup_name/$setup_name.log
 	# echo "${TMP_SPLITER3}"
 	# journalctl -u $setup_name --no-pager | less
 	
+    # 打印版本
     echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'version'↓:"
-    su_bash_env_conda_channel_exec "$setup_name -v"
+    su_bash_env_conda_channel_exec "$setup_name -v" "${TMP_$soft_upper_short_name_SETUP_ENV}"
+    # su_bash_env_conda_channel_exec "$setup_name -V" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'info'↓:"
-    su_bash_env_conda_channel_exec "$setup_name info"
+    echo_style_text "View the 'help'↓:"
+    su_bash_env_conda_channel_exec "$setup_name -h" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 
 	## 等待执行完毕 产生端口
     echo_style_text "View the 'booting port'↓:"
@@ -243,7 +241,7 @@ function down_ext_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'download exts', hold on please"
+    echo_style_wrap_text "Starting 'download exts' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	return $?
 }
@@ -253,7 +251,7 @@ function setup_ext_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'install exts', hold on please"
+    echo_style_wrap_text "Starting 'install exts' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	return $?
 }
@@ -265,7 +263,7 @@ function reconf_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 	
-    echo_style_wrap_text "Starting 'reconf', hold on please"
+    echo_style_wrap_text "Starting 'reconf' in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 
 	return $?
 }
@@ -329,8 +327,8 @@ function check_setup_$soft_name()
 	# local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
     # path_not_exists_action "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "exec_step_$soft_name" "$title_name was installed"
 
-    # soft_cmd_check_upgrade_action "$setup_name" "exec_step_$soft_name" "rpm update $setup_name"
-	soft_rpm_check_action "$setup_name" "exec_step_$soft_name" "$title_name was installed"
+    # soft_cmd_check_upgrade_action "$setup_name" "exec_step_$soft_name"
+	soft_setup_conda_pip "$setup_name" "exec_step_$soft_name"
 
 	return $?
 }

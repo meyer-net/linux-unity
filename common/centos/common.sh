@@ -2669,7 +2669,7 @@ function su_bash_nvm_channel_exec()
 # 参数1：执行脚本
 # 示例：
 #   su_bash_conda_channel_exec 'condabin/conda info'
-#	su_bash_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
+#	su_bash_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 function su_bash_conda_channel_exec()
 {
 	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_SCRIPTS=${1:-"echo"}
@@ -2689,7 +2689,7 @@ function su_bash_conda_channel_exec()
 # 参数1：执行脚本
 # 参数2：pyenv环境，默认${PY_ENV}
 # 示例：
-#	su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
+#	su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_sync_fetch_docker_hub_vers.py 'labring/sealos'"
 function su_bash_env_conda_channel_exec()
 {
     local _TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV=${2:-"${PY_ENV}"}
@@ -2698,7 +2698,6 @@ function su_bash_env_conda_channel_exec()
 
 	return $?
 }
-
 
 # 通过指定用户，指定conda环境下，通过管道执行脚本
 # 参数1：pyenv环境名称
@@ -2710,7 +2709,23 @@ function su_bash_conda_create_env()
     echo_style_wrap_text "Starting 'create' <conda> env(<${1}> [python==${2}]), hold on please"
 	local _TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT="conda info -e | cut -d' ' -f1 | grep -v '#' | grep -v 'base' | grep -v '^$' | egrep '${1}'"
 	su_bash_conda_channel_exec "(${_TMP_SU_BASH_CONDA_CREATE_ENV_BASIC_SCRIPT}) || conda create -n ${1} -y python=${2}"
-	su_bash_env_conda_channel_exec "pip install --upgrade pip && pip install --upgrade setuptools" "${1}"
+	su_bash_env_conda_channel_exec "pip install --upgrade pip && pip install --upgrade setuptools && conda deactivate" "${1}"
+	
+	return $?
+}
+
+# 通过指定用户，指定conda环境下，通过管道执行脚本
+# 参数1：需要输出的内容
+# 参数2：内容匹配正则
+# 参数1：pyenv环境名称
+# 示例：
+#      su_bash_conda_echo_profile "export DISPLAY=:0" 
+#      su_bash_conda_echo_profile "export DISPLAY=:0" "^export DISPLAY:=0$"
+#      su_bash_conda_echo_profile "export DISPLAY=:0" "" 'pyenv37'
+function su_bash_conda_echo_profile()
+{
+	local _TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT="egrep '${2:-^${1}$}' /home/conda/.bashrc >& /dev/null"
+	su_bash_env_conda_channel_exec "(${_TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT}) || echo '${1}' >> /home/conda/.bashrc && conda deactivate" "${3}"
 	
 	return $?
 }
@@ -2753,20 +2768,49 @@ function script_channel_action()
 # 系统操作类
 ##########################################################################################################
 # 获取IP
+function echo_iplocal () {
+	#  | grep noprefixroute，qcloud无此属性
+	local _TMP_ECHO_IP_LOCAL_IP=$(ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | grep -v "br-" | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
+	[ -z ${_TMP_ECHO_IP_LOCAL_IP} ] && _TMP_ECHO_IP_LOCAL_IP=$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1)
+
+	echo "${_TMP_ECHO_IP_LOCAL_IP}"
+	
+	return $?
+}
+
+# 获取IP范围，默认当前段
+function echo_iplocal_area () {
+	
+	# echo_iplocal | awk -F'.' '{print $1"."$2"."$3".0"}'
+	local _TMP_ECHO_IPLOCAL_AREA_IP=$(echo_iplocal)
+	echo "${_TMP_ECHO_IPLOCAL_AREA_IP%.*}.0"
+
+	return $?
+}
+
+# 获取IP
 # 参数1：需要设置的变量名
-function get_iplocal () {
-	function _get_iplocal()
+# 参数2：绑定后执行的函数
+function bind_iplocal_action () {
+	function _bind_iplocal_action()
 	{
 		#  | grep noprefixroute，qcloud无此属性
-		local _TMP_GET_IP_LOCAL_IP=$(ip addr | grep inet | grep brd | grep -v inet6 | grep -v 127 | grep -v docker | grep -v "br-" | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
-		[ -z ${_TMP_GET_IP_LOCAL_IP} ] && _TMP_GET_IP_LOCAL_IP=$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1)
+		local _TMP_BIND_IPLOCAL_ACTION_IP=$(echo_iplocal)
+		if [ -n "${_TMP_BIND_IPLOCAL_ACTION_IP}" ]; then
+			eval ${1}='${_TMP_BIND_IPLOCAL_ACTION_IP}'
 
-		if [ -n "${_TMP_GET_IP_LOCAL_IP}" ]; then
-			eval ${1}='${_TMP_GET_IP_LOCAL_IP}'
+			script_check_action "${2}" "${_TMP_BIND_IPLOCAL_ACTION_IP}"
 		fi
 	}
 
-	discern_exchange_var_action "${1}" "_get_iplocal" "${@}"
+	discern_exchange_var_action "${1}" "_bind_iplocal_action" "${@}"
+	return $?
+}
+
+# 获取IP
+# 参数1：需要设置的变量名
+function bind_iplocal () {
+	bind_iplocal_action "${1}"
 	return $?
 }
 
@@ -2818,7 +2862,7 @@ function create_user_if_not_exists()
 		fi
 
 		# 正在创建信箱文件: 文件已存在
-		if [ ! -f /var/spool/mail/${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ]; then
+		if [ -f /var/spool/mail/${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ]; then
 			# -c：加上备注文字，备注文字保存在passwd的备注栏中。 
 			# -d：指定用户登入时的启始目录。
 			# -D：变更预设值。
@@ -2832,17 +2876,20 @@ function create_user_if_not_exists()
 			# -r：建立系统账号。
 			# -s：指定用户登入后所使用的shell。
 			# -u：指定用户ID号。
-
-			useradd -g ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT}
+			rm -rf /var/spool/mail/${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}
 		fi
 
-		# docker用户及组的情况???授权待优化
-		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}" == "docker" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
+		# 如果用户组是root或者docker的情况，指定用户的UID
+		if [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "root" ] || [ "${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP}" == "docker" ]; then
 			# 以当前用户修改docker、conda对应的用户UID
-			local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
+			# local _TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID=$(id -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER})
 			local _TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID=$(id -u $(whoami))
-			sed -i "s@^\(${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:x\):${_TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID}@\1:${_TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID}@g" /etc/passwd
+			# sed -i "s@^\(${_TMP_CREATE_USER_IF_NOT_EXISTS_USER}:x\):${_TMP_CREATE_USER_IF_NOT_EXISTS_USER_ID}@\1:${_TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID}@g" /etc/passwd
+			_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT="${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT} -o -u ${_TMP_CREATE_USER_IF_NOT_EXISTS_CURRENT_USER_ID}"	
 		fi
+
+		useradd -g ${_TMP_CREATE_USER_IF_NOT_EXISTS_GROUP} ${_TMP_CREATE_USER_IF_NOT_EXISTS_USER} ${_TMP_CREATE_USER_IF_NOT_EXISTS_COMMAND_EXT}
+
 	else
 		# 1、设置某个用户所在组
 		# 	 usermod -g 用户组 用户名
@@ -3325,36 +3372,21 @@ function echo_etc_sec_limits()
 # 网络操作类
 ##########################################################################################################
 # 获取IPv4
-# 参数1：需要设置的变量名
-function get_ipv4 () {
-	function _get_ipv4()
-	{
-		#wget -qO- -t1 -T2 ipv4.icanhazip.com
-		local _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipv4.icanhazip.com | awk 'NR==1')
-		[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipinfo.io/ip | awk 'NR==1')
-		[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ip.sb | awk 'NR==1')
+function echo_ipv4 () {
+	#wget -qO- -t1 -T2 ipv4.icanhazip.com
+	local _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipv4.icanhazip.com | awk 'NR==1')
+	[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ipinfo.io/ip | awk 'NR==1')
+	[ -z ${_TMP_GET_IPV4_LOCAL_IPV4} ] && _TMP_GET_IPV4_LOCAL_IPV4=$(curl -s -A Mozilla ip.sb | awk 'NR==1')
 
-		if [ -n "${_TMP_GET_IPV4_LOCAL_IPV4}" ]; then
-			eval ${1}='${_TMP_GET_IPV4_LOCAL_IPV4}'
-		fi
-	}
+	echo "${_TMP_GET_IPV4_LOCAL_IPV4}"
 
-	discern_exchange_var_action "${1}" "_get_ipv4" "${@}"
 	return $?
 }
 
 # 获取IPv6
-# 参数1：需要设置的变量名
-function get_ipv6 () {
-	function _get_ipv6() {
-		local _TMP_GET_IPV6_IP=$(curl -s -A Mozilla ipv6.icanhazip.com | awk 'NR==1')
+function echo_ipv6 () {
+	curl -s -A Mozilla ipv6.icanhazip.com | awk 'NR==1'
 
-		if [ -n "${_TMP_GET_IPV6_IP}" ]; then
-			eval ${1}='${_TMP_GET_IPV6_IP}'
-		fi
-	}
-
-	discern_exchange_var_action "${1}" "_get_ipv6" "${@}"
 	return $?
 }
 
@@ -3391,10 +3423,6 @@ function get_country_code () {
 # 参数4：解包后执行脚本
 function wget_unpack_dist() 
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_WGET_UNPACK_DIST_PWD=$(pwd)
 	local _TMP_WGET_UNPACK_DIST_URL=${1}
 	local _TMP_WGET_UNPACK_DIST_SOURCE=${2}
@@ -3440,10 +3468,6 @@ function wget_unpack_dist()
 # 参数2：软件下载后执行函数名称
 function while_wget()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_WHILE_WGET_URL=${1}
 	local _TMP_WHILE_WGET_SCRIPT=${2}
 	local _TMP_WHILE_WGET_CURRENT_DIR=$(pwd)
@@ -3516,10 +3540,6 @@ function while_wget()
 # 参数2：软件下载后执行函数名称
 function while_curl()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_WHILE_CURL_URL=${1}
 	local _TMP_WHILE_CURL_SCRIPT=${2}
 	local _TMP_WHILE_CURL_CURRENT_DIR=$(pwd)
@@ -3706,10 +3726,10 @@ function fetch_url_selector_attr()
 
 	function _fetch_url_selector_attr_by_pw()
 	{
-		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_url_selector_attr.py '${_TMP_FETCH_URL_SELECTOR_ATTR_URL}' '${_TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR}' '${_TMP_FETCH_URL_SELECTOR_ATTR_ATTR}'"
+		su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_async_fetch_url_selector_attr.py '${_TMP_FETCH_URL_SELECTOR_ATTR_URL}' '${_TMP_FETCH_URL_SELECTOR_ATTR_SELECTOR}' '${_TMP_FETCH_URL_SELECTOR_ATTR_ATTR}'"
 	}
 	
-	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_url_selector_attr.py" "_fetch_url_selector_attr_by_pw" "not implement"
+	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_url_selector_attr.py" "_fetch_url_selector_attr_by_pw" "not implement"
 }
 
 # # 在yaml-list中执行
@@ -3826,10 +3846,6 @@ function script_check_action() {
 # 例子：TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function while_exec()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_WHILE_EXEC_SCRIPT=${1}
 	local _TMP_WHILE_EXEC_CHECK_SCRIPT=${2}
 	local _TMP_WHILE_EXEC_FAILURE_SCRIPT=${3}
@@ -4055,7 +4071,8 @@ function exec_repeat_funcs()
 # 参数1：需要针对存放的变量名
 # 参数2：循环函数数组
 # 参数3：函数入参(不定长)
-#exec_funcs_repeat_until_output "TMP_EXEC_FUNCS_REPS_UNTIL_OUTPUT_RESULT" "funa,funb" "_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNCa" "paramc" ...
+# 示例：
+#       exec_funcs_repeat_until_output "TMP_EXEC_FUNCS_REPS_UNTIL_OUTPUT_RESULT" "funa,funb" "_TMP_EXEC_FUNCS_REPEAT_UNTIL_OUTPUT_CURRENT_FUNCa" "paramc" ...
 function exec_funcs_repeat_until_output()
 {
 	if [ $? -ne 0 ]; then
@@ -4196,15 +4213,16 @@ function soft_trail_clear()
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[3]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[4]="/etc/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}.conf"
 	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[5]="/home/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
-	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[6]="/root/.${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[7]="/run/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[8]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[9]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[10]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[11]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[12]="${LOGS_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[13]="${DATA_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[14]="${ATT_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
+	_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[15]="${SETUP_DIR}/${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME}_apps"
 
 	# docker的情况
 	local _TMP_SOFT_TRAIL_CLEAR_DOCKER_CTN_IDS=()
@@ -4243,7 +4261,7 @@ function soft_trail_clear()
 	dirs_trail_clear "${1}" "${_TMP_SOFT_TRAIL_CLEAR_SOFT_SOURCE_DIR_ARR[*]}" "_soft_trail_clear_remove_all" "${2}"
 	
 	# 删除特定用户
-	(id ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null) && userdel -r ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null
+	(id ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null) && userdel -rf ${_TMP_SOFT_TRAIL_CLEAR_SOFT_NAME} &> /dev/null
 
 	systemctl daemon-reload
 
@@ -4568,7 +4586,7 @@ function soft_path_restore_confirm_create()
 #	   soft_path_restore_confirm_copy "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_copy() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1}" ""
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && [[ -a ${2} ]] && cp -Rp ${2} ${1}" ""
 	return $?
 }
 
@@ -4579,7 +4597,7 @@ function soft_path_restore_confirm_copy()
 #	   soft_path_restore_confirm_move "/mountdisk/data/docker_empty" "/var/lib/docker" 
 function soft_path_restore_confirm_move() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1} && rm -rf ${2} && ln -sf ${1} ${2}" "rm -rf ${2} && ln -sf ${1} ${2}"
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && ([[ -a ${2} ]] && (cp -Rp ${2} ${1} && rm -rf ${2}) || mkdir -pv $(dirname ${2}) ${1}) && ln -sf ${1} ${2}" "rm -rf ${2} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -4590,7 +4608,7 @@ function soft_path_restore_confirm_move()
 #	   soft_path_restore_confirm_swap "/mountdisk/data/docker" "/var/lib/docker" 
 function soft_path_restore_confirm_swap() 
 {
-	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}"
+	soft_path_restore_confirm_action "${1}" "" "mkdir -pv $(dirname ${1}) && ([[ -a ${2} ]] && (cp -Rp ${2} ${1} && mv ${2} ${1}_clean_${LOCAL_TIMESTAMP}) || mkdir -pv $(dirname ${2}) ${1}) && ln -sf ${1} ${2}" "mv ${2} ${1}_clean_${LOCAL_TIMESTAMP} && ln -sf ${1} ${2}"
 	return $?
 }
 
@@ -4607,10 +4625,10 @@ function fetch_docker_hub_release_vers()
 
 	function _fetch_docker_hub_release_vers_by_pw()
 	{
-		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
+		su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
 	}
 	
-	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
+	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
 }
 
 # 获取docker-hub仓库发布版本的数字标记
@@ -4625,10 +4643,10 @@ function fetch_docker_hub_release_ver_digests()
 
 	function _fetch_docker_hub_release_ver_digests_by_pw()
 	{
-		su_bash_env_conda_channel_exec "cd ${CONDA_PW_SCRIPTS_DIR} && python pw_async_fetch_docker_hub_ver_digests.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO} ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO_VER}"
+		su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_async_fetch_docker_hub_ver_digests.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO} ${_TMP_FETCH_DOCKER_HUB_RELEASE_VER_DIGESTS_REPO_VER}"
 	}
 	
-	path_exists_yn_action "${CONDA_PW_SCRIPTS_DIR}/pw_async_fetch_docker_hub_ver_digests.py" "_fetch_docker_hub_release_ver_digests_by_pw" "not implement"
+	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_docker_hub_ver_digests.py" "_fetch_docker_hub_release_ver_digests_by_pw" "not implement"
 }
 
 # 修改DOCKER容器包裹执行器
@@ -6190,10 +6208,6 @@ function docker_image_boot_print()
 # 参数2：软件安装需调用的函数
 function soft_setup_basic()
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_SOFT_SETUP_BASIC_CURRENT_DIR=$(pwd)
 	local _TMP_SOFT_SETUP_BASIC_PRINT_NAME="${1}"
 	
@@ -6225,10 +6239,6 @@ function soft_setup_basic()
 # 参数5：软件已安装执行函数
 function soft_setup_wget() 
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_SOFT_SETUP_WGET_NAME=${1}
 	local _TMP_SOFT_SETUP_WGET_URL=${2}
 	local _TMP_SOFT_SETUP_WGET_SETUP_FUNC=${3}
@@ -6301,11 +6311,7 @@ function soft_setup_wget()
 # 参数3：软件下载后执行函数/脚本
 # 参数4：软件下载附加参数
 function soft_setup_git() 
-{	
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
+{
 	local _TMP_SOFT_SETUP_GIT_URL=${2}
 	local _TMP_SOFT_SETUP_GIT_SETUP_SCRIPTS=${3}
 	local _TMP_SOFT_SETUP_GIT_URL_ARGS=${4}
@@ -6340,9 +6346,6 @@ function soft_setup_git()
 # # 参数3：pip版本，默认2
 # function soft_setup_pip() 
 # {
-# 	if [ $? -ne 0 ]; then
-# 		return $?
-# 	fi
 
 # 	local _TMP_SOFT_SETUP_PIP_NAME=$(echo "${1}" | awk -F',' '{print $1}')
 # 	local _TMP_SOFT_SETUP_PIP_SETUP_FUNC=${2}
@@ -6390,10 +6393,6 @@ function soft_setup_git()
 #	   soft_setup_conda_channel_pip "playwright" "export DISPLAY=:0 && playwright install"
 function soft_setup_conda_channel_pip() 
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS=${2:-"echo"}
 	local _TMP_SOFT_SETUP_CONDA_PIP_ENV=${4:-"${PY_ENV}"}
 	
@@ -6404,9 +6403,9 @@ function soft_setup_conda_channel_pip()
 
 	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
 	
-	echo_style_wrap_text "Checking <conda> pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+	echo_style_wrap_text "Checking 'conda' pip package <${1}> from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	if [ -z "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}" ]; then
-		echo_style_text "Starting <install> the <conda> pip package '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
+		echo_style_text "Starting 'install' the 'conda' pip package <${1}> to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 		echo ${TMP_SPLITER2}
 		su_bash_env_conda_channel_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME} && ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
 		echo ${TMP_SPLITER2}
@@ -6434,10 +6433,6 @@ function soft_setup_conda_channel_pip()
 #	   soft_setup_conda_pip "playwright" "export DISPLAY=:0 && playwright install"
 function soft_setup_conda_pip() 
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS=${2:-"echo"}
 	local _TMP_SOFT_SETUP_CONDA_PIP_ENV=${4:-"${PY_ENV}"}
 	
@@ -6478,10 +6473,6 @@ function soft_setup_conda_pip()
 # 参数3：指定node版本（node有兼容性问题）
 function soft_setup_npm() 
 {
-	if [ $? -ne 0 ]; then
-		return $?
-	fi
-
 	local _TMP_SOFT_SETUP_NPM_NAME=$(echo "${1}" | awk -F',' '{print $1}')
 	local _TMP_SOFT_SETUP_NPM_PATH=$(echo "${1}" | awk -F',' '{print $NF}')
 	local _TMP_SOFT_SETUP_NPM_FUNC=${2}

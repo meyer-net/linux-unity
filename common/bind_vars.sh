@@ -20,16 +20,12 @@ SYS_SETUP_COMMAND="yum"
 # NET_HOST=$(ping -c 1 -t 1 enginx.net | grep 'PING' | awk '{print $3}' | sed 's/[(,)]//g')
 
 # NR==1 第一行
-LOCAL_IPV4="0.0.0.0"
-get_ipv4 "LOCAL_IPV4"
-
-LOCAL_IPV6="0:0:0:0:0:0:0:0"
-get_ipv6 "LOCAL_IPV6"
+LOCAL_IPV4="$(echo_ipv4)"
+LOCAL_IPV6="$(echo_ipv6)"
 
 # ip addr | grep "[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/[0-9]*.*brd" | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}'
-LOCAL_HOST="0.0.0.0"
-get_iplocal "LOCAL_HOST"
-
+LOCAL_HOST="$(echo_iplocal)"
+LOCAL_HOST_AREA="$(echo_iplocal_area)"
 LOCAL_ID=$(echo \${LOCAL_HOST##*.})
 
 SYS_IP_CONNECT=$(echo ${LOCAL_HOST} | sed 's@\.@-@g' | xargs -I {} echo "{}")

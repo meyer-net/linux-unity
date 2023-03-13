@@ -20,7 +20,7 @@ local TMP_SUP_SETUP_HTTP_PORT=19001
 # 1-配置环境
 function set_env_supervisor()
 {
-    echo_style_wrap_text "Starting 'configuare install envs', hold on please"
+    echo_style_wrap_text "Starting 'configuare install envs' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
     cd ${__DIR}
 
@@ -34,7 +34,7 @@ function set_env_supervisor()
 # 2-安装软件
 function setup_supervisor()
 {
-    echo_style_wrap_text "Starting 'install', hold on please"
+    echo_style_wrap_text "Starting 'install' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
     # 创建安装目录(纯属为了规范)
     soft_path_restore_confirm_create "${TMP_SUP_SETUP_DIR}"
@@ -60,8 +60,6 @@ function setup_supervisor()
 
 set -a
 
-#conda activate ${TMP_SUP_SETUP_ENV}
-
 PREFIX=${TMP_SUP_SETUP_MCD_ENVS_DIR}
 
 SUPERVISORD=\$PREFIX/bin/supervisord
@@ -70,13 +68,13 @@ SUPERVISORCTL=\$PREFIX/bin/supervisorctl
 PIDFILE=/tmp/supervisord.pid
 LOCKFILE=/tmp/supervisord.lock
 
-OPTIONS="-c /etc/supervisor.conf"
+OPTIONS="-c ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf"
 
 # unset this variable if you don't care to wait for child processes to shutdown before removing the \$LOCKFILE-lock
 WAIT_FOR_SUBPROCESSES=yes
 
 # remove this if you manage number of open files in some other fashion
-ulimit -n 96000
+# ulimit -n 96000
 
 RETVAL=0
 
@@ -214,7 +212,7 @@ function formal_supervisor()
 {
 	cd ${TMP_SUP_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'formal dirs', hold on please"
+    echo_style_wrap_text "Starting 'formal dirs' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	# 开始标准化（还原 & 创建 & 迁移）
 	## 日志
@@ -223,8 +221,9 @@ function formal_supervisor()
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_DATA_DIR}"
 	## ETC - ②-N：不存在配置文件：
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_ETC_DIR}"
-	path_not_exists_action "/etc/supervisor.conf" "su_bash_env_conda_channel_exec 'echo_supervisord_conf > /etc/supervisor.conf'"
 
+	path_not_exists_action "${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf" "su_bash_env_conda_channel_exec 'cd && echo_supervisord_conf > ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf' '${TMP_SUP_SETUP_ENV}'"
+	
 	# 创建链接规则
 	## 工作
 	path_not_exists_link "${TMP_SUP_SETUP_WORK_DIR}" "" "${TMP_SUP_SETUP_LNK_WORK_DIR}"
@@ -234,7 +233,6 @@ function formal_supervisor()
 	path_not_exists_link "${TMP_SUP_SETUP_DATA_DIR}" "" "${TMP_SUP_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
     path_not_exists_link "${TMP_SUP_SETUP_ETC_DIR}" "" "${TMP_SUP_SETUP_LNK_ETC_DIR}"
-    path_not_exists_link "${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf" "" "/etc/supervisor.conf"
     # 安装不产生规格下的bin目录，所以手动还原创建
 	path_not_exists_create "${TMP_SUP_SETUP_BIN_DIR}" "" "path_not_exists_link '${TMP_SUP_SETUP_BIN_DIR}/supervisor' '' '${TMP_SUP_SETUP_MCD_ENVS_DIR}/bin/supervisor'"
 	path_not_exists_create "${TMP_SUP_SETUP_LNK_ETC_DIR}/boots"
@@ -251,16 +249,20 @@ function conf_supervisor()
 {
 	cd ${TMP_SUP_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'configuration', hold on please"
+    echo_style_wrap_text "Starting 'configuration' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	# 开始配置
 	## 环境变量或软连接 /etc/profile写进函数
-	echo_etc_profile "SUPERVISOR_HOME=${TMP_SUP_SETUP_DIR}"
-	echo_etc_profile 'PATH=$SUPERVISOR_HOME/bin:$PATH'
-	echo_etc_profile 'export PATH SUPERVISOR_HOME'
-
-    ## 重新加载profile文件
-	source /etc/profile
+	su_bash_conda_echo_profile "SUPERVISOR_HOME=${TMP_SUP_SETUP_DIR}" "" "${TMP_SUP_SETUP_ENV}"
+	su_bash_conda_echo_profile 'PATH=$SUPERVISOR_HOME/bin:$PATH' "" "${TMP_SUP_SETUP_ENV}"
+	su_bash_conda_echo_profile 'export PATH SUPERVISOR_HOME' "" "${TMP_SUP_SETUP_ENV}"
+	
+	## 修改配置文件
+    sed -i "s@^[;]*\[inet_http_server\]@\[inet_http_server\]@g" etc/supervisor.conf
+    sed -i "s@^[;]*port=.*@port=${LOCAL_HOST}:${TMP_SUP_SETUP_HTTP_PORT}@g" etc/supervisor.conf
+    sed -i "s@^[;]*logfile=.*@logfile=${TMP_SUP_SETUP_LNK_LOGS_DIR}/supervisor.log@g" etc/supervisor.conf
+    sed -i "s@^[;]*\[include\]@\[include\]@g" etc/supervisor.conf
+    sed -i "s@^[;]*files = .*@files = ${TMP_SUP_SETUP_LNK_ETC_DIR}/boots/*.conf@g" etc/supervisor.conf
 
 	## 授权权限，否则无法写入
 	chown -R conda:root ${TMP_SUP_SETUP_DIR}
@@ -269,14 +271,8 @@ function conf_supervisor()
 	chown -R conda:root ${TMP_SUP_SETUP_LNK_DATA_DIR}
 	chown -R conda:root ${TMP_SUP_SETUP_LNK_ETC_DIR}
 	
-	## 修改配置文件
-    sed -i "s@^[;]*port=.*@port=127.0.0.1:${TMP_SUP_SETUP_HTTP_PORT}@g" etc/supervisor.conf
-    sed -i "s@^[;]*logfile=.*@logfile=${TMP_SUP_SETUP_LNK_LOGS_DIR}/supervisor.log@g" etc/supervisor.conf
-    sed -i "s@^[;]*\[include\]@\[include\]@g" etc/supervisor.conf
-    sed -i "s@^[;]*files = .*@files = ${TMP_SUP_SETUP_LNK_ETC_DIR}/boots/*.conf@g" etc/supervisor.conf
-	
     ## 目录调整完重启进程(目录调整是否有效的验证点)
-    su_bash_env_conda_channel_exec "supervisor status"
+    su_bash_env_conda_channel_exec "supervisor status" "${TMP_SUP_SETUP_ENV}"
 
 	return $?
 }
@@ -288,7 +284,7 @@ function test_supervisor()
 {
 	cd ${TMP_SUP_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'test', hold on please"
+    echo_style_wrap_text "Starting 'test' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	# 实验部分
 
@@ -296,7 +292,6 @@ function test_supervisor()
 }
 
 ##########################################################################################################
-
 # 6-启动软件
 function boot_supervisor()
 {
@@ -304,7 +299,7 @@ function boot_supervisor()
 	
 	# 验证安装/启动
     # 当前启动命令 && 等待启动
-    echo_style_wrap_text "Starting 'boot check', hold on please"
+    echo_style_wrap_text "Starting 'boot check' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	# 配置服务
 	## 启动配置加载
@@ -351,16 +346,20 @@ EOF
     echo_style_text "View the 'service status'↓:"
     systemctl start supervisor.service
 
-    exec_sleep 3 "Initing <supervisor>, hold on please"
+    exec_sleep 3 "Initing <supervisor> in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 	
     echo "[-]">> logs/boot.log
-	nohup systemctl status supervisor.service >> logs/boot.log 2>&1 &
+	systemctl status supervisor.service >> logs/boot.log
     cat logs/boot.log
 	
     echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'version'↓:"
-    su_bash_env_conda_channel_exec "supervisord -v"
-
+    su_bash_env_conda_channel_exec "supervisord -v" "${TMP_SUP_SETUP_ENV}"
+	
+	echo "${TMP_SPLITER2}"	
+    echo_style_text "View the 'help'↓:"
+    su_bash_env_conda_channel_exec "supervisord -h" "${TMP_SUP_SETUP_ENV}"
+	
 	## 等待执行完毕 产生端口
     echo_style_text "View the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <supervisor> to port '${TMP_SUP_SETUP_HTTP_PORT}', wait for a moment" "lsof -i:${TMP_SUP_SETUP_HTTP_PORT}" 180 3
@@ -389,7 +388,7 @@ function down_ext_supervisor()
 {
     cd ${TMP_SUP_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'download exts', hold on please"
+    echo_style_wrap_text "Starting 'download exts' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	return $?
 }
@@ -399,7 +398,7 @@ function setup_ext_supervisor()
 {
     cd ${TMP_SUP_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'install exts', hold on please"
+    echo_style_wrap_text "Starting 'install exts' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	return $?
 }
@@ -411,7 +410,7 @@ function reconf_supervisor()
 {
     cd ${TMP_SUP_SETUP_DIR}
 	
-    echo_style_wrap_text "Starting 'reconf', hold on please"
+    echo_style_wrap_text "Starting 'reconf' in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
 
 	return $?
 }

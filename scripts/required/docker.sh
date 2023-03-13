@@ -204,7 +204,7 @@ function formal_docker()
 	# 创建链接规则
 	## 日志
     path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
-	# ## 数据
+	## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
     path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
@@ -236,15 +236,15 @@ EOF
     
     ## 授权权限，否则无法写入
     ### 默认的安装有docker组，无docker用户
-    create_user_if_not_exists docker docker true
+    create_user_if_not_exists root docker true
 
     ## 修改服务运行用户
-    change_service_user docker docker
+    change_service_user root docker
     
-	chown -R docker:docker ${TMP_DOCKER_SETUP_DIR}
-    chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
-    chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
-	chown -R docker:docker ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
+	chown -R docker:root ${TMP_DOCKER_SETUP_DIR}
+    chown -R docker:root ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
+    chown -R docker:root ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
+	chown -R docker:root ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
 
     # 启动服务
     systemctl start docker.service
@@ -416,47 +416,11 @@ function setup_ext_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install' <docker> exts, hold on please"
-
-    # # 安装测试镜像
-    # soft_docker_check_upgrade_setup "browserless/chrome" "exec_step_browserless_chrome"
-
-	# # 启动后执行脚本
-    # # 参数1：启动后的进程ID
-    # # 参数2：最终启动端口
-    # # 参数3：最终启动命令
-    # # 参数4：最终启动参数
-    # function boot_check_browserless_chrome()
-    # { 
-    #     local TMP_SETUP_DOCKER_BC_PS_ID=${1}
-    #     local TMP_SETUP_DOCKER_BC_PS_PORT=${2}
-        
-    #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'container folder /usr/src/app'↓:"
-    #     docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "ls -lia /usr/src/app/"
-
-    #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'container visit'↓:"
-    #     curl -s http://localhost:${TMP_SETUP_DOCKER_BC_PS_PORT}
-    #     # docker stop ${TMP_SETUP_DOCKER_BC_PS_ID}
-
-    #     # # 删除images
-    #     # docker rmi browserless/chrome
-        
-    #     # 删除容器
-    #     # docker rm -f ${TMP_SETUP_DOCKER_BC_PS_ID}
-    #     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} /bin/sh
-    #     # docker exec -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
-    #     # :
-    #     # docker exec -u root -it ${TMP_SETUP_DOCKER_BC_PS_ID} sh -c "whoami"
-
-    #     # 结束
-    # }
-
-    # local TMP_SETUP_DOCKER_SNAP_BC_ARGS="-p ${TMP_SETUP_DOCKER_BC_PS_PORT}:3000 -e PREBOOT_CHROME=true -e CONNECTION_TIMEOUT=-1 -e MAX_CONCURRENT_SESSIONS=10 -e WORKSPACE_DELETE_EXPIRED=true -e WORKSPACE_EXPIRE_DAYS=7 -v /etc/localtime:/etc/localtime"
-    # docker_image_boot_print "browserless/chrome" "" "" "${TMP_SETUP_DOCKER_SNAP_BC_ARGS}" "" "boot_check_browserless_chrome"
     
-    local __TMP_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
-    source ${__TMP_DIR}/docker/*.sh
+    local TMP_DOCKER_SETUP_REQUIRED_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
+    local TMP_DOCKER_SETUP_REQUIRED_SHS="$(cd ${TMP_DOCKER_SETUP_REQUIRED_DIR} && ls docker/*.sh)"
+    items_split_action "TMP_DOCKER_SETUP_REQUIRED_SHS" "cd ${TMP_DOCKER_SETUP_REQUIRED_DIR} && source %s"
+
     # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
     # https://github.com/containrrr/watchtower 
 
