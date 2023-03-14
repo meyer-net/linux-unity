@@ -370,5 +370,5 @@ function check_setup_dc_browserless_chrome() {
 
 ##########################################################################################################
 
-#安装主体
+# 安装主体
 soft_setup_basic "browserless/chrome" "check_setup_dc_browserless_chrome"

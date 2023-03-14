@@ -399,5 +399,5 @@ function check_setup_miniconda()
 
 ##########################################################################################################
 
-#安装主体
+# 安装主体
 soft_setup_basic "MiniConda" "check_setup_miniconda"

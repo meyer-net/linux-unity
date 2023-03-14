@@ -69,7 +69,7 @@ function formal_dc_$setup_name() {
     ## 还原 & 创建 & 迁移
     ### 日志
     #### /mountdisk/logs/docker_apps/$setup_name/imgver111111
-    # function _formal_dc_$setup_name_cp_logs() {
+    function _formal_dc_$setup_name_cp_logs() {
     #     echo "${TMP_SPLITER2}"
     #     echo_style_text "View the 'logs copy'↓:"
 
@@ -81,7 +81,7 @@ function formal_dc_$setup_name() {
     #
     #     # 查看列表
     #     ls -lia ${1}
-    # }
+    }
     soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}" "_formal_dc_$setup_name_cp_logs"
 
     ### 数据
@@ -200,9 +200,10 @@ function conf_dc_$setup_name() {
 # 5-测试软件
 function test_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
+    
+    echo_style_wrap_text "Starting 'test', hold on please"
 
     # 实验部分
-    echo_style_wrap_text "Starting 'test', hold on please"
 
     return $?
 }
@@ -287,21 +288,21 @@ function exec_step_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_CMD="${4}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS="${5}"
 
-    # 统一编排到的路径
+    ## 统一编排到的路径
     local TMP_DC_$soft_upper_short_name_CURRENT_DIR=$(pwd)
     local TMP_DC_$soft_upper_short_name_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
 
-    # 统一标记名称(存在于安装目录的真实名称)
+    ## 统一标记名称(存在于安装目录的真实名称)
     local TMP_DC_$soft_upper_short_name_SETUP_WORK_MARK="work"
     local TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK="logs"
     local TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK="data"
     local TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK="etc"
     local TMP_DC_$soft_upper_short_name_SETUP_APP_MARK="chrome"
 
-    # 安装后的真实路径（此处依据实际路径名称修改）
+    ## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_WORK_MARK}
     local TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}
     local TMP_DC_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}
@@ -351,14 +352,14 @@ function boot_build_dc_$setup_name() {
 
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}], hold on please"
     
-    # 标准启动参数
+    ## 标准启动参数
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime --volume=/var/run/docker.sock:/var/run/docker.sock"
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
-    # 参数覆盖, 镜像参数覆盖启动设定
+    ## 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "Starting 'combine container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}] boot args, hold on please"
     echo "${TMP_SPLITER2}"
     echo_style_text "<Container> 'pre' args(${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-"None"})"
@@ -386,5 +387,5 @@ function check_setup_dc_$setup_name() {
 
 ##########################################################################################################
 
-#安装主体
+# 安装主体
 soft_setup_basic "$image_name" "check_setup_dc_$setup_name"

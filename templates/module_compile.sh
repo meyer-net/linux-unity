@@ -23,6 +23,8 @@ local TMP_$soft_upper_short_name_SETUP_PORT=1$soft_port
 # 1-配置环境
 function set_env_$soft_name()
 {
+    echo_style_wrap_text "Starting 'configuare install envs', hold on please"
+
     cd ${__DIR}
 
     # soft_${SYS_SETUP_COMMAND}_check_setup ""
@@ -35,14 +37,24 @@ function set_env_$soft_name()
 # 2-安装软件
 function setup_$soft_name()
 {
-	cd ${TMP_$soft_upper_short_name_CURRENT_DIR}
+    echo_style_wrap_text "Starting 'install', hold on please"
 
-	# 编译模式
-	./configure --prefix=${TMP_$soft_upper_short_name_SETUP_DIR}
-	make -j4 && make -j4 install
+	# 自定义安装
+	# 参数1：安装路径
+	function _setup_$soft_name_compile()
+	{
+		cd ${TMP_$soft_upper_short_name_EXTRA_DIR}
 
-	# 移动编译目录所需文件
-	# mv $setup_name.conf ${TMP_$soft_upper_short_name_SETUP_DIR}/
+		# 编译模式
+		./configure --prefix=${TMP_$soft_upper_short_name_SETUP_DIR}
+		make -j4 && make -j4 install
+
+		# 移动编译目录所需文件
+		# mv ${TMP_$soft_upper_short_name_SETUP_NAME}.conf ${TMP_$soft_upper_short_name_SETUP_DIR}/
+	}
+
+    # 创建安装目录(纯属为了规范)
+    soft_path_restore_confirm_custom "${TMP_$soft_upper_short_name_SETUP_DIR}" "_setup_$soft_name_compile"
 
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
@@ -61,30 +73,37 @@ function formal_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
+    echo_style_wrap_text "Starting 'formal dirs', hold on please"
+
 	# 开始标准化	
-    # # 还原 & 创建 & 迁移
-	# ## 日志
-	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-	# ## 数据
-	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-	# ## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ## 还原 & 创建 & 迁移
+	### 日志 - ①-1Y：存在日志文件：原路径文件放给真实路径
+    soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}" "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}"
+	# ### 日志 - ②-N：不存在日志文件：
+	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+
+	### 数据 - ①-1Y：存在数据文件：原路径文件放给真实路径
+    soft_path_restore_confirm_swap "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}"
+	# ### 数据 - ②-N：不存在数据文件：
+	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
+
+	### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" 
-	# ## ETC - ②-N：不存在配置文件：
+	# ### ETC - ②-N：不存在配置文件：
 	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
 
-	# # 创建链接规则
-	# ## 日志
+	# 创建链接规则（原始存在则使用）
+	## 日志 - supervisor
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}/supervisor_${TMP_$soft_upper_short_name_SETUP_NAME}.log" "" "${SUPERVISOR_LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}.log"
+	## 日志 - ②-N
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-	# ## 数据
+	## 数据 - ②-N
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-	# ## ETC - ①-2Y
-	# path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+	## ETC - ②-N
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
 	
-    ## 安装不产生规格下的bin目录，所以手动还原创建
-    # path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}/$setup_name' '' '/usr/bin/$setup_name'"
-
-	# # 预实验部分
-    # ## 目录调整完重启进程(目录调整是否有效的验证点)
+	# 预实验部分
+    ## 目录调整完重启进程(目录调整是否有效的验证点)
 
 	return $?
 }
@@ -96,9 +115,7 @@ function conf_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 
-	echo
-    echo_style_text "Configuration <$soft_name>, wait for a moment"
-    echo "${TMP_SPLITER}"
+    echo_style_wrap_text "Starting 'configuration', hold on please"
 
 	# 环境变量或软连接 /etc/profile写进函数
 	echo_etc_profile "$soft_upper_name_HOME=${TMP_$soft_upper_short_name_SETUP_DIR}"
@@ -123,6 +140,10 @@ function conf_$soft_name()
 # 5-测试软件
 function test_$soft_name()
 {
+    cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'test', hold on please"
+
 	# 实验部分
 
 	return $?
@@ -135,74 +156,127 @@ function boot_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
 	
-	# 验证安装/启动
-    # 当前启动命令 && 等待启动
-	echo
-    echo "Starting <$soft_name>, wait for a moment"
-    echo "${TMP_SPLITER}"
+    echo_style_wrap_text "Starting 'boot check', hold on please"
 	
-	# 启动及状态检测
-    bin/$setup_name start
-	## 等待执行完毕 产生端口
+# 	# -- 服务配置加载
+# 	tee /usr/lib/systemd/system/${TMP_$soft_upper_short_name_SETUP_NAME}.service <<-EOF
+# [Unit]
+# Description=$soft_upper_name Server Service
+# After=network.target
+
+# [Service]
+# Type=simple
+# User=$setup_owner
+# WorkingDirectory=${TMP_$soft_upper_short_name_SETUP_DIR}
+# Restart=on-failure
+# RestartSec=5s
+# ExecStart=/usr/bin/${TMP_$soft_upper_short_name_SETUP_NAME} -c /etc/${TMP_$soft_upper_short_name_SETUP_NAME}/${TMP_$soft_upper_short_name_SETUP_NAME}.ini
+# LimitNOFILE=infinity
+# LimitNPROC=infinity
+# LimitCORE=infinity
+
+# [Install]
+# WantedBy=multi-user.target
+# EOF
+#
+# 	# 重新加载服务配置
+#     systemctl daemon-reload
+
+    # ## 设置系统管理，开机启动
+    # echo_style_text "View the 'systemctl info'↓:"
+    # chkconfig ${TMP_$soft_upper_short_name_SETUP_NAME} on
+	# systemctl enable ${TMP_$soft_upper_short_name_SETUP_NAME}.service
+	# systemctl list-unit-files | grep ${TMP_$soft_upper_short_name_SETUP_NAME}
+	
+	# # 启动及状态检测
+    # echo "${TMP_SPLITER2}"
+    # echo_style_text "View the 'service status'↓:"
+    # systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service
+
+    # # 等待启动
+	# exec_sleep 3 "Initing <${TMP_$soft_upper_short_name_SETUP_NAME}>, hold on please"
+
+	# 验证安装/启动
+	echo "[-]" >> logs/boot.log
+	# systemctl status ${TMP_$soft_upper_short_name_SETUP_NAME}.service >> logs/boot.log
+	bin/${TMP_$soft_upper_short_name_SETUP_NAME} start >> logs/boot.log
+	# echo "${TMP_SPLITER3}" >> logs/boot.log
+	# journalctl -u ${TMP_$soft_upper_short_name_SETUP_NAME} --no-pager >> logs/boot.log
+    cat logs/boot.log
+
+    # 打印版本
+    echo "${TMP_SPLITER2}"	
+    echo_style_text "View the 'version'↓:"
+    bin/${TMP_$soft_upper_short_name_SETUP_NAME} -v
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} -V
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} --version
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} version
+	
+    echo "${TMP_SPLITER2}"	
+    echo_style_text "View the 'help'↓:"
+    bin/${TMP_$soft_upper_short_name_SETUP_NAME} -h
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} -H
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} --help
+    # bin/${TMP_$soft_upper_short_name_SETUP_NAME} help
+
+	# 等待执行完毕 产生端口
     echo_style_text "View the 'booting port'↓:"
-    exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', wait for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
+    exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', hold on please" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'port↓' to iptables:"
+    echo_style_text "View echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
     
+	# 授权开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'status'↓:"
-    echo "[-]">> logs/boot.log
-	nohup bin/$setup_name status >> logs/boot.log 2>&1 &
-    cat logs/boot.log
-    echo "${TMP_SPLITER3}"
-    cat /var/log/$setup_name/$setup_name.log
-
-    echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
-    bin/$setup_name -v
-	
-    echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'info'↓:"
-    bin/$setup_name info
+    echo_style_text "View echo the 'supervisor startup conf'↓:"
+	# echo_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "/usr/bin" "systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service" "" "999" "" "" false 0
+	echo_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "${TMP_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_$soft_upper_short_name_SETUP_NAME} start"
 
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'web service init script'↓:"
+    echo_style_text "View echo the 'web service init script'↓:"
     #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Setup <$soft_name> over"
     exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay 10 secs to exit"
 	
 	return $?
+}
+
+##########################################################################################################
+
+# 7-1 下载扩展/驱动/插件
+function down_ext_$soft_name()
+{
+    cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'download exts', hold on please"
+
+	return $?
+}
+
+# 7-2 安装与配置扩展/驱动/插件
+function setup_ext_$soft_name()
+{
+    cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'install exts', hold on please"
 
 	return $?
 }
 
 ##########################################################################################################
 
-# 下载驱动/插件
-function down_plugin_$soft_name()
-{
-	return $?
-}
-
-# 安装驱动/插件
-function setup_plugin_$soft_name()
-{
-	return $?
-}
-
-##########################################################################################################
-
-# 重新配置（有些软件安装完后需要重新配置）
+# 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_$soft_name()
 {
+    cd ${TMP_$soft_upper_short_name_SETUP_DIR}
+	
+    echo_style_wrap_text "Starting 'reconf', hold on please"
+
 	return $?
 }
 
@@ -211,6 +285,22 @@ function reconf_$soft_name()
 # x2-执行步骤
 function exec_step_$soft_name()
 {
+	# 变量覆盖特性，其它方法均可读取
+	## 执行传入参数
+	local TMP_$soft_upper_short_name_SETUP_NAME=${1}
+	local TMP_$soft_upper_short_name_SETUP_DIR=${2}
+    local TMP_$soft_upper_short_name_EXTRA_DIR=${3}
+
+	## 统一编排到的路径
+	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
+
+	## 安装后的真实路径（此处依据实际路径名称修改）
+	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
+	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
+	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
+
 	set_env_$soft_name 
 
 	setup_$soft_name 
@@ -221,8 +311,8 @@ function exec_step_$soft_name()
 	
 	test_$soft_name 
 
-    # down_plugin_$soft_name 
-    # setup_plugin_$soft_name 
+    # down_ext_$soft_name 
+    # setup_ext_$soft_name 
 
 	boot_$soft_name 
 
@@ -233,23 +323,13 @@ function exec_step_$soft_name()
 
 ##########################################################################################################
 
-# x1-下载软件
-function down_$soft_name()
+# x1-检测软件安装
+function check_setup_$soft_name()
 {
-	# 变量覆盖特性，其它方法均可读取
-	local TMP_$soft_upper_short_name_SETUP_DIR=${SETUP_DIR}/$setup_name
+	# 当前路径（仅记录）
 	local TMP_$soft_upper_short_name_CURRENT_DIR=$(pwd)
 
-	# 统一编排到的路径
-	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/$setup_name
-	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
-	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/$setup_name
-
-	# 安装后的真实路径（此处依据实际路径名称修改）
-	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
-	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
-	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
-
+    # 查找及确认版本
 	# local TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS=$(curl -s https://www.xxx.com)
 	# echo "$title_name: The newer stable version is ${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
     # local TMP_$soft_upper_short_name_SETUP_NEWER="${TMP_$soft_upper_short_name_SETUP_OFFICIAL_STABLE_VERS}"
@@ -271,5 +351,5 @@ function down_$soft_name()
 
 ##########################################################################################################
 
-#安装主体
-soft_setup_basic "$title_name" "down_$soft_name"
+# 安装主体
+soft_setup_basic "$title_name" "check_setup_$soft_name"

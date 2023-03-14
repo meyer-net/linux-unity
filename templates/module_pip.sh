@@ -65,8 +65,10 @@ function formal_$soft_name()
     # 还原 & 创建 & 迁移
 	## 日志
 	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+
 	## 数据
 	soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
+	
 	# soft_path_restore_confirm_swap "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "/var/lib/$soft_name"
 	## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
 	soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" 
@@ -75,17 +77,21 @@ function formal_$soft_name()
 	# ## ETC - ②-N：不存在配置文件：
 	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
 
-	# # 创建链接规则
+	# 创建链接规则（原始存在则使用）
 	## 工作
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_WORK_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_WORK_DIR}"
+	## 日志 - supervisor
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}/supervisor_${TMP_$soft_upper_short_name_SETUP_NAME}.log" "" "${SUPERVISOR_LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}.log"
 	## 日志
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
 	## 数据
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-	## ETC - ①-2Y
+	# ## ETC - ①-2Y
     # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "" "/etc/$soft_name" 
     # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "/etc/$soft_name"
-	# path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+	## ETC - ②-N
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+
     ## 安装不产生规格下的bin目录，所以手动还原创建
     # path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_BIN_DIR}" "" "path_not_exists_link '${TMP_$soft_upper_short_name_SETUP_BIN_DIR}/$setup_name' '' '${TMP_$soft_upper_short_name_SETUP_MCD_ENVS_DIR}/bin/$setup_name'"
 	
@@ -145,7 +151,7 @@ function test_$soft_name()
 
 ##########################################################################################################
 
-# 6-启动软件
+# 6-启动及检测运行
 function boot_$soft_name()
 {
 	cd ${TMP_$soft_upper_short_name_SETUP_DIR}
@@ -192,16 +198,14 @@ function boot_$soft_name()
     # echo_style_text "View the 'service status'↓:"
     # systemctl start $setup_name.service
 
+    # # 等待启动
 	# exec_sleep 3 "Initing <$setup_name> in env(<${TMP_$soft_upper_short_name_SETUP_ENV}>), hold on please"
 	
-    # echo "[-]">> logs/boot.log
+    # echo "[-]" >> logs/boot.log
 	# systemctl status $setup_name.service >> logs/boot.log
+	# echo "${TMP_SPLITER3}" >> logs/boot.log
+	# journalctl -u $setup_name --no-pager >> logs/boot.log
     # cat logs/boot.log
-
-    # echo "${TMP_SPLITER3}"
-    # cat /var/log/$setup_name/$setup_name.log
-	# echo "${TMP_SPLITER3}"
-	# journalctl -u $setup_name --no-pager | less
 	
     # 打印版本
     echo "${TMP_SPLITER2}"	
@@ -213,19 +217,25 @@ function boot_$soft_name()
     echo_style_text "View the 'help'↓:"
     su_bash_env_conda_channel_exec "$setup_name -h" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 
-	## 等待执行完毕 产生端口
+	# 等待执行完毕 产生端口
     echo_style_text "View the 'booting port'↓:"
-    exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', wait for a moment" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
+    exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', hold on please" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
+    echo_style_text "View echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
+
+	# 授权开机启动
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View echo the 'supervisor startup conf'↓:"
+	# echo_conda_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service" "999" "${TMP_$soft_upper_short_name_SETUP_ENV}" false 0
+	echo_conda_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "${TMP_$soft_upper_short_name_SETUP_NAME} start" "999" "${TMP_$soft_upper_short_name_SETUP_ENV}"
     
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'web service init script'↓:"
+    echo_style_text "View echo the 'web service init script'↓:"
     #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
@@ -236,7 +246,7 @@ function boot_$soft_name()
 
 ##########################################################################################################
 
-# 下载驱动/插件
+# 7-1 下载扩展/驱动/插件
 function down_ext_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
@@ -246,7 +256,7 @@ function down_ext_$soft_name()
 	return $?
 }
 
-# 安装驱动/插件
+# 7-2 安装与配置扩展/驱动/插件
 function setup_ext_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
@@ -258,7 +268,7 @@ function setup_ext_$soft_name()
 
 ##########################################################################################################
 
-# 重新配置（有些软件安装完后需要重新配置）
+# 8-重新配置（有些软件安装完后需要重新配置）
 function reconf_$soft_name()
 {
     cd ${TMP_$soft_upper_short_name_SETUP_DIR}
@@ -286,7 +296,6 @@ function exec_step_$soft_name()
 	local TMP_$soft_upper_short_name_SETUP_MCD_ENVS_DIR=${TMP_$soft_upper_short_name_SETUP_MCD_SETUP_DIR}/envs/${TMP_$soft_upper_short_name_SETUP_ENV}
 
 	## 统一编排到的路径
-    local TMP_$soft_upper_short_name_CURRENT_DIR=$(pwd)
 	local TMP_$soft_upper_short_name_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
 	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${CONDA_APP_LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
 	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${CONDA_APP_DATA_DIR}/${TMP_$soft_upper_short_name_SETUP_MARK_NAME}
@@ -324,6 +333,10 @@ function exec_step_$soft_name()
 # x1-检测软件安装
 function check_setup_$soft_name()
 {
+	# 当前路径（仅记录）
+	local TMP_$soft_upper_short_name_CURRENT_DIR=$(pwd)
+
+    # 查找及确认版本
 	# local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/$setup_name
     # path_not_exists_action "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "exec_step_$soft_name" "$title_name was installed"
 

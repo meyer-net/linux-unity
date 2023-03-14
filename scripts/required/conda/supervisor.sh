@@ -221,7 +221,7 @@ function formal_supervisor()
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_DATA_DIR}"
 	## ETC - ②-N：不存在配置文件：
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_ETC_DIR}"
-
+    ## ETC - 手动生成文件
 	path_not_exists_action "${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf" "su_bash_env_conda_channel_exec 'cd && echo_supervisord_conf > ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf' '${TMP_SUP_SETUP_ENV}'"
 	
 	# 创建链接规则
@@ -368,12 +368,12 @@ EOF
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'port'(<${TMP_SUP_SETUP_HTTP_PORT}>) to iptables:↓"
+    echo_style_text "View echo the 'port'(<${TMP_SUP_SETUP_HTTP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_SUP_SETUP_HTTP_PORT}
     
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'web service init script'↓:"
+    echo_style_text "View echo the 'web service init script'↓:"
     #echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SUP_SETUP_HTTP_PORT} "${LOCAL_HOST}"
 
     # 结束

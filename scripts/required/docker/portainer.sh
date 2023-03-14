@@ -319,5 +319,5 @@ function check_setup_dc_portainer() {
 
 ##########################################################################################################
 
-#安装主体
+# 安装主体
 soft_setup_basic "portainer/portainer" "check_setup_dc_portainer"

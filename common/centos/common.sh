@@ -72,7 +72,7 @@ function fill_right()
 	return $?
 }
 
-#生成启动配置文件
+# 生成启动配置文件
 # 参数1：程序命名
 # 参数2：程序启动的目录
 # 参数3：程序启动的命令
@@ -90,7 +90,7 @@ function echo_startup_supervisor_config()
 	local _TMP_ECHO_STARTUP_SUP_CONF_FILENAME=${_TMP_ECHO_STARTUP_SUP_CONF_NAME}.conf
 	local _TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR=${2}
 	local _TMP_ECHO_STARTUP_SUP_CONF_COMMAND=${3}
-	local _TMP_ECHO_STARTUP_SUP_CONF_ENV=${4}
+	local _TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH=${4}
 	local _TMP_ECHO_STARTUP_SUP_CONF_PRIORITY=${5:-99}
 	local _TMP_ECHO_STARTUP_SUP_CONF_SOURCE=${6}
 	local _TMP_ECHO_STARTUP_SUP_CONF_USER=${7:-root}
@@ -118,13 +118,12 @@ function echo_startup_supervisor_config()
 	if [ -n "${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}" ]; then
 		_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR="directory = ${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}  ; 程序的启动目录"
 	fi
-
-	if [ -n "${_TMP_ECHO_STARTUP_SUP_CONF_ENV}" ]; then
-		_TMP_ECHO_STARTUP_SUP_CONF_ENV="${_TMP_ECHO_STARTUP_SUP_CONF_ENV}:"
+	if [ -n "${_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH}" ]; then
+		_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH="${_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH}:"
 	fi
 
 	# 类似的：environment = ANDROID_HOME="/opt/android-sdk-linux",PATH="/usr/bin:/usr/local/bin:%(ENV_ANDROID_HOME)s/tools:%(ENV_ANDROID_HOME)s/tools/bin:%(ENV_ANDROID_HOME)s/platform-tools:%(ENV_PATH)s"
-	_TMP_ECHO_STARTUP_SUP_CONF_ENV="environment = PATH=\"${_TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV}${_TMP_ECHO_STARTUP_SUP_CONF_ENV}%(ENV_PATH)s\"  ; 程序启动的环境变量信息"
+	_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH="environment = PATH=\"${_TMP_ECHO_STARTUP_SUP_CONF_DFT_ENV}${_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH}:%(ENV_PATH)s\"  ; 程序启动的环境变量信息"
 
 	_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY="priority = ${_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY}"
 	
@@ -133,14 +132,12 @@ function echo_startup_supervisor_config()
     local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
 	
 	path_not_exists_create $(dirname ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH})
-
 	path_not_exists_create "${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}"
 
 	echo
     echo ${TMP_SPLITER}
 	if [ ! -f "${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}" ]; then
-		echo_style_text "Supervisor：Gen startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}>"
-		echo
+		echo_style_wrap_text "Supervisor：Gen startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}>"
 		tee ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH} <<-EOF
 [program:${_TMP_ECHO_STARTUP_SUP_CONF_NAME}]
 command = /bin/bash -c 'source "\$0" && exec "\$@"' ${_TMP_ECHO_STARTUP_SUP_CONF_SOURCE} ${_TMP_ECHO_STARTUP_SUP_CONF_COMMAND} ; 启动命令，可以看出与手动在命令行启动的命令是一样的
@@ -156,20 +153,38 @@ stdout_logfile_backups = 20                                                     
 ${_TMP_ECHO_STARTUP_SUP_CONF_PRIORITY}                                                     ; 启动优先级，默认999
 ${_TMP_ECHO_STARTUP_SUP_CONF_BOOT_DIR}                                                        
 
-${_TMP_ECHO_STARTUP_SUP_CONF_ENV}                                                        
+${_TMP_ECHO_STARTUP_SUP_CONF_ENV_PATH}                                                        
 
 stdout_logfile = ${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_NAME}_stdout.log  ; stdout 日志文件，需要注意当指定目录不存在时无法正常启动，所以需要手动创建目录（supervisord 会自动创建日志文件）
 numprocs = 1                                                                           ;
 EOF
 	else
-		echo_style_text "Supervisor：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created"
-		echo
+		echo_style_text "Supervisor：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created at↓:"
+		ls -lia ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
+		echo "${TMP_SPLITER2}"
 		cat ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
+		echo "${TMP_SPLITER2}"
+		echo
 	fi
 
-    echo ${TMP_SPLITER}
-	echo
+	return $?
+}
 
+# 生成conda启动配置文件
+# 参数1：程序命名
+# 参数2：程序启动的命令
+# 参数3：优先级序号
+# 参数4：CONDA环境
+# 参数5：是否自动重启，默认true
+# 参数6：自动重启次数，默认10
+function echo_conda_startup_supervisor_config()
+{
+	local _TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV="${4:-${PY_ENV}}"
+	local _TMP_ECHO_CONDA_STARTUP_SUP_CONF_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep -oP '(?<=^Location: ).+' | xargs -I {} echo '{}/${1}'" "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV}")
+	local _TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV_PATH=$(su_bash_conda_channel_exec 'echo $PATH' "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV}")
+	local _TMP_ECHO_CONDA_STARTUP_SUP_CONF_SOURCE="$(su_bash_conda_channel_exec 'cd;pwd' "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV}")/.bashrc"
+
+	echo_conda_startup_supervisor_config "${1}" "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_SETUP_PATH}" "${2}" "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_ENV_PATH}" "${3}" "${_TMP_ECHO_CONDA_STARTUP_SUP_CONF_SOURCE}" "conda" ${5} ${6}
 	return $?
 }
 
@@ -6293,23 +6308,26 @@ function soft_setup_basic()
 # 参数1：软件安装名称
 # 参数2：软件下载地址
 # 参数3：软件下载后执行函数名称
-# 参数4：软件安装路径（不填入默认识别为 ${SETUP_DIR}）
-# 参数5：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
 function soft_setup_wget() 
 {
 	local _TMP_SOFT_SETUP_WGET_NAME=${1}
 	local _TMP_SOFT_SETUP_WGET_URL=${2}
-	local _TMP_SOFT_SETUP_WGET_SETUP_FUNC=${3}
-	local _TMP_SOFT_SETUP_WGET_SETUP_DIR=$([ -n "${4}" ] && echo "${4}" || echo ${SETUP_DIR})
-	local _TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPTS=${5}
+	local _TMP_SOFT_SETUP_WGET_INSTALL_SCRIPT=${3}
+	local _TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPT=${5}
 	
-	typeset -l TMP_SOFT_LOWER_NAME
-	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_SETUP_WGET_NAME}
+	typeset -l _TMP_SOFT_SETUP_WGET_LOWER_NAME
+	local _TMP_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_WGET_NAME}
+	local _TMP_SOFT_SETUP_WGET_SETUP_DIR=${SETUP_DIR}/${_TMP_SOFT_SETUP_WGET_LOWER_NAME}
 
-	local TMP_SOFT_SETUP_PATH=${_TMP_SOFT_SETUP_WGET_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
-
-    # ls -d ${TMP_SOFT_SETUP_PATH} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_WGET_NAME} | grep -v grep
-	if [[ ! -a ${TMP_SOFT_SETUP_PATH} ]]; then
+    # ls -d ${_TMP_SOFT_SETUP_WGET_SETUP_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_WGET_NAME} | grep -v grep
+	if [[ ! -a ${_TMP_SOFT_SETUP_WGET_SETUP_DIR} ]]; then
 		local _TMP_SOFT_SETUP_WGET_FILE_NAME=
 		local _TMP_SOFT_SETUP_WGET_FILE_DIR="${DOWN_DIR}"
 		while_wget "${_TMP_SOFT_SETUP_WGET_URL}" '_TMP_SOFT_SETUP_WGET_FILE_DIR=$(pwd) && _TMP_SOFT_SETUP_WGET_FILE_NAME=${_TMP_SOFT_SETUP_WGET_FILE_DEST_NAME}'
@@ -6327,8 +6345,8 @@ function soft_setup_wget()
 			# 没有层级的情况
 			local _TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS=""
 			if [ "${_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP}" == "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}" ]; then
-				_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS="${TMP_SOFT_LOWER_NAME}"
-				_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS="-d ${TMP_SOFT_LOWER_NAME}"
+				_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS="${_TMP_SOFT_SETUP_WGET_LOWER_NAME}"
+				_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS="-d ${_TMP_SOFT_SETUP_WGET_LOWER_NAME}"
 			fi
 
 			# 本地是否存在目录
@@ -6348,16 +6366,12 @@ function soft_setup_wget()
 				fi
 			fi
 		fi
-		
-		cd ${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}
 
 		#安装函数调用
-		${_TMP_SOFT_SETUP_WGET_SETUP_FUNC} "${TMP_SOFT_SETUP_PATH}"
-	
-		echo "Complete."
+		script_check_action "_TMP_SOFT_SETUP_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_WGET_NAME}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}"
 	else
 		# 执行安装
-		script_check_action "_TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPTS" "${_TMP_SOFT_SETUP_WGET_NAME}"
+		script_check_action "_TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_WGET_NAME}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}"
 	fi
 
 	return $?
@@ -6376,9 +6390,9 @@ function soft_setup_git()
 	
 	typeset -l TMP_SOFT_LOWER_NAME
 	local TMP_SOFT_LOWER_NAME=${1}
-	local TMP_SOFT_SETUP_PATH=${SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
+	local TMP_SOFT_SETUP_DIR=${SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
 
-    ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep ${1} | grep -v grep
+    ls -d ${TMP_SOFT_SETUP_DIR}   #ps -fe | grep ${1} | grep -v grep
 	if [ $? -ne 0 ]; then
 		local _TMP_SOFT_SETUP_GIT_FOLDER_NAME=$(echo "${_TMP_SOFT_SETUP_GIT_URL}" | awk -F'/' '{print $NF}')
 
@@ -6390,7 +6404,7 @@ function soft_setup_git()
 		cd ${_TMP_SOFT_SETUP_GIT_FOLDER_NAME}
 
 		# 安装函数调用
-		script_check_action "${3}" "${TMP_SOFT_SETUP_PATH}"
+		script_check_action "${3}" "${TMP_SOFT_SETUP_DIR}"
 	
 		echo "Complete."
 	fi
@@ -6422,11 +6436,11 @@ function soft_setup_git()
 
 # 	typeset -l TMP_SOFT_LOWER_NAME
 # 	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_SETUP_PIP_NAME}
-# 	local TMP_SOFT_SETUP_PATH=$(pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}")
+# 	local TMP_SOFT_SETUP_DIR=$(pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}")
 
 # 	# pip show supervisor
 # 	# pip freeze | grep "supervisor=="
-# 	if [ -z "${TMP_SOFT_SETUP_PATH}" ]; then
+# 	if [ -z "${TMP_SOFT_SETUP_DIR}" ]; then
 # 		echo_style_text "Pip start to install '${_TMP_SOFT_SETUP_PIP_NAME}'"
 # 		pip install ${TMP_SOFT_LOWER_NAME}
 # 		echo_style_text "Pip installed '${_TMP_SOFT_SETUP_PIP_NAME}'"
@@ -6434,7 +6448,7 @@ function soft_setup_git()
 # 		#安装后配置函数
 # 		script_check_action "_TMP_SOFT_SETUP_PIP_SETUP_FUNC" "${PY_PKGS_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}"
 # 	else
-#     	ls -d ${TMP_SOFT_SETUP_PATH}   #ps -fe | grep ${_TMP_SOFT_SETUP_PIP_NAME} | grep -v grep
+#     	ls -d ${TMP_SOFT_SETUP_DIR}   #ps -fe | grep ${_TMP_SOFT_SETUP_PIP_NAME} | grep -v grep
 
 # 		return 1
 # 	fi
@@ -6459,7 +6473,7 @@ function soft_setup_conda_channel_pip()
 		_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME="${1}==${3}"
 	fi
 
-	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
+	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep -oP '(?<=^Location: ).+' | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
 	
 	echo_style_wrap_text "Checking 'conda' pip package <${1}> from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	if [ -z "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}" ]; then
@@ -6499,7 +6513,7 @@ function soft_setup_conda_pip()
 		_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME="${1}==${3}"
 	fi
 
-	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep 'Location' | cut -d' ' -f2 | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
+	local _TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH=$(su_bash_env_conda_channel_exec "pip show ${1} 2>/dev/null | grep -oP '(?<=^Location: ).+' | xargs -I {} echo '{}/${1}'" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}")
 	
 	echo_style_wrap_text "Checking <conda> pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	if [ -z "${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}" ]; then
