@@ -173,6 +173,7 @@ function formal_dc_$setup_name() {
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
+    # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
     # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"

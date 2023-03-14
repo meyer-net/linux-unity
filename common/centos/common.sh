@@ -1037,7 +1037,7 @@ function exec_while_read()
 				echo
 			fi
 
-			if [ ${_TMP_EXEC_WHILE_READ_BREAK_ACTION} ]; then
+			if [ ${_TMP_EXEC_WHILE_READ_BREAK_ACTION} == true ]; then
 				break
 			fi
 		done
@@ -4925,8 +4925,8 @@ function docker_change_container_volume_migrate()
 
 			docker volume rm ${1}
 		}
-
-		if [[ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} ]]; then
+		
+		if [ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} == true ]; then
 			echo_style_text "Starting auto [remove unuse] volume(<${1}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
 			docker volume rm ${1}
 		else
@@ -4936,6 +4936,7 @@ function docker_change_container_volume_migrate()
 	}
 
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR[*]}" ]; then
+		echo "${TMP_SPLITER3}"
 		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]) will <remove>, auto remove <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL}>)"
 		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
 	fi
