@@ -145,19 +145,21 @@ EOF
 	echo_etc_sec_limits '* hard nofile 65536' "^\* hard nofile 65536"
 
 	#单个用户可打开的最大文件描述符数量(软限制)
-	echo_etc_sec_limits'* soft nproc 65536' "^\* soft nproc 65536"
+	echo_etc_sec_limits '* soft nproc 65536' "^\* soft nproc 65536"
 
 	#单个用户可打开的最大文件描述符数量(硬限制)
-	echo_etc_sec_limits'* hard nproc 65536' "^\* hard nproc 65536"
+	echo_etc_sec_limits '* hard nproc 65536' "^\* hard nproc 65536"
    
     # 修改字符集,否则可能报 input/output error的问题,因为日志里打印了中文
     localedef -c -f UTF-8 -i zh_CN zh_CN.UTF-8
-    export LC_ALL=zh_CN.UTF-8
+	
     echo_etc_locale 'LANG="zh_CN.UTF-8"'
     echo_etc_i18n 'LANG=zh_CN.UTF-8'
-	echo_etc_profile "export LANG=zh_CN.utf-8"
+	echo_etc_profile "export LC_ALL=zh_CN.UTF-8"
+	echo_etc_profile "export LANG=zh_CN.UTF-8"
 
 	sysctl -p
+	source /etc/profile
 
 	#表示已设置优化
 	echo "don't remove" >> ${SETUP_DIR}/.sys_optimize

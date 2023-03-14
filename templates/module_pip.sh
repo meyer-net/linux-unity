@@ -220,7 +220,7 @@ function boot_$soft_name()
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'port↓' to iptables:"
+    echo_style_text "Echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
     
     # 生成web授权访问脚本

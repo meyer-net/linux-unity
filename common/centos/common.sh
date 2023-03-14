@@ -3266,7 +3266,7 @@ EOF
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
 
-			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "999" false 0
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "999" "" "" false 0
 		fi
 	fi
 
@@ -5599,7 +5599,7 @@ EOF
 		# if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
 		if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" == "1" ]; then
 			echo "${TMP_SPLITER2}"
-			echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+			echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}])↓:"
 			docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 			echo "[-]"

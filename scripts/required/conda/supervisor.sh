@@ -188,9 +188,9 @@ condrestart)
     RETVAL=$?
     ;;
 status)
-    \$SUPERVISORCTL \$OPTIONS status
-    running
-    RETVAL=$?
+	[ -a $(cat ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf | grep -oP "(?<=^serverurl=unix://)[^;]+") ] && \$SUPERVISORCTL \$OPTIONS status
+	running
+	RETVAL=$?
     ;;
 *)
     echo $"Usage: \$0 {start|stop|status|restart|reload|force-reload|condrestart}"
@@ -361,13 +361,14 @@ EOF
     su_bash_env_conda_channel_exec "supervisord -h" "${TMP_SUP_SETUP_ENV}"
 	
 	## 等待执行完毕 产生端口
+    echo "${TMP_SPLITER2}"	
     echo_style_text "View the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <supervisor> to port '${TMP_SUP_SETUP_HTTP_PORT}', wait for a moment" "lsof -i:${TMP_SUP_SETUP_HTTP_PORT}" 180 3
 	lsof -i:${TMP_SUP_SETUP_HTTP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "Echo the 'port' <${TMP_SUP_SETUP_HTTP_PORT}> to iptables:↓"
+    echo_style_text "Echo the 'port'(<${TMP_SUP_SETUP_HTTP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_SUP_SETUP_HTTP_PORT}
     
     # 生成web授权访问脚本

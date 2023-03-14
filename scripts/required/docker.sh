@@ -214,6 +214,19 @@ function formal_docker()
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
+    
+    function _formal_docker_create_compose()
+    {
+        local TMP_DOCKER_SETUP_NEWER="2.16.0"
+        set_github_soft_releases_newer_version "TMP_DOCKER_SETUP_NEWER" "docker/compose"
+        exec_text_printf "TMP_DOCKER_SETUP_NEWER" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)"
+        while_curl "${TMP_DOCKER_SETUP_NEWER}" "mv docker-compose-$(uname -s)-$(uname -m) ${1}"
+        path_not_exists_link '/usr/local/bin/docker-compose' '' "${1}"
+        chmod +x ${1}
+        
+        docker-compose --version
+    }
+    path_not_exists_action "${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose" "_formal_docker_create_compose"
         
 	# 预实验部分
     
@@ -242,7 +255,7 @@ EOF
     create_user_if_not_exists root docker true
 
     ## 修改服务运行用户
-    change_service_user root docker
+    change_service_user docker docker
     
 	chown -R docker:root ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:root ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
