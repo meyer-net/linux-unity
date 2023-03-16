@@ -7,341 +7,463 @@
 # 相关参考：
 #		  
 #------------------------------------------------
-# 安装标题：Harbor
-# 软件名称：harbor
-# 软件端口：9100
-# 软件大写名称：HARBOR
+# 安装标题：$title_name
+# 软件名称：goharbor/harbor
+# 软件端口：10080
 # 软件大写分组与简称：HB
-# 软件安装名称：$setup_name
-# 软件授权用户名称&组：$setup_owner/$setup_owner_group
+# 软件安装名称：goharbor_harbor
+# 软件工作运行目录：/harbor
+# 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
-local TMP_HB_SETUP_PORT=19100
+local TMP_DC_HB_SETUP_INN_HTTP_PORT="0080"
+local TMP_DC_HB_SETUP_INN_HTTPS_PORT="0443"
+local TMP_DC_HB_SETUP_OPN_HTTP_PORT=1${TMP_DC_HB_SETUP_INN_HTTP_PORT}
+local TMP_DC_HB_SETUP_OPN_HTTPS_PORT=1${TMP_DC_HB_SETUP_INN_HTTPS_PORT}
 
 ##########################################################################################################
 
 # 1-配置环境
-function set_env_harbor()
-{
+function set_env_dc_goharbor_harbor() {
     echo_style_wrap_text "Starting 'configuare install envs', hold on please"
 
     cd ${__DIR}
 
-    # soft_${SYS_SETUP_COMMAND}_check_setup ""
-
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 2-安装软件
-function setup_harbor()
-{
+function setup_dc_goharbor_harbor() {
     echo_style_wrap_text "Starting 'install', hold on please"
 
-	# 自定义安装
-	# 参数1：安装路径
-	function _setup_harbor_move()
-	{
-		# 直装模式
-		cd $(dirname ${TMP_HB_EXTRA_DIR})
-		
-		# 轻量级安装的情况下不进行安装包
-		## 展开路径还原操作
-		mv ${TMP_HB_EXTRA_DIR} ${TMP_HB_SETUP_DIR}
-	}
+    function _setup_dc_goharbor_harbor_cp_source() {
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'workingdir copy'↓:"
+
+        # 拷贝应用目录
+        docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/harbor ${1} >& /dev/null
+        
+        # 查看列表
+        ls -lia ${1}
+    }
 
     # 创建安装目录(纯属为了规范)
-    soft_path_restore_confirm_custom "${TMP_HB_SETUP_DIR}" "_setup_harbor_move"
+    soft_path_restore_confirm_pcreate ${TMP_DC_HB_SETUP_WORK_DIR} "_setup_dc_goharbor_harbor_cp_source"
 
-	cd ${TMP_HB_SETUP_DIR}
+    cd ${TMP_DC_HB_SETUP_DIR}
 
-    # 安装初始
+    # 开始安装
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 3-规格化软件目录格式
-function formal_harbor()
-{
-	cd ${TMP_HB_SETUP_DIR}
+function formal_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'formal dirs', hold on please"
 
-	# 开始标准化
+    # 开始标准化
     ## 还原 & 创建 & 迁移
-	### 日志 - ①-1Y：存在日志文件：原路径文件放给真实路径
-    soft_path_restore_confirm_move "${TMP_HB_SETUP_LNK_LOGS_DIR}" "${TMP_HB_SETUP_LOGS_DIR}"
-	# ### 日志 - ②-N：不存在日志文件：
-	# soft_path_restore_confirm_create "${TMP_HB_SETUP_LNK_LOGS_DIR}"
+    ### 日志
+    #### /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111
+    # function _formal_dc_goharbor_harbor_cp_logs() {
+    #     echo "${TMP_SPLITER2}"
+    #     echo_style_text "View the 'logs copy'↓:"
 
-	### 数据 - ①-1Y：存在数据文件：原路径文件放给真实路径
-    soft_path_restore_confirm_swap "${TMP_HB_SETUP_LNK_DATA_DIR}" "${TMP_HB_SETUP_DATA_DIR}"
-	# ### 数据 - ②-N：不存在数据文件：
-	# soft_path_restore_confirm_create "${TMP_HB_SETUP_LNK_DATA_DIR}"
+    #     # 拷贝日志目录
+    #     ## /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111/app_output
+    #     # mkdir -pv ${1}/app_output
+    #     # docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/var/logs/${TMP_DC_HB_SETUP_APP_MARK} ${1}/app_output >& /dev/null
+    #     docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/harbor/${TMP_DC_HB_SETUP_LOGS_MARK} ${1}/app_output >& /dev/null
+    #
+    #     # 查看列表
+    #     ls -lia ${1}
+    # }
+    soft_path_restore_confirm_create "${TMP_DC_HB_SETUP_LNK_LOGS_DIR}" "_formal_dc_goharbor_harbor_cp_logs"
 
-	### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
-	soft_path_restore_confirm_move "${TMP_HB_SETUP_LNK_ETC_DIR}" "${TMP_HB_SETUP_ETC_DIR}" 
-	# ### ETC - ②-N：不存在配置文件：
-	# soft_path_restore_confirm_create "${TMP_HB_SETUP_LNK_ETC_DIR}"
+    ### 数据
+    #### /mountdisk/data/docker_apps/goharbor_harbor/imgver111111
+    function _formal_dc_goharbor_harbor_cp_data() {
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'data copy'↓:"
 
-	# 创建链接规则（原始存在则使用）
-	## 日志 - supervisor
-	path_not_exists_link "${TMP_HB_SETUP_LOGS_DIR}/supervisor_${TMP_HB_SETUP_NAME}.log" "" "${SUPERVISOR_LOGS_DIR}/${TMP_HB_SETUP_NAME}.log"
-	## 日志 - ②-N
-	path_not_exists_link "${TMP_HB_SETUP_LOGS_DIR}" "" "${TMP_HB_SETUP_LNK_LOGS_DIR}"
-	## 数据 - ②-N
-	path_not_exists_link "${TMP_HB_SETUP_DATA_DIR}" "" "${TMP_HB_SETUP_LNK_DATA_DIR}"
-	## ETC - ②-N
-	path_not_exists_link "${TMP_HB_SETUP_ETC_DIR}" "" "${TMP_HB_SETUP_LNK_ETC_DIR}" 
-	
-    ## 安装不产生规格下的bin目录，所以手动还原创建
-    # path_not_exists_create "${TMP_HB_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_HB_SETUP_LNK_BIN_DIR}/${TMP_HB_SETUP_NAME}' '' '/usr/bin/${TMP_HB_SETUP_NAME}'"
+        # 拷贝日志目录
+        # mkdir -pv ${1}
+        # docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/var/lib/${TMP_DC_HB_SETUP_APP_MARK} ${1} >& /dev/null
+        docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/harbor/${TMP_DC_HB_SETUP_DATA_MARK} ${1} >& /dev/null
+        
+        # 查看列表
+        ls -lia ${1}
+    }
+    soft_path_restore_confirm_pcreate "${TMP_DC_HB_SETUP_LNK_DATA_DIR}" "_formal_dc_goharbor_harbor_cp_data"
 
-	# 预实验部分
-    ## 目录调整完重启进程(目录调整是否有效的验证点)
+    ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### ETC目录规范
+    #### /mountdisk/data/docker/containers/${CTN_ID}
+    local TMP_DC_HB_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_HB_SETUP_CTN_ID}"
+    #### /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/container
+    local TMP_DC_HB_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_HB_SETUP_LNK_ETC_DIR}/container"
+    #### /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111
+    function _formal_dc_goharbor_harbor_cp_etc() {
+    #     echo "${TMP_SPLITER2}"
+    #     echo_style_text "View the 'etc copy'↓:"
 
-	return $?
+    #     # 拷贝日志目录
+    #     ## /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/app
+    #     # docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/harbor/${TMP_DC_HB_SETUP_ETC_MARK} ${1}/app >& /dev/null
+    #     docker cp -a ${TMP_DC_HB_SETUP_CTN_ID}:/etc/${TMP_DC_HB_SETUP_APP_MARK} ${1}/app >& /dev/null
+    #     ls -lia ${1}
+    
+    #     # 移除本地配置目录(挂载)
+    #     rm -rf ${TMP_DC_HB_SETUP_WORK_DIR}/${TMP_DC_HB_SETUP_ETC_MARK}
+        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/container
+        soft_path_restore_confirm_swap "${TMP_DC_HB_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_HB_SETUP_CTN_DIR}"
+    }
+    soft_path_restore_confirm_create "${TMP_DC_HB_SETUP_LNK_ETC_DIR}" "_formal_dc_goharbor_harbor_cp_etc"
+   
+    ### 迁移ETC下LOGS归位
+    #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
+    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/goharbor_harbor/imgver111111/docker_output/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
+    #### /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111/docker_output/${CTN_ID}-json.log
+    # soft_path_restore_confirm_move "${TMP_DC_HB_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_HB_SETUP_CTN_ID}-json.log" "${TMP_DC_HB_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_HB_SETUP_CTN_ID}-json.log"
+    #### ]
+
+    ## 创建链接规则
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View the 'symlink create':↓"
+    ### 日志
+    #### /opt/docker_apps/goharbor_harbor/imgver111111/logs -> /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${TMP_DC_HB_SETUP_LOGS_DIR}" "" "${TMP_DC_HB_SETUP_LNK_LOGS_DIR}"
+    #### /opt/docker/logs/goharbor_harbor/imgver111111 -> /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}" "" "${TMP_DC_HB_SETUP_LNK_LOGS_DIR}"
+    #### /mountdisk/logs/docker_apps/goharbor_harbor/imgver111111/docker_output/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_HB_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_HB_SETUP_CTN_ID}-json.log" "" "${TMP_DC_HB_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_HB_SETUP_CTN_ID}-json.log"
+    ### 数据
+    #### /opt/docker_apps/goharbor_harbor/imgver111111/workspace -> /mountdisk/data/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${TMP_DC_HB_SETUP_DATA_DIR}" "" "${TMP_DC_HB_SETUP_LNK_DATA_DIR}"
+    #### /opt/docker/data/apps/goharbor_harbor/imgver111111 -> /mountdisk/data/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}" "" "${TMP_DC_HB_SETUP_LNK_DATA_DIR}"
+    ### ETC
+    #### /opt/docker_apps/goharbor_harbor/imgver111111/etc -> /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${TMP_DC_HB_SETUP_ETC_DIR}" "" "${TMP_DC_HB_SETUP_LNK_ETC_DIR}"
+    #### /opt/docker/etc/goharbor_harbor/imgver111111 -> /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}" "" "${TMP_DC_HB_SETUP_LNK_ETC_DIR}"
+    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/container
+    path_not_exists_link "${TMP_DC_HB_SETUP_CTN_DIR}" "" "${TMP_DC_HB_SETUP_LNK_ETC_CTN_DIR}"
+
+    # 预实验部分        
+    ## 目录调整完修改启动参数
+    ## 修改启动参数
+    # local TMP_DC_HB_SETUP_CTN_TMP="/tmp/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}"
+    # soft_path_restore_confirm_create "${TMP_DC_HB_SETUP_CTN_TMP}"
+    # ${TMP_DC_HB_SETUP_CTN_TMP}:/tmp"
+    #
+    # ${TMP_DC_HB_SETUP_WORK_DIR}:/harbor"
+    # ${TMP_DC_HB_SETUP_LNK_LOGS_DIR}/app_output:/var/logs/${TMP_DC_HB_SETUP_APP_MARK}"
+    # ${TMP_DC_HB_SETUP_LNK_LOGS_DIR}/app_output:/harbor/${TMP_DC_HB_SETUP_LOGS_MARK}"
+    # ${TMP_DC_HB_SETUP_LNK_DATA_DIR}:/harbor/${TMP_DC_HB_SETUP_DATA_MARK}"
+    # ${TMP_DC_HB_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_HB_SETUP_APP_MARK}"
+    # ${TMP_DC_HB_SETUP_LNK_ETC_DIR}/app:/harbor/${TMP_DC_HB_SETUP_ETC_MARK}
+    # ${TMP_DC_HB_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_HB_SETUP_APP_MARK}
+    echo "${TMP_SPLITER2}"
+    echo_style_text "Starting 'inspect change', hold on please"
+
+    # 挂载目录(必须停止服务才能修改，否则会无效)
+    docker_change_container_volume_migrate "${TMP_DC_HB_SETUP_CTN_ID}" "${TMP_DC_HB_SETUP_WORK_DIR}:/harbor ${TMP_DC_HB_SETUP_LNK_DATA_DIR}:/harbor/${TMP_DC_HB_SETUP_DATA_MARK}"
+    # docker_change_container_volume_migrate "${TMP_DC_HB_SETUP_CTN_ID}" "${TMP_DC_HB_SETUP_WORK_DIR}:/harbor ${TMP_DC_HB_SETUP_LNK_DATA_DIR}:/harbor/${TMP_DC_HB_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_HB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    
+    # # 给该一次性容器取个别名，以后就可以直接使用whaler了
+    # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
+
+    return $?
 }
 
 ##########################################################################################################
 
 # 4-设置软件
-function conf_harbor()
-{
-	cd ${TMP_HB_SETUP_DIR}
-	
+function conf_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
+
     echo_style_wrap_text "Starting 'configuration', hold on please"
 
-	# 环境变量或软连接 /etc/profile写进函数
-	echo_etc_profile "HARBOR_HOME=${TMP_HB_SETUP_DIR}"
-	echo_etc_profile 'PATH=$HARBOR_HOME/bin:$PATH'
-	echo_etc_profile 'export PATH HARBOR_HOME'
+    # 开始配置
+    # docker_bash_channel_exec "${TMP_DC_HB_SETUP_CTN_ID}" "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js" "t" "root" "/harbor"
 
-    # 重新加载profile文件
-	source /etc/profile
-
-	# ## 授权权限，否则无法写入
-	# create_user_if_not_exists $setup_owner $setup_owner_group
-	# chown -R $setup_owner:$setup_owner_group ${TMP_HB_SETUP_DIR}
-	# chown -R $setup_owner:$setup_owner_group ${TMP_HB_SETUP_LNK_LOGS_DIR}
-	# chown -R $setup_owner:$setup_owner_group ${TMP_HB_SETUP_LNK_DATA_DIR}
-	# chown -R $setup_owner:$setup_owner_group ${TMP_HB_SETUP_LNK_ETC_DIR}
-
-	## 修改配置文件
-
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 5-测试软件
-function test_harbor()
-{
-    cd ${TMP_HB_SETUP_DIR}
-
+function test_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
+    
     echo_style_wrap_text "Starting 'test', hold on please"
 
     # 实验部分
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
-# 6-启动及检测运行
-function boot_harbor()
-{
-	cd ${TMP_HB_SETUP_DIR}
-	
+# 6-启动后检测脚本
+# 参数1：启动后的进程ID
+# 参数2：最终启动端口
+# 参数3：最终启动版本
+# 参数3：最终启动命令
+# 参数4：最终启动参数
+function boot_check_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
+
+    # 实验部分
     echo_style_wrap_text "Starting 'boot check', hold on please"
-	
-# 	# -- 服务配置加载
-# 	tee /usr/lib/systemd/system/${TMP_HB_SETUP_NAME}.service <<-EOF
-# [Unit]
-# Description=HARBOR Server Service
-# After=network.target
 
-# [Service]
-# Type=simple
-# User=$setup_owner
-# WorkingDirectory=${TMP_HB_SETUP_DIR}
-# Restart=on-failure
-# RestartSec=5s
-# ExecStart=/usr/bin/${TMP_HB_SETUP_NAME} -c /etc/${TMP_HB_SETUP_NAME}/${TMP_HB_SETUP_NAME}.ini
-# LimitNOFILE=infinity
-# LimitNPROC=infinity
-# LimitCORE=infinity
+    if [ -n "${TMP_DC_HB_SETUP_CTN_PORT}" ]; then
+        echo_style_text "View the 'container visit'↓:"
+        curl -s http://localhost:${TMP_DC_HB_SETUP_CTN_PORT}
+        echo
+    fi
 
-# [Install]
-# WantedBy=multi-user.target
-# EOF
-#
-# 	# 重新加载服务配置
-#     systemctl daemon-reload
-
-    # ## 设置系统管理，开机启动
-    # echo_style_text "View the 'systemctl info'↓:"
-    # chkconfig ${TMP_HB_SETUP_NAME} on
-	# systemctl enable ${TMP_HB_SETUP_NAME}.service
-	# systemctl list-unit-files | grep ${TMP_HB_SETUP_NAME}
-	
-	# # 启动及状态检测
-    # echo "${TMP_SPLITER2}"
-    # echo_style_text "View the 'service status'↓:"
-    # systemctl start ${TMP_HB_SETUP_NAME}.service
-
-    # # 等待启动
-	# exec_sleep 3 "Initing <${TMP_HB_SETUP_NAME}>, hold on please"
-
-	# 验证安装/启动
-	echo "[-]" >> logs/boot.log
-	# systemctl status ${TMP_HB_SETUP_NAME}.service >> logs/boot.log
-	bin/${TMP_HB_SETUP_NAME} start >> logs/boot.log
-	# echo "${TMP_SPLITER3}" >> logs/boot.log
-	# journalctl -u ${TMP_HB_SETUP_NAME} --no-pager >> logs/boot.log
-    cat logs/boot.log
-
-    # 打印版本
-    echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
-    bin/${TMP_HB_SETUP_NAME} -v
-    # bin/${TMP_HB_SETUP_NAME} -V
-    # bin/${TMP_HB_SETUP_NAME} --version
-    # bin/${TMP_HB_SETUP_NAME} version
-	
-    echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'help'↓:"
-    bin/${TMP_HB_SETUP_NAME} -h
-    # bin/${TMP_HB_SETUP_NAME} -H
-    # bin/${TMP_HB_SETUP_NAME} --help
-    # bin/${TMP_HB_SETUP_NAME} help
-
-	# 等待执行完毕 产生端口
-    echo_style_text "View the 'booting port'↓:"
-    exec_sleep_until_not_empty "Booting soft of <harbor> to port '${TMP_HB_SETUP_PORT}', hold on please" "lsof -i:${TMP_HB_SETUP_PORT}" 180 3
-	lsof -i:${TMP_HB_SETUP_PORT}
-
-	# 授权iptables端口访问
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'port'(<${TMP_HB_SETUP_PORT}>) to iptables:↓"
-	echo_soft_port ${TMP_HB_SETUP_PORT}
-    
-	# 授权开机启动
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'supervisor startup conf'↓:"
-	# echo_startup_supervisor_config "${TMP_HB_SETUP_NAME}" "/usr/bin" "systemctl start ${TMP_HB_SETUP_NAME}.service" "" "999" "" "" false 0
-	echo_startup_supervisor_config "${TMP_HB_SETUP_NAME}" "${TMP_HB_SETUP_DIR}" "bin/${TMP_HB_SETUP_NAME} start"
-
-    # 生成web授权访问脚本
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'web service init script'↓:"
-    #echo_web_service_init_scripts "harbor${LOCAL_ID}" "harbor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_HB_SETUP_PORT} "${LOCAL_HOST}"
-
-    # 结束
-    exec_sleep 10 "Boot <harbor> over, please checking the setup log, this will stay 10 secs to exit"
-	
-	return $?
+    echo_soft_port "TMP_DC_HB_SETUP_OPN_HTTP_PORT"
 }
 
 ##########################################################################################################
 
 # 7-1 下载扩展/驱动/插件
-function down_ext_harbor()
-{
-    cd ${TMP_HB_SETUP_DIR}
+function down_ext_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'download exts', hold on please"
 
-	return $?
+    return $?
 }
 
 # 7-2 安装与配置扩展/驱动/插件
-function setup_ext_harbor()
-{
-    cd ${TMP_HB_SETUP_DIR}
+function setup_ext_dc_goharbor_harbor() {
+    cd ${TMP_DC_HB_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install exts', hold on please"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 8-重新配置（有些软件安装完后需要重新配置）
-function reconf_harbor()
+function reconf_dc_goharbor_harbor()
 {
-    cd ${TMP_HB_SETUP_DIR}
+    cd ${TMP_DC_HB_SETUP_DIR}
 	
     echo_style_wrap_text "Starting 'reconf', hold on please"
 
+    # 授权iptables端口访问
+    # echo_soft_port ${2}
+
+    # 生成web授权访问脚本
+    #echo_web_service_init_scripts "goharbor_harbor${LOCAL_ID}" "goharbor_harbor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_HB_SETUP_OPN_HTTP_PORT} "${LOCAL_HOST}"
+
 	return $?
 }
 
 ##########################################################################################################
 
-# x2-执行步骤
+# x3-执行步骤
+#    参数1：启动后的进程ID
+#    参数2：最终启动端口
+#    参数3：最终启动版本
+#    参数4：最终启动命令
+#    参数5：最终启动参数
+function exec_step_goharbor_harbor() {
+    # 变量覆盖特性，其它方法均可读取
+    ## 执行传入参数
+    local TMP_DC_HB_SETUP_CTN_ID="${1}"
+    # local TMP_DC_HB_SETUP_PS_SID="${TMP_DC_HB_SETUP_CTN_ID:0:12}"
+    local TMP_DC_HB_SETUP_CTN_PORT="${2}"
+    # imgver111111/imgver111111_v1670000000
+    local TMP_DC_HB_SETUP_CTN_VER="${3}"
+    local TMP_DC_HB_SETUP_CTN_CMD="${4}"
+    local TMP_DC_HB_SETUP_CTN_ARGS="${5}"
+
+    ## 统一编排到的路径
+    local TMP_DC_HB_CURRENT_DIR=$(pwd)
+    local TMP_DC_HB_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}
+    local TMP_DC_HB_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}
+    local TMP_DC_HB_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}
+    local TMP_DC_HB_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_CTN_VER}
+
+    ## 统一标记名称(存在于安装目录的真实名称)
+    local TMP_DC_HB_SETUP_WORK_MARK="work"
+    local TMP_DC_HB_SETUP_LOGS_MARK="logs"
+    local TMP_DC_HB_SETUP_DATA_MARK="data"
+    local TMP_DC_HB_SETUP_ETC_MARK="etc"
+    local TMP_DC_HB_SETUP_APP_MARK="harbor"
+
+    ## 安装后的真实路径（此处依据实际路径名称修改）
+    local TMP_DC_HB_SETUP_WORK_DIR=${TMP_DC_HB_SETUP_DIR}/${TMP_DC_HB_SETUP_WORK_MARK}
+    local TMP_DC_HB_SETUP_LOGS_DIR=${TMP_DC_HB_SETUP_DIR}/${TMP_DC_HB_SETUP_LOGS_MARK}
+    local TMP_DC_HB_SETUP_DATA_DIR=${TMP_DC_HB_SETUP_DIR}/${TMP_DC_HB_SETUP_DATA_MARK}
+    local TMP_DC_HB_SETUP_ETC_DIR=${TMP_DC_HB_SETUP_DIR}/${TMP_DC_HB_SETUP_ETC_MARK}
+    
+    echo_style_wrap_text "Starting 'execute step' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_CTN_VER}]('${TMP_DC_HB_SETUP_CTN_ID}'), hold on please"
+
+    set_env_dc_goharbor_harbor
+
+    setup_dc_goharbor_harbor
+
+    formal_dc_goharbor_harbor
+
+    conf_dc_goharbor_harbor
+
+    test_dc_goharbor_harbor
+
+    # down_ext_dc_goharbor_harbor
+    # setup_ext_dc_goharbor_harbor
+
+    boot_check_dc_goharbor_harbor
+
+    reconf_dc_goharbor_harbor
+
+    return $?
+}
+
+##########################################################################################################
+
+# x2-简略启动，获取初始化软件（形成启动后才可抽取目录信息）
+#    参数1：镜像名称，例 goharbor/harbor
+#    参数2：镜像版本，例 latest
+#    参数3：启动命令，例 /bin/sh
+#    参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#    参数5：快照类型(还原时有效)，例 image/container/dockerfile
+#    参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
+function boot_build_dc_goharbor_harbor() {
+    # 变量覆盖特性，其它方法均可读取
+    ## 执行传入参数
+    local TMP_DC_HB_SETUP_IMG_NAME="${1}"
+    local TMP_DC_HB_SETUP_IMG_MARK_NAME="${1/\//_}"
+    local TMP_DC_HB_SETUP_IMG_VER="${2}"
+    local TMP_DC_HB_SETUP_CTN_ARG_CMD="${3}"
+    local TMP_DC_HB_SETUP_CTN_ARGS="${4}"
+    local TMP_DC_HB_SETUP_IMG_SNAP_TYPE="${5}"
+    local TMP_DC_HB_SETUP_IMG_STORE="${6}"
+
+    echo_style_wrap_text "Starting 'build container' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_IMG_VER}], hold on please"
+    
+    ## 标准启动参数
+    local TMP_DC_HB_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime --volume=/var/run/docker.sock:/var/run/docker.sock"
+    # local TMP_DC_HB_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    local TMP_DC_HB_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_HB_SETUP_OPN_HTTP_PORT}:${TMP_DC_HB_SETUP_INN_HTTP_PORT}"
+    local TMP_DC_HB_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
+    local TMP_DC_HB_SETUP_PRE_ARGS="${TMP_DC_HB_SETUP_PRE_ARG_PORTS} ${TMP_DC_HB_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_HB_SETUP_PRE_ARG_ENVS} ${TMP_DC_HB_SETUP_PRE_ARG_MOUNTS}"
+
+    ## 参数覆盖, 镜像参数覆盖启动设定
+    echo_style_text "Starting 'combine container' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_IMG_VER}] boot args, hold on please"
+    echo "${TMP_SPLITER2}"
+    echo_style_text "<Container> 'pre' args(${TMP_DC_HB_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'ctn' args(${TMP_DC_HB_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
+    docker_image_args_combine_bind "TMP_DC_HB_SETUP_PRE_ARGS" "TMP_DC_HB_SETUP_CTN_ARGS"
+    echo_style_text "<Container> 'combine' args(${TMP_DC_HB_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
+
+    # 开始启动
+    docker_image_boot_print "${TMP_DC_HB_SETUP_IMG_NAME}" "${TMP_DC_HB_SETUP_IMG_VER}" "${TMP_DC_HB_SETUP_CTN_ARG_CMD}" "${TMP_DC_HB_SETUP_PRE_ARGS}" "" "exec_step_goharbor_harbor"
+
+    return $?
+}
+
+##########################################################################################################
+
+# x2-配置composer信息
 # 参数1：软件安装名称
-# 参数2：软件安装路径
+# 参数2：软件安装路径(docker/conda无需采用)
 # 参数3：软件解压路径
-function exec_step_harbor()
-{
+function conf_dc_compose_goharbor_harbor() {
 	# 变量覆盖特性，其它方法均可读取
 	## 执行传入参数
-	local TMP_HB_SETUP_NAME=${1}
-	local TMP_HB_SETUP_DIR=${2}
-    local TMP_HB_EXTRA_DIR=${3}
+	local TMP_DC_CPS_HB_SETUP_NAME=${1}
+	# local TMP_DC_CPS_HB_SETUP_DIR=${2}
+    local TMP_DC_CPS_HB_EXTRA_DIR=${3}
 
-	## 统一编排到的路径
-	local TMP_HB_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/${TMP_HB_SETUP_NAME}
-	local TMP_HB_SETUP_LNK_DATA_DIR=${DATA_DIR}/${TMP_HB_SETUP_NAME}
-	local TMP_HB_SETUP_LNK_ETC_DIR=${ATT_DIR}/${TMP_HB_SETUP_NAME}
+    cd ${TMP_DC_CPS_HB_EXTRA_DIR}
 
-	## 安装后的真实路径（此处依据实际路径名称修改）
-	local TMP_HB_SETUP_LOGS_DIR=${TMP_HB_SETUP_DIR}/logs
-	local TMP_HB_SETUP_DATA_DIR=${TMP_HB_SETUP_DIR}/data
-	local TMP_HB_SETUP_ETC_DIR=${TMP_HB_SETUP_DIR}/etc
+    echo_style_wrap_text "Starting 'configuration composor', hold on please"
 
-	set_env_harbor 
+    ## 版本获取
+    local TMP_DC_CPS_HB_SETUP_VER=$(yq '._version' harbor.yml)
+    
+    ## 统一编排到的路径
+    local TMP_DC_CPS_HB_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
 
-	setup_harbor 
-	
-	formal_harbor
+    ## 统一标记名称(存在于安装目录的真实名称)
+    local TMP_DC_CPS_HB_SETUP_WORK_MARK="work"
+    local TMP_DC_CPS_HB_SETUP_LOGS_MARK="logs"
+    local TMP_DC_CPS_HB_SETUP_DATA_MARK="data"
+    local TMP_DC_CPS_HB_SETUP_ETC_MARK="etc"
 
-	conf_harbor 
-	
-	test_harbor 
+    ## 安装后的真实路径（此处依据实际路径名称修改）
+    local TMP_DC_CPS_HB_SETUP_WORK_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_WORK_MARK}
+    local TMP_DC_CPS_HB_SETUP_LOGS_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_LOGS_MARK}
+    local TMP_DC_CPS_HB_SETUP_DATA_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_DATA_MARK}
+    local TMP_DC_CPS_HB_SETUP_ETC_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_ETC_MARK}
+    
+	## 修改配置文件
+    yq -i '.hostname = "'${LOCAL_HOST}'"' harbor.yml
+    yq -i '.http.port = "'${TMP_DC_HB_SETUP_OPN_HTTP_PORT}'"' harbor.yml
+    yq -i '.https.port = "'${TMP_DC_HB_SETUP_OPN_HTTPS_PORT}'"' harbor.yml
+    yq -i '.log.local.location = "'${TMP_DC_CPS_HB_SETUP_LNK_LOGS_DIR}'"' harbor.yml
+    yq -i '.data_volume = "'${TMP_DC_CPS_HB_SETUP_LNK_DATA_DIR}'"' harbor.yml
 
-    # down_ext_harbor 
-    # setup_ext_harbor 
+    ## 设定DB密码
+    local TMP_DC_HB_ADMIN_PASSWD=$(console_input "$(rand_passwd 'harbor' 'svr' "${TMP_DC_CPS_HB_SETUP_VER}")" "Please sure your 'harbo' <admin password>" "y")
+    yq -i '.harbor_admin_password = "'${TMP_DC_HB_ADMIN_PASSWD}'"' harbor.yml
 
-	boot_harbor 
+    local TMP_DC_HB_DB_PASSWD=$(console_input "$(rand_passwd 'harbor' 'db' "${TMP_DC_CPS_HB_SETUP_VER}")" "Please sure your 'harbo' <database password>" "y")
+    yq -i '.database.password = "'${TMP_DC_HB_DB_PASSWD}'"' harbor.yml
 
-	# reconf_harbor 
+    ## 注释不需要的节点配置
+    comment_yaml_file_node_item "harbor.yml" ".https"
 
-	return $?
+    cat harbor.yml
+    bash prepare
+
+    bash install --with-chartmuseum
+
+    # 重装/更新/安装
+    soft_docker_check_upgrade_action "${1}" "boot_build_dc_goharbor_harbor"
+
+    return $?
 }
 
-##########################################################################################################
-
-# x1-检测软件安装
-function check_setup_harbor()
-{
+# x1-下载/安装/更新软件
+function check_setup_dc_goharbor_harbor() {
 	# 当前路径（仅记录）
-	local TMP_HB_CURRENT_DIR=$(pwd)
+	local TMP_DC_CPS_HB_CURRENT_DIR=$(pwd)
+    
+    echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
-    # 查找及确认版本
-	local TMP_HB_SETUP_NEWER="1.10.17"
-	set_github_soft_releases_newer_version "TMP_HB_SETUP_NEWER" "goharbor/harbor"
-	exec_text_printf "TMP_HB_SETUP_NEWER" "https://github.com/goharbor/harbor/releases/download/v%s/harbor-offline-installer-v%s.tgz"
-    soft_setup_wget "harbor" "${TMP_HB_SETUP_NEWER}" "exec_step_harbor"
+    # 获取已安装创建JQ列表
+	local TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR=$(soft_docker_check_exists_jq_arr_echo "^goharbor/")
 
-	return $?
+    if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" == "[]" ]; then
+    echo "setup"
+        # 全新安装
+        # docker_soft_setup_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
+    else
+    echo "check-restore"
+        json_split_action "TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR" "echo '%s' | jq"
+    fi
+
+    return $?
 }
 
 ##########################################################################################################
 
 # 安装主体
-soft_setup_basic "Harbor" "check_setup_harbor"
+soft_setup_basic "goharbor/harbor" "check_setup_dc_goharbor_harbor"

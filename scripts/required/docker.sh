@@ -214,19 +214,6 @@ function formal_docker()
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
-    
-    function _formal_docker_create_compose()
-    {
-        local TMP_DOCKER_SETUP_NEWER="2.16.0"
-        set_github_soft_releases_newer_version "TMP_DOCKER_SETUP_NEWER" "docker/compose"
-        exec_text_printf "TMP_DOCKER_SETUP_NEWER" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)"
-        while_curl "${TMP_DOCKER_SETUP_NEWER}" "mv docker-compose-$(uname -s)-$(uname -m) ${1}"
-        path_not_exists_link '/usr/local/bin/docker-compose' '' "${1}"
-        chmod +x ${1}
-        
-        docker-compose --version
-    }
-    path_not_exists_action "${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose" "_formal_docker_create_compose"
         
 	# 预实验部分
     
@@ -422,6 +409,9 @@ function down_ext_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
     
     echo_style_wrap_text "Starting 'download' <docker> exts, hold on please"
+        
+    # 安装docker-compose
+    soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.16.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
 
 	return $?
 }

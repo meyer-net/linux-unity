@@ -134,8 +134,6 @@ function echo_startup_supervisor_config()
 	path_not_exists_create $(dirname ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH})
 	path_not_exists_create "${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}"
 
-	echo
-    echo ${TMP_SPLITER}
 	if [ ! -f "${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}" ]; then
 		echo_style_wrap_text "Supervisor：Gen startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}>"
 		tee ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH} <<-EOF
@@ -159,6 +157,7 @@ stdout_logfile = ${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}/${_TMP_ECHO_STARTUP_
 numprocs = 1                                                                           ;
 EOF
 	else
+		echo ${TMP_SPLITER}
 		echo_style_text "Supervisor：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created at↓:"
 		ls -lia ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
 		echo "${TMP_SPLITER2}"
@@ -656,6 +655,7 @@ function discern_exchange_var_action() {
 function echo_discern_exchange_var_name() {
 	local _TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_PAIR_ARR=()
 	bind_discern_exchange_var_pair "_TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_PAIR_ARR" "${1}"
+	echo "${_TMP_ECHO_DISCERN_EXCHANGE_VAR_NAME_PAIR_ARR[0]}"
 
 	return $?
 }
@@ -781,13 +781,32 @@ function trim_str() {
 	return $?
 }
 
+# 生成密码
+# 参数1：软件名称
+# 参数2：软件类型
+# 参数3：安装节点或版本
+# 示例：
+#       rand_passwd "docker"
+#       rand_passwd "docker" "svr"
+function rand_passwd() {
+	typeset -l _TMP_RAND_PASSWD_SOFT_NAME
+	local _TMP_RAND_PASSWD_SOFT_NAME="${1}"
+
+	typeset -u _TMP_RAND_PASSWD_SOFT_TYPE
+	local _TMP_RAND_PASSWD_SOFT_TYPE="${2}"
+
+	echo "${_TMP_RAND_PASSWD_SOFT_NAME}%${_TMP_RAND_PASSWD_SOFT_TYPE}^m${LOCAL_ID}.${3:-0}~"
+
+	return $?
+}
+
 # 修改JSON参数单项并输出
 # 参数1：JSON内容变量名
 # 参数2：修改的参数节点，例 .Config.WorkingDir
 # 参数3：修改的参数节点内容，例 "/usr/src/app"
-function change_json_arg_item()
+function change_json_node_item()
 {
-	function _change_json_arg_item()
+	function _change_json_node_item()
 	{
 		local _TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL=$(eval echo '${'"${1}"'}')
 
@@ -796,7 +815,7 @@ function change_json_arg_item()
 		eval ${1}='${_TMP_CHANGE_JSON_ARG_ITEM_VAR_VAL}'
 	}
 
-	discern_exchange_var_action "${1}" "_change_json_arg_item" "${@}"
+	discern_exchange_var_action "${1}" "_change_json_node_item" "${@}"
     return $?
 }
 
@@ -805,9 +824,9 @@ function change_json_arg_item()
 # 参数2：修改的参数节点，例如 .Config.Env
 # 参数3：内容项匹配规则，例如 ^${2}=.*$
 # 参数4：内容项目最终修改值
-function change_json_arg_arr()
+function change_json_node_arr()
 {
-	function _change_json_arg_arr()
+	function _change_json_node_arr()
 	{
 		local _TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(eval echo '${'"${1}"'}')
 
@@ -816,17 +835,51 @@ function change_json_arg_arr()
 		local _TMP_CHANGE_JSON_ARG_ARR_REG="${2}"
 		local _TMP_CHANGE_JSON_ARG_ARR_REG_ITEM="${3}"
 		local _TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL="${4}"
-		function _change_json_arg_arr_change()
+		function _change_json_node_arr_change()
 		{
-			_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${_TMP_CHANGE_JSON_ARG_ARR_REG}[${2}]=\"${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL}\"")
+			_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL=$(echo "${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}" | jq "${_TMP_CHANGE_JSON_ARG_ARR_REG}[${2}]=${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_VAL}")
 		}
 
-		item_check_action "${3}" "${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[*]}" "_change_json_arg_arr_change"
+		item_check_action "${_TMP_CHANGE_JSON_ARG_ARR_REG_ITEM}" "${_TMP_CHANGE_JSON_ARG_ARR_CHANGE_ARR[*]}" "_change_json_node_arr_change"
 			
 		eval ${1}='${_TMP_CHANGE_JSON_ARG_ARR_VAR_VAL}'
 	}
 
-	discern_exchange_var_action "${1}" "_change_json_arg_arr" "${@}"
+	discern_exchange_var_action "${1}" "_change_json_node_arr" "${@}"
+    return $?
+}
+
+# 注释yaml文件节点内容（由于yq本身不支持，所以手动实现）
+# 参数1：YAML文件路径变量名/值
+# 参数2：注释的节点，例 .https
+# 示例：
+#       comment_yaml_file_node_item "harbor/harbor.yml" ".https"
+function comment_yaml_file_node_item()
+{
+	local _TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH=$(echo_discern_exchange_var_val "${1}")
+	local _TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL=$(diff -e <(yq "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}) ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH})
+
+	if [ -n "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" ]; then
+		# 删除节点
+		yq -i "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}
+
+		local _TMP_COMMENT_YAML_NODE_ITEM_LINE=$(echo "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" | awk 'NR==1')
+		local _TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM=$(echo "${_TMP_COMMENT_YAML_NODE_ITEM_LINE}" | egrep -o '^[0-9]+')
+		local _TMP_COMMENT_YAML_NODE_ITEM_LINE_ATTR=$(echo "${_TMP_COMMENT_YAML_NODE_ITEM_LINE}" | grep -oP "(?<=^${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM})\w+")
+
+		# 逐行插入注释后的节点
+		function _comment_yaml_file_node_item_append()
+		{
+			sed -i "${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM}${_TMP_COMMENT_YAML_NODE_ITEM_LINE_ATTR} ${1}" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}
+
+			# 行号后移
+			_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM=$((${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM}+1))
+		}
+		
+		# 忽略空行，最后一行
+		echo "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" | awk 'NR>1{if(line!=""){print line}{line="#"$0}}' | eval "script_channel_action '_comment_yaml_file_node_item_append'"
+	fi
+	
     return $?
 }
 
@@ -996,8 +1049,8 @@ function exec_text_printf()
 		# 附加动态参数
 		local _TMP_EXEC_TEXT_PRINTF_COUNT=$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" | grep -o "%" | wc -l)
 		local _TMP_EXEC_TEXT_PRINTFED_VAL=$(seq -s "{}" $((_TMP_EXEC_TEXT_PRINTF_COUNT+1)) | sed 's@[0-9]@ @g' | sed "s@{}@${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}@g")
-		local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(printf "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ${_TMP_EXEC_TEXT_PRINTFED_VAL})
-
+		local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(printf "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" "${_TMP_EXEC_TEXT_PRINTFED_VAL}")
+		
 		eval ${1}='${_TMP_EXEC_TEXT_PRINTF_FORMATED_VAL:-${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}}'
 	}
 
@@ -1881,6 +1934,40 @@ function items_split_action()
 	return $?
 }
 
+
+# 分割并执行动作
+# 参数1：用于分割的数组字符串变量名/值
+# 参数2：对分割字符串执行脚本
+# 参数x-N：动态参数
+# 示例：
+#       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
+function json_split_action()
+{
+	local _TMP_JSON_SPLIT_ACTION_VAR_PAIR=()
+	bind_discern_exchange_var_pair "_TMP_JSON_SPLIT_ACTION_VAR_PAIR" "${1}"
+	local _TMP_JSON_SPLIT_ACTION_VAR_NAME=${_TMP_JSON_SPLIT_ACTION_VAR_PAIR[0]}
+	local _TMP_JSON_SPLIT_ACTION_VAR_VAL=${_TMP_JSON_SPLIT_ACTION_VAR_PAIR[1]}
+	
+	local _TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT=${2}
+	if [ -n "${_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT}" ]; then
+		local _TMP_JSON_SPLIT_ACTION_VAR_VAL_LENGTH=$(echo "${_TMP_JSON_SPLIT_ACTION_VAR_VAL:-[]}" | jq "length-1")
+		if [ ${_TMP_JSON_SPLIT_ACTION_VAR_VAL_LENGTH} -ge 0 ]; then
+			for _TMP_JSON_SPLIT_ACTION_CURR_INDEX in $(seq 0 ${_TMP_JSON_SPLIT_ACTION_VAR_VAL_LENGTH}); do
+				local _TMP_JSON_SPLIT_ACTION_SPLIT_ITEM=$(echo "${_TMP_JSON_SPLIT_ACTION_VAR_VAL}" | jq ".[${_TMP_JSON_SPLIT_ACTION_CURR_INDEX}]")
+				
+				# 附加动态参数
+				local _TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL="${_TMP_JSON_SPLIT_ACTION_SPLIT_ITEM}"
+				exec_text_printf "_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT}"
+				
+				# 格式化运行动态脚本
+				script_check_action "_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_JSON_SPLIT_ACTION_SPLIT_ITEM}" "${_TMP_JSON_SPLIT_ACTION_CURR_INDEX}" "${@:3}"
+			done
+		fi
+	fi
+
+	return $?
+}
+
 ##########################################################################################################
 # 路径操作类
 ##########################################################################################################
@@ -2222,6 +2309,55 @@ function path_not_exists_link()
 # 数据录入类
 ##########################################################################################################
 # 弹出动态设置变量值函数
+# 参数1：默认变量名/值
+# 参数2：提示信息
+# 参数3：是否内容加密（默认：不显示，y/Y：密文）
+function console_input()
+{
+	local _TMP_CONSULE_INPUT_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
+	local _TMP_CONSULE_INPUT_ECHO="'|'${2}"
+	local _TMP_CONSULE_INPUT_VAR_SEC=${3}
+	
+	# 自动样式化消息前缀 
+	bind_style_text "_TMP_CONSULE_INPUT_ECHO"
+	
+	local _TMP_CONSULE_INPUT_INPUT_CURRENT=""
+	function _TMP_CONSULE_INPUT_NORMAL_FUNC() {
+		echo "|${_TMP_CONSULE_INPUT_ECHO}, default '${_TMP_CONSULE_INPUT_VAR_VAL}'"
+		read -e _TMP_CONSULE_INPUT_INPUT_CURRENT
+	}
+	
+	function _TMP_CONSULE_INPUT_GUM_FUNC()	{
+		# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
+		# 必须转义，否则带样式的前提下会解析冲突
+		_TMP_CONSULE_INPUT_ECHO=${_TMP_CONSULE_INPUT_ECHO//\"/\\\"}
+		local _TMP_CONSULE_INPUT_GUM_ARGS="--placeholder '${_TMP_CONSULE_INPUT_VAR_VAL}' --value '${_TMP_CONSULE_INPUT_VAR_VAL}'"
+		
+		case ${_TMP_CONSULE_INPUT_VAR_SEC} in
+			"y" | "Y")
+			local _TMP_CONSULE_INPUT_ECHO_DEFAULT="[${_TMP_CONSULE_INPUT_VAR_VAL}]"
+			bind_style_text "_TMP_CONSULE_INPUT_ECHO_DEFAULT"
+			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}, default(${_TMP_CONSULE_INPUT_ECHO_DEFAULT}): ' --password"
+			;;
+			*)
+			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}, default: '"
+			#
+		esac
+
+		_TMP_CONSULE_INPUT_INPUT_CURRENT=$(eval gum input ${_TMP_CONSULE_INPUT_GUM_ARGS})
+
+		return $?
+	}
+	
+	# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_CONSULE_INPUT_NORMAL_FUNC"
+	path_exists_yn_action "${GUM_PATH}" "_TMP_CONSULE_INPUT_GUM_FUNC" "_TMP_CONSULE_INPUT_NORMAL_FUNC"
+
+	echo "${_TMP_CONSULE_INPUT_INPUT_CURRENT}"
+
+	return $?
+}
+
+# 弹出动态设置变量值函数
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
@@ -2229,50 +2365,14 @@ function bind_if_input()
 {
 	function _bind_if_input()
 	{
-		local _TMP_BIND_IF_INPUT_ECHO=${2}
-		local _TMP_BIND_IF_INPUT_VAR_SEC=${3}
-		local _TMP_BIND_IF_INPUT_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
-		
-		# 自动样式化消息前缀 
-		bind_style_text "_TMP_BIND_IF_INPUT_ECHO"
-		
-		local _TMP_BIND_IF_INPUT_INPUT_CURRENT=""
-		function _TMP_BIND_IF_INPUT_NORMAL_FUNC() {
-			echo "${_TMP_BIND_IF_INPUT_ECHO}, default '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
-			read -e _TMP_BIND_IF_INPUT_INPUT_CURRENT
-			echo ""
-		}
-		
-		function _TMP_BIND_IF_INPUT_GUM_FUNC()	{
-			# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
-			# 必须转义，否则带样式的前提下会解析冲突
-			_TMP_BIND_IF_INPUT_ECHO=${_TMP_BIND_IF_INPUT_ECHO//\"/\\\"}
-			local _TMP_BIND_IF_INPUT_GUM_ARGS="--placeholder '${_TMP_BIND_IF_INPUT_VAR_VAL}' --prompt '${reset}${_TMP_BIND_IF_INPUT_ECHO}, default: ' --value '${_TMP_BIND_IF_INPUT_VAR_VAL}'"
-			
-			case ${_TMP_BIND_IF_INPUT_VAR_SEC} in
-				"y" | "Y")
-				_TMP_BIND_IF_INPUT_GUM_ARGS="${_TMP_BIND_IF_INPUT_GUM_ARGS} --password"
-				;;
-				*)
-				#
-			esac
-
-			_TMP_BIND_IF_INPUT_INPUT_CURRENT=$(eval gum input ${_TMP_BIND_IF_INPUT_GUM_ARGS})
-
-			return $?
-		}
-		
-		# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_BIND_IF_INPUT_NORMAL_FUNC"
-		path_exists_yn_action "${GUM_PATH}" "_TMP_BIND_IF_INPUT_GUM_FUNC" "_TMP_BIND_IF_INPUT_NORMAL_FUNC"
-
-		if [ -n "${_TMP_BIND_IF_INPUT_INPUT_CURRENT}" ]; then
-			eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
-		fi
+		local _TMP_BIND_IF_INPUT_INPUT_CURRENT=$(console_input "${1}" "${2}" ${3})
+		eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
 	}
 
 	discern_exchange_var_action "${1}" "_bind_if_input" "${@}"
 	return $?
 }
+
 # 弹出动态设置变量值函数，如果为空
 # 参数1：需要设置的变量名
 # 参数2：提示信息
@@ -3516,7 +3616,6 @@ function wget_unpack_dist()
 function while_wget()
 {
 	local _TMP_WHILE_WGET_URL=${1}
-	local _TMP_WHILE_WGET_SCRIPT=${2}
 	local _TMP_WHILE_WGET_CURRENT_DIR=$(pwd)
 
 	#包含指定参数
@@ -3572,9 +3671,7 @@ function while_wget()
 	done
 
 	# 执行wget后的脚本
-	if [ ${#_TMP_WHILE_WGET_SCRIPT} -gt 0 ]; then
-		eval "${_TMP_WHILE_WGET_SCRIPT}"
-	fi
+	script_check_action "${2}"
 
 	# 回到wget之前的目录
 	cd ${_TMP_WHILE_WGET_CURRENT_DIR}
@@ -3588,7 +3685,6 @@ function while_wget()
 function while_curl()
 {
 	local _TMP_WHILE_CURL_URL=${1}
-	local _TMP_WHILE_CURL_SCRIPT=${2}
 	local _TMP_WHILE_CURL_CURRENT_DIR=$(pwd)
 
 	#包含指定参数
@@ -3604,6 +3700,7 @@ function while_curl()
 	_TMP_WHILE_CURL_FILE_DEST_NAME=${_TMP_WHILE_CURL_FILE_DEST_NAME:-${_TMP_WHILE_CURL_FILE_NAME}}
 	# _TMP_WHILE_CURL_FILE_DEST_NAME=$([ -n "$_TMP_WHILE_CURL_FILE_DEST_NAME" ] && echo "$_TMP_WHILE_CURL_FILE_DEST_NAME" || echo $_TMP_WHILE_CURL_FILE_NAME)
 	
+	path_not_exists_create "${CURL_DIR}"
 	echo "-------------------------------------------------------------------------------------------------------------------------"
 	echo_style_text "Starting <curl> file from [${_TMP_WHILE_CURL_TRUE_URL}] named '${_TMP_WHILE_CURL_FILE_DEST_NAME}'"
 	echo "-------------------------------------------------------------------------------------------------------------------------"
@@ -3625,9 +3722,8 @@ function while_curl()
 		fi
 	done
 
-	if [ ${#_TMP_WHILE_CURL_SCRIPT} -gt 0 ]; then
-		eval "${_TMP_WHILE_CURL_SCRIPT}"
-	fi
+	script_check_action "${2}"
+
 	cd ${_TMP_WHILE_CURL_CURRENT_DIR}
 
 	# rm -rf ${_TMP_WHILE_CURL_FILE_DEST_NAME}
@@ -4433,7 +4529,7 @@ function docker_soft_trail_clear()
 	docker_soft_dirs_bind "_TMP_DOCKER_SOFT_TRAIL_CLEAR_DIR_ARR" "${1}"
 
 	# 移除前记录挂载卷
-	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_VOLUMES=$(docker container inspect ${1} | jq --arg TYPE 'volume' '.[0].Mounts[] | select(.Type == $TYPE) | .Name'| grep -oP "(?<=^\").*(?=\"$)")
+	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_VOLUMES=$(docker container inspect ${1} | jq --arg TYPE 'volume' '.[0].Mounts[] | select(.Type == $TYPE) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
 
 	# 容器移除
 	function _docker_soft_trail_clear_ctn_remove()
@@ -4751,7 +4847,7 @@ function docker_change_container_inspect_arg()
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_DATA_PATH}/config.v2.json"
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH})
 	
-    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2" "${2}" "\"${3}\""
+    change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2" "${2}" "\"${3}\""
 
     echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2}" | jq > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ARG_CONFV2_PATH}
 
@@ -4770,7 +4866,7 @@ function docker_change_container_inspect_env()
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_DATA_PATH}/config.v2.json"
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH})
     
-	change_json_arg_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "${2}=${3}"
+	change_json_node_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2" ".Config.Env" "^${2}=.*$" "\"${2}=${3}\""
     
     echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2}" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_ENV_CONFV2_PATH}
 
@@ -4834,26 +4930,26 @@ function docker_change_container_inspect_mount()
 
 	# VOL
 	if [ -z "$(echo "${2}" | grep -o "^/")" ]; then
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".NAME" "\"${2}\""
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${DOCKER_DATA_DIR}/volumes/${2}/_data\""
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Driver" "\"local\""
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Type" "\"volume\""
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Relabel" "\"z\""
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Type" "\"volume\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".NAME" "\"${2}\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${DOCKER_DATA_DIR}/volumes/${2}/_data\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Driver" "\"local\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Type" "\"volume\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Relabel" "\"z\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Type" "\"volume\""
 	else
-		change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
 	fi
 
-    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
+    change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
 
-    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
-    change_json_arg_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
+    change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Source" "\"${2}\""
+    change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Target" "\"${3}\""
 
     # argjson相关参考：https://www.jianshu.com/p/e05a5940f833
     echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
 
 	# 修改 hostconfig.json
-	change_json_arg_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "${2}:${3}"
+	change_json_node_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "\"${2}:${3}\""
 
 	echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
     
@@ -5921,7 +6017,9 @@ function docker_snap_restore_action()
 			
 			# 容器恢复丢失环境信息，故需要读取容器inspect信息
 			local _TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_CTN_FILE_INSPECT}" | jq ".[0].Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)")
-			_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_ENVS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS}" | xargs printf "--env=%s ")
+			if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS}" ]; then
+				_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_ENVS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_ENVS}" | xargs printf "--env=%s ")
+			fi
 			
 			# 容器的参数覆盖传参的参数		
 			function _docker_snap_restore_action_filter_arg_envs()
@@ -5939,7 +6037,9 @@ function docker_snap_restore_action()
 		local _TMP_DOCKER_SNAP_RESTORE_ACTION_CTN_FILE_HOSTCONF=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.hostconfig.json)
 		# 挂载盘信息获取
 		local _TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_CTN_FILE_HOSTCONF}" | jq ".Binds" | grep -oP "(?<=^  \").*(?=\",*$)")
-		_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS}" | xargs printf "--volume=%s ")
+		if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS}" ]; then
+			_TMP_DOCKER_SNAP_RESTORE_ACTION_ARG_MOUNTS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_FILE_MOUNTS}" | xargs printf "--volume=%s ")
+		fi
 		
 		function _docker_snap_restore_action_filter_arg_mounts()
 		{
@@ -6304,6 +6404,116 @@ function soft_setup_basic()
 	return $?
 }
 
+# 路径不存在时下载软件
+# 参数1：检测路径
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件解压路径
+# 示例：
+#      path_check_wget_action "/opt/gum" "https://github.com/charmbracelet/gum/releases/download/v0.8.0/gum_0.8.0_linux_amd64.rpm" "exec_step_gum"
+function path_check_wget_action()
+{
+	local _TMP_PATH_CHECK_WGET_CHECK_DIR=${1}
+	local _TMP_PATH_CHECK_WGET_URL=${2}
+	local _TMP_PATH_CHECK_WGET_EXEC_SCRIPT=${3}
+	local _TMP_PATH_CHECK_WGET_CURR_DIR=$(pwd)
+	
+	function _path_check_wget()
+	{
+		local _TMP_PATH_CHECK_WGET_FILE_NAME=
+		local _TMP_PATH_CHECK_WGET_FILE_DIR="${DOWN_DIR}"
+		while_wget "${_TMP_PATH_CHECK_WGET_URL}" '_TMP_PATH_CHECK_WGET_FILE_DIR=$(pwd) && _TMP_PATH_CHECK_WGET_FILE_NAME=${_TMP_WHILE_WGET_FILE_DEST_NAME}'
+		
+		# 回到while_wget下载的目录中去
+		cd ${_TMP_PATH_CHECK_WGET_FILE_DIR}
+
+		local _TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS="${DOWN_DIR}/tmp"
+		local _TMP_PATH_CHECK_WGET_UNPACK_FILE_EXT=$(echo ${_TMP_PATH_CHECK_WGET_FILE_NAME##*.})
+		if [ "${_TMP_PATH_CHECK_WGET_UNPACK_FILE_EXT}" = "zip" ]; then
+			_TMP_PATH_CHECK_WGET_PACK_DIR_LINE=$(unzip -v ${_TMP_PATH_CHECK_WGET_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}')
+			local _TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP=$(unzip -v ${_TMP_PATH_CHECK_WGET_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_PATH_CHECK_WGET_PACK_DIR_LINE+1)))
+			_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS=${_TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP%/*}
+			
+			# 没有层级的情况
+			local _TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP_ARGS=""
+			if [ "${_TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP}" == "${_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS}" ]; then
+				_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS="${_TMP_PATH_CHECK_WGET_LOWER_NAME}"
+				_TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP_ARGS="-d ${_TMP_PATH_CHECK_WGET_LOWER_NAME}"
+			fi
+
+			# 本地是否存在目录
+			if [ ! -d "${_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS}" ]; then
+				unzip -o ${_TMP_PATH_CHECK_WGET_FILE_NAME} ${_TMP_PATH_CHECK_WGET_FILE_NAME_UNZIP_ARGS}
+			fi
+		else
+			_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS=$(tar -tf ${_TMP_PATH_CHECK_WGET_FILE_NAME} | grep '/' | awk 'NR==1{print}' | sed s@/.*@""@g)
+			if [ ! -d "${_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS}" ]; then
+				if [ "${_TMP_PATH_CHECK_WGET_UNPACK_FILE_EXT}" = "xz" ]; then
+					xz -d ${_TMP_PATH_CHECK_WGET_FILE_NAME}
+					local _TMP_PATH_CHECK_WGET_FILE_NAME_TAR=${_TMP_PATH_CHECK_WGET_FILE_NAME%%.xz*}
+					tar -xvf ${_TMP_PATH_CHECK_WGET_FILE_NAME_TAR}
+					rm -rf ${_TMP_PATH_CHECK_WGET_FILE_NAME_TAR}
+				else
+					tar -zxvf ${_TMP_PATH_CHECK_WGET_FILE_NAME}
+				fi
+			fi
+		fi
+
+		script_check_action "_TMP_PATH_CHECK_WGET_EXEC_SCRIPT" "$(pwd)/${_TMP_PATH_CHECK_WGET_FILE_NAME_NO_EXTS}"
+		
+		cd ${_TMP_PATH_CHECK_WGET_CURR_DIR}
+	}
+	
+	path_not_exists_action "${_TMP_PATH_CHECK_WGET_CHECK_DIR}" "_path_check_wget"
+
+	return $?
+}
+
+# 安装软件下载模式(公共)
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：安装检测路径
+# 参数4：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数5：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#      soft_setup_common_wget "gum" "0.8.0" "exec_step_gum"
+function soft_setup_common_wget() 
+{
+	local _TMP_SOFT_SETUP_COMMON_WGET_NAME=${1}
+	# local _TMP_SOFT_SETUP_COMMON_WGET_MARK_NAME="${1/\//_}"
+	local _TMP_SOFT_SETUP_COMMON_WGET_URL=${2}
+	local _TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR=${3}
+	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT=${4}
+	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT=${5}
+	local _TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR=
+
+	function _soft_setup_wget()
+	{
+		_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR="${1}"
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}"
+
+		# 清理解压包
+		if [ -n "${1}" ]; then
+			rm -rf ${1}
+		fi
+	}
+
+	path_check_wget_action "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_COMMON_WGET_URL}" "_soft_setup_wget"
+    # ls -d ${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_COMMON_WGET_NAME} | grep -v grep
+	if [[ -z "${_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR}" ]]; then
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}"
+		return $?
+	fi
+
+	return $?
+}
+
 # 安装软件下载模式
 # 参数1：软件安装名称
 # 参数2：软件下载地址
@@ -6315,65 +6525,169 @@ function soft_setup_basic()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+# 示例：
+#      soft_setup_wget "gum" "0.8.0" "exec_step_gum"
 function soft_setup_wget() 
 {
 	local _TMP_SOFT_SETUP_WGET_NAME=${1}
-	local _TMP_SOFT_SETUP_WGET_URL=${2}
-	local _TMP_SOFT_SETUP_WGET_INSTALL_SCRIPT=${3}
-	local _TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPT=${5}
+	# local _TMP_SOFT_SETUP_WGET_MARK_NAME="${1/\//_}"
 	
 	typeset -l _TMP_SOFT_SETUP_WGET_LOWER_NAME
 	local _TMP_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_WGET_NAME}
 	local _TMP_SOFT_SETUP_WGET_SETUP_DIR=${SETUP_DIR}/${_TMP_SOFT_SETUP_WGET_LOWER_NAME}
 
-    # ls -d ${_TMP_SOFT_SETUP_WGET_SETUP_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_WGET_NAME} | grep -v grep
-	if [[ ! -a ${_TMP_SOFT_SETUP_WGET_SETUP_DIR} ]]; then
-		local _TMP_SOFT_SETUP_WGET_FILE_NAME=
-		local _TMP_SOFT_SETUP_WGET_FILE_DIR="${DOWN_DIR}"
-		while_wget "${_TMP_SOFT_SETUP_WGET_URL}" '_TMP_SOFT_SETUP_WGET_FILE_DIR=$(pwd) && _TMP_SOFT_SETUP_WGET_FILE_NAME=${_TMP_SOFT_SETUP_WGET_FILE_DEST_NAME}'
-		
-		# 回到while_wget下载的目录中去
-		cd ${_TMP_SOFT_SETUP_WGET_FILE_DIR}
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}"
+	return $?
+}
 
-		local _TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS="${DOWN_DIR}/tmp"
-		local _TMP_SOFT_SETUP_WGET_UNPACK_FILE_EXT=$(echo ${_TMP_SOFT_SETUP_WGET_FILE_NAME##*.})
-		if [ "${_TMP_SOFT_SETUP_WGET_UNPACK_FILE_EXT}" = "zip" ]; then
-			_TMP_SOFT_SETUP_WGET_PACK_DIR_LINE=$(unzip -v ${_TMP_SOFT_SETUP_WGET_FILE_NAME} | awk '/----/{print NR}' | awk 'NR==1{print}')
-			local _TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP=$(unzip -v ${_TMP_SOFT_SETUP_WGET_FILE_NAME} | awk 'NR==LINE{print $NF}' LINE=$((_TMP_SOFT_SETUP_WGET_PACK_DIR_LINE+1)))
-			_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS=${_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP%/*}
-			
-			# 没有层级的情况
-			local _TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS=""
-			if [ "${_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP}" == "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}" ]; then
-				_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS="${_TMP_SOFT_SETUP_WGET_LOWER_NAME}"
-				_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS="-d ${_TMP_SOFT_SETUP_WGET_LOWER_NAME}"
-			fi
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#      docker_soft_setup_wget "browserless/chrome" "0.8.0" "exec_step_gum"
+function docker_soft_setup_wget() 
+{
+	local _TMP_DOCKER_SOFT_SETUP_WGET_NAME=${1}
+	local _TMP_DOCKER_SOFT_SETUP_WGET_MARK_NAME="${1/\//_}"
+	
+	typeset -l _TMP_DOCKER_SOFT_SETUP_WGET_LOWER_NAME
+	local _TMP_DOCKER_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_DOCKER_SOFT_SETUP_WGET_NAME}
+	local _TMP_DOCKER_SOFT_SETUP_WGET_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_SETUP_WGET_MARK_NAME}
 
-			# 本地是否存在目录
-			if [ ! -d "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}" ]; then
-				unzip -o ${_TMP_SOFT_SETUP_WGET_FILE_NAME} ${_TMP_SOFT_SETUP_WGET_FILE_NAME_UNZIP_ARGS}
-			fi
-		else
-			_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS=$(tar -tf ${_TMP_SOFT_SETUP_WGET_FILE_NAME} | grep '/' | awk 'NR==1{print}' | sed s@/.*@""@g)
-			if [ ! -d "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}" ]; then
-				if [ "${_TMP_SOFT_SETUP_WGET_UNPACK_FILE_EXT}" = "xz" ]; then
-					xz -d ${_TMP_SOFT_SETUP_WGET_FILE_NAME}
-					local _TMP_SOFT_SETUP_WGET_FILE_NAME_TAR=${_TMP_SOFT_SETUP_WGET_FILE_NAME%%.xz*}
-					tar -xvf ${_TMP_SOFT_SETUP_WGET_FILE_NAME_TAR}
-					rm -rf ${_TMP_SOFT_SETUP_WGET_FILE_NAME_TAR}
-				else
-					tar -zxvf ${_TMP_SOFT_SETUP_WGET_FILE_NAME}
-				fi
-			fi
-		fi
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_DOCKER_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}"
+	return $?
+}
 
-		#安装函数调用
-		script_check_action "_TMP_SOFT_SETUP_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_WGET_NAME}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}"
-	else
-		# 执行安装
-		script_check_action "_TMP_SOFT_SETUP_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_WGET_NAME}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_WGET_FILE_NAME_NO_EXTS}"
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#      conda_soft_setup_wget "browserless/chrome" "0.8.0" "exec_step_gum"
+function conda_soft_setup_wget() 
+{
+	local _TMP_CONDA_SOFT_SETUP_WGET_NAME=${1}
+	local _TMP_CONDA_SOFT_SETUP_WGET_MARK_NAME="${1/\//_}"
+	
+	typeset -l _TMP_CONDA_SOFT_SETUP_WGET_LOWER_NAME
+	local _TMP_CONDA_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_CONDA_SOFT_SETUP_WGET_NAME}
+	local _TMP_CONDA_SOFT_SETUP_WGET_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${_TMP_CONDA_SOFT_SETUP_WGET_MARK_NAME}
+
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_CONDA_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}"
+	return $?
+}
+
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：软件安装类型（docker,conda,空），默认普通
+# 参数6：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数7：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#      soft_setup_git_common_wget "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "" "exec_step_gum"
+function soft_setup_git_common_wget() 
+{
+	# 查找及确认版本
+	local _TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER="${4}"
+	set_github_soft_releases_newer_version "_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER" "${2}"
+	exec_text_printf "_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER" "${3}"
+	local _TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME="soft_setup_wget"
+	
+	if [ -n "${5}" ]; then
+		_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME="${5}_${_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME}"
 	fi
+	
+	${_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME} "${1}" "${_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER}" "${6}" "${7}"
+	
+	return $?
+}
 
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数6：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#       soft_setup_git_wget "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "exec_step_gum"
+function soft_setup_git_wget() 
+{
+	soft_setup_git_common_wget "${1}" "${2}" "${3}" "${4}" "" "${5}" "${6}"
+	
+	return $?
+}
+
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数6：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#       docker_soft_setup_git_wget "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "exec_step_gum"
+function docker_soft_setup_git_wget() 
+{
+	soft_setup_git_common_wget "${1}" "${2}" "${3}" "${4}" "docker" "${5}" "${6}"
+	
+	return $?
+}
+
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：仓库名称，charmbracelet/gum
+# 参数3：链接地址，https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm
+# 参数4：默认版本，0.8.0
+# 参数5：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 参数6：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+# 示例：
+#       conda_soft_setup_git_wget "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "exec_step_gum"
+function conda_soft_setup_git_wget() 
+{
+	soft_setup_git_common_wget "${1}" "${2}" "${3}" "${4}" "conda" "${5}" "${6}"
+	
 	return $?
 }
 
@@ -7107,4 +7421,112 @@ function soft_docker_check_upgrade_action()
 	fi
 
     return $?
+}
+
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：镜像名称(模糊正则查询)，用于检测
+# 参数2：查询到镜像后执行脚本
+#       参数1：镜像名称，例 browserless/chrome
+#       参数2：镜像版本，例 imgver111111_v1670329246
+#       参数3：启动命令，例 /bin/sh
+#       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+# 示例：
+#     soft_docker_check_exists_action "browserless/" "exec_step_browserless_chrome"
+function soft_docker_check_exists_action() 
+{
+	local _TMP_SOFT_DOCKER_CHECK_ACTION_REGEX_VAL=$(echo_discern_exchange_var_val "${1}")	
+	local _TMP_SOFT_DOCKER_CHECK_ACTION_EXEC_SCRIPT=${2}
+	if [ -n "${_TMP_SOFT_DOCKER_CHECK_ACTION_REGEX_VAL}" ]; then
+		function _soft_docker_check_exists_action()
+		{
+			local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT="$(docker inspect ${1} 2>/dev/null | jq '.[0]')"
+			if [ -n "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" ]; then
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" | jq '.Config.Image' | grep -oP '(?<=^\").*(?=\"$)')
+				if [ -z "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME}" ]; then
+					_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" | jq '.RepoTags' | grep -oP "(?<=^  \").*(?=\",*$)")
+				fi
+				
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_VER=$(echo ${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_CTN_ID=$(docker ps -a --no-trunc | awk "{if(\$2==\"${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME}\"){print \$1}}")
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD=""
+				local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS=""
+				if [ -z "${_TMP_SOFT_DOCKER_CHECK_ACTION_CTN_ID}" ]; then
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_PATH=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" | jq '.Path')
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" | jq '.Args' | grep -oP "(?<=^  \").*(?=\",*$)"))
+					_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD="${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_PATH} ${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD_ARR[*]}"
+
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ENVS=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_INSPECT}" | jq ".Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)")
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_ARG_ENVS=
+					if [ -n "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ENVS}" ]; then
+						_TMP_SOFT_DOCKER_CHECK_ACTION_ARG_ENVS=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ENVS}" | xargs printf "--env=%s ")
+					fi
+	
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_IMG_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_CTN_IMG_HOSTCONF}" | jq '.Mounts[] | .Source + ":" + .Destination' | grep -oP "(?<=^\").*(?=\"$)")
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_ARG_MOUNTS=
+					if [ -n "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_MOUNTS}" ]; then
+						_TMP_SOFT_DOCKER_CHECK_ACTION_ARG_MOUNTS=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_MOUNTS}" | xargs printf "--volume=%s ")
+					fi
+
+					_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS="${_TMP_SOFT_DOCKER_CHECK_ACTION_ARG_ENVS} ${_TMP_SOFT_DOCKER_CHECK_ACTION_ARG_MOUNTS}"
+				else
+					local _TMP_SOFT_DOCKER_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_SOFT_DOCKER_CHECK_ACTION_CTN_ID}")
+					
+					_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD=$(echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME} ).+")
+					_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS=$(echo '${_TMP_SOFT_DOCKER_CHECK_ACTION_CTN_RUNLIKE}' | grep -oP '(?<=docker run ).+(?=${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_FULL_NAME})')
+				fi
+
+				trim_str "_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD"
+				trim_str "_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS"
+				_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD=$([[ "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD}" != "null" ]] && echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD}" || echo)
+				_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS=$([[ "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS}" != "null" ]] && echo "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS}" || echo)
+				script_check_action "_TMP_SOFT_DOCKER_CHECK_ACTION_EXEC_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_VER}" "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_CMD}" "${_TMP_SOFT_DOCKER_CHECK_ACTION_IMG_ARGS}"
+			fi
+		}
+		
+		items_split_action "$(docker images | egrep "${_TMP_SOFT_DOCKER_CHECK_ACTION_REGEX_VAL}" | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+)" | awk '{print $3}')" "_soft_docker_check_exists_action"
+	fi
+
+    return $?
+}
+
+# Docker镜像检测输出（返回JQ镜像列表）
+# 参数1：需要绑定的变量名/值
+# 参数2：镜像名称(模糊正则查询)，用于检测
+# 示例：
+#      local _CHECK_ITEM="browserless/"
+#      soft_docker_check_exists_jq_arr_echo "_CHECK_ITEM"
+#      soft_docker_check_exists_jq_arr_echo "browserless/"
+function soft_docker_check_exists_jq_arr_echo()
+{
+	local _TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR="[]"
+
+	function _soft_docker_check_exists_jq_arr_bind()
+	{
+		change_json_node_arr "_TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR" "." "" "{ \"Image\": \"${1}\", \"Version\": \"${2}\", \"Cmd\": \"${3}\", \"Args\": \"${4}\" }"
+	}
+
+	soft_docker_check_exists_action "${1}" '_soft_docker_check_exists_jq_arr_bind'
+
+	echo "${_TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR}"
+	
+	return $?
+}
+
+# Docker镜像检测输出（返回JQ镜像列表）
+# 参数1：需要绑定的变量名/值
+# 参数2：镜像名称(模糊正则查询)，用于检测
+# 示例：
+#      local _EXISTS_JQ_ARR=""
+#      local _CHECK_ITEM="browserless/"
+#      soft_docker_check_exists_jq_arr_bind "_EXISTS_JQ_ARR" "_CHECK_ITEM"
+#      soft_docker_check_exists_jq_arr_bind "_EXISTS_JQ_ARR" "browserless/"
+function soft_docker_check_exists_jq_arr_bind()
+{
+	local _TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_VAR_NAME=$(echo_discern_exchange_var_name "${1}")	
+	local _TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_REGEX=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR=$(soft_docker_check_exists_jq_arr_echo "${_TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_REGEX}")
+
+	eval ${_TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_VAR_NAME}='${_TMP_SOFT_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR}'
+	return $?
 }

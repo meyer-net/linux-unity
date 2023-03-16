@@ -26,7 +26,7 @@ LOCAL_IPV6="$(echo_ipv6)"
 # ip addr | grep "[0-9]*\.[0-9]*\.[0-9]*\.[0-9]*/[0-9]*.*brd" | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}'
 LOCAL_HOST="$(echo_iplocal)"
 LOCAL_HOST_AREA="$(echo_iplocal_area)"
-LOCAL_ID=$(echo \${LOCAL_HOST##*.})
+LOCAL_ID=$(echo ${LOCAL_HOST##*.})
 
 SYS_IP_CONNECT=$(echo ${LOCAL_HOST} | sed 's@\.@-@g' | xargs -I {} echo "{}")
 SYS_NEW_NAME="ip-${SYS_IP_CONNECT}"
