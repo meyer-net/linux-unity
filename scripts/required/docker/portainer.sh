@@ -312,7 +312,7 @@ function check_setup_dc_portainer() {
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装
-    soft_docker_check_upgrade_action "${1}" "boot_build_dc_portainer"
+    soft_docker_check_choice_upgrade_action "${1}" "boot_build_dc_portainer"
 
     return $?
 }

@@ -380,7 +380,7 @@ function check_setup_dc_$setup_name() {
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装
-    soft_docker_check_upgrade_action "${1}" "boot_build_dc_$setup_name"
+    soft_docker_check_choice_upgrade_action "${1}" "boot_build_dc_$setup_name"
 
     return $?
 }

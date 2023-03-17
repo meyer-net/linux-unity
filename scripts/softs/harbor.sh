@@ -432,11 +432,14 @@ function conf_dc_compose_goharbor_harbor() {
 
     cat harbor.yml
     bash prepare
+    cp $(pwd) /root/
+ls -lia 
+return
 
     bash install --with-chartmuseum
 
     # 重装/更新/安装
-    soft_docker_check_upgrade_action "${1}" "boot_build_dc_goharbor_harbor"
+    soft_docker_check_choice_upgrade_action "${1}" "boot_build_dc_goharbor_harbor"
 
     return $?
 }
@@ -449,14 +452,13 @@ function check_setup_dc_goharbor_harbor() {
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 获取已安装创建JQ列表
-	local TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR=$(soft_docker_check_exists_jq_arr_echo "^goharbor/")
+	local TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR=$(docker_check_exists_jq_arr_echo "^goharbor/")
 
     if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" == "[]" ]; then
-    echo "setup"
         # 全新安装
-        # docker_soft_setup_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
+        soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
     else
-    echo "check-restore"
+        echo_style_text "Checked exists images↓:"
         json_split_action "TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR" "echo '%s' | jq"
     fi
 
