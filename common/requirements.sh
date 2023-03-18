@@ -53,6 +53,7 @@ function setup_requriements()
 
     soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.9.0" "rpm -ivh gum_%s_linux_amd64.rpm"
     soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv -f pup /usr/bin/"
+    # https://mikefarah.gitbook.io/yq/operators/keys
     soft_cmd_check_confirm_git_action "yq" "mikefarah/yq" "https://github.com/mikefarah/yq/releases/download/v%s/yq_linux_amd64.tar.gz" "4.31.2" "tar -zxvf yq_linux_amd64.tar.gz && mv -f yq_linux_amd64 /usr/bin/yq"
     
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。conda>docker>sealos）

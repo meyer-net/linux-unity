@@ -1911,6 +1911,8 @@ function item_change_append_ignore_prefix_bind()
 # 分割并执行动作
 # 参数1：用于分割的数组字符串变量名/值
 # 参数2：对分割字符串执行脚本
+#       参数1：内容下正文
+#       参数2：内容所在索引
 # 参数x-N：动态参数
 # 示例：
 #       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
@@ -1946,10 +1948,11 @@ function items_split_action()
 	return $?
 }
 
-
 # 分割并执行动作
-# 参数1：用于分割的数组字符串变量名/值
+# 参数1：用于分割的JSON字符串变量名/值
 # 参数2：对分割字符串执行脚本
+#       参数1：内容下正文
+#       参数2：内容所在索引
 # 参数x-N：动态参数
 # 示例：
 #       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
@@ -1966,12 +1969,11 @@ function json_split_action()
 		if [ ${_TMP_JSON_SPLIT_ACTION_VAR_VAL_LENGTH} -ge 0 ]; then
 			for _TMP_JSON_SPLIT_ACTION_CURR_INDEX in $(seq 0 ${_TMP_JSON_SPLIT_ACTION_VAR_VAL_LENGTH}); do
 				local _TMP_JSON_SPLIT_ACTION_SPLIT_ITEM=$(echo "${_TMP_JSON_SPLIT_ACTION_VAR_VAL}" | jq ".[${_TMP_JSON_SPLIT_ACTION_CURR_INDEX}]")
-	echo "- ${_TMP_JSON_SPLIT_ACTION_SPLIT_ITEM}"
-	echo "- ${_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT}"
+
 				# 附加动态参数
 				local _TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL="${_TMP_JSON_SPLIT_ACTION_SPLIT_ITEM}"
 				exec_text_printf "_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT}"
-	echo "r - ${_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL}"	
+
 				# 格式化运行动态脚本
 				script_check_action "_TMP_JSON_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_JSON_SPLIT_ACTION_SPLIT_ITEM}" "${_TMP_JSON_SPLIT_ACTION_CURR_INDEX}" "${@:3}"
 			done
@@ -1981,6 +1983,51 @@ function json_split_action()
 	return $?
 }
 
+# 分割并执行动作
+# 参数1：用于分割的yaml字符串变量名/值
+# 参数2：对分割字符串执行脚本
+#       参数1：内容下正文
+#       参数2：内容所在索引
+#       参数3：内容对应KEY
+# 参数x-N：动态参数
+# 示例：
+#		function _print_yaml()
+#    	{
+#        	echo "${1}"
+#        	echo "${TMP_SPLITER3}"
+#    	}
+#    	yaml_split_action "$(cat /root/harbor/docker-compose.yml | yq '.services')" "_print_yaml"
+
+function yaml_split_action()
+{
+	local _TMP_YAML_SPLIT_ACTION_VAR_PAIR=()
+	bind_discern_exchange_var_pair "_TMP_YAML_SPLIT_ACTION_VAR_PAIR" "${1}"
+	local _TMP_YAML_SPLIT_ACTION_VAR_NAME=${_TMP_YAML_SPLIT_ACTION_VAR_PAIR[0]}
+	local _TMP_YAML_SPLIT_ACTION_VAR_VAL=${_TMP_YAML_SPLIT_ACTION_VAR_PAIR[1]}
+	
+	local _TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT=${2}
+	if [ -n "${_TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT}" ] && [ -n "${_TMP_YAML_SPLIT_ACTION_VAR_VAL}" ] && [ "${_TMP_YAML_SPLIT_ACTION_VAR_VAL}" != "null" ]; then
+		# 等于 yq '.services | keys' /root/harbor/docker-compose.yml
+		local _TMP_YAML_SPLIT_ACTION_YAML_KEYS=$(echo "${_TMP_YAML_SPLIT_ACTION_VAR_VAL}" | yq "keys")
+		if [ -n "${_TMP_YAML_SPLIT_ACTION_YAML_KEYS}" ] && [ "${_TMP_YAML_SPLIT_ACTION_YAML_KEYS}" != "null" ]; then
+			local _TMP_YAML_SPLIT_ACTION_YAML_KEYS_LENGTH=$(echo "${_TMP_YAML_SPLIT_ACTION_YAML_KEYS}" | wc -l)
+			for _TMP_YAML_SPLIT_ACTION_CURR_INDEX in $(seq 0 $((${_TMP_YAML_SPLIT_ACTION_YAML_KEYS_LENGTH}-1))); do
+				# 等于yq '.services | keys | .[4]' /root/harbor/docker-compose.yml
+				local _TMP_YAML_SPLIT_ACTION_SPLIT_KEY=$(echo "${_TMP_YAML_SPLIT_ACTION_YAML_KEYS}" | yq ".[${_TMP_YAML_SPLIT_ACTION_CURR_INDEX}]")
+				local _TMP_YAML_SPLIT_ACTION_SPLIT_ITEM=$(echo "${_TMP_YAML_SPLIT_ACTION_VAR_VAL}" | yq ".${_TMP_YAML_SPLIT_ACTION_SPLIT_KEY}")
+
+				# 附加动态参数
+				local _TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT_FINAL="${_TMP_YAML_SPLIT_ACTION_SPLIT_ITEM}"
+				exec_text_printf "_TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT}"
+				
+				# 格式化运行动态脚本
+				script_check_action "_TMP_YAML_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_YAML_SPLIT_ACTION_SPLIT_ITEM}" "${_TMP_YAML_SPLIT_ACTION_CURR_INDEX}" "${_TMP_YAML_SPLIT_ACTION_SPLIT_KEY}" "${@:3}"
+			done
+		fi
+	fi
+
+	return $?
+}
 ##########################################################################################################
 # 路径操作类
 ##########################################################################################################
@@ -2541,7 +2588,7 @@ function bind_if_choice()
 #       参数1：标记的选中值
 #       参数2：标记选中是否选中，为空则为未选中值
 # 示例：
-#       mark_if_choice_action "_CHOICE_BIND" "please sure which item u want to choice" "a b c"
+#       mark_if_choice_action "_CHOICE_BIND" "please sure which item u want to choice" "_funca"
 function mark_if_choice_action()
 {
 	local _TMP_MARK_IF_CHOICE_ACTION_ITEMS_COUNT=$(echo "${1}" | wc -w)
@@ -2555,7 +2602,7 @@ function mark_if_choice_action()
 		_TMP_MARK_IF_CHOICE_ACTION_ITEM="${1}"
 	fi
 	
-	local _TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM=$(echo "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" | grep -oP "(?<=^)[^√]+")
+	local _TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM=$(echo "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" | grep -oP "(?<=^).+(?=√)")
 	local _TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT=$([[ "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" != "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" ]] && echo 1)
 
 	script_check_action "${3}" "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" "${_TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT}"
@@ -5236,6 +5283,23 @@ function echo_docker_volume_name()
 	return $?
 }
 
+# 输出Docker镜像数字版本
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 参数2：镜像版本，用于检测，例 imgver111111
+# 示例：
+#       echo_docker_image_digests "browserless/chrome" "imgver111111"
+function echo_docker_image_digests()
+{
+	local _TMP_ECHO_DOCKER_IMAGE_DIGESTS_GREP_DIGESTS=$(docker images --digests | egrep "^${1}")			
+	if [ -n "${2}" ]; then
+		_TMP_ECHO_DOCKER_IMAGE_DIGESTS_GREP_DIGESTS=$(echo "${_TMP_ECHO_DOCKER_IMAGE_DIGESTS_GREP_DIGESTS}" | awk '{if($2~"'${2}'"){print}}')
+	fi
+
+	echo "${_TMP_ECHO_DOCKER_IMAGE_DIGESTS_GREP_DIGESTS}" | egrep "sha256:" | awk -F' ' '{print $3}'
+
+	return $?
+}
+
 # 输出Docker镜像已存在版本集合
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 示例：
@@ -5247,7 +5311,7 @@ function echo_docker_images_exists_vers()
 	return $?
 }
 
-# 输出Docker镜像所有版本集合(已安装版本会打√)
+# 输出Docker镜像所有版本集合
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 参数2：忽略版本数组字符串，例 clean snapshot hub
 # 示例：
@@ -5257,8 +5321,6 @@ function echo_docker_images_vers()
 {
 	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
 	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
-	# local _TMP_ECHO_DOCKER_IMAGES_VERS_STORE="${3}"
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	
     # /mountdisk/repo/migrate/snapshot/browserless_chrome/
     local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
@@ -5291,10 +5353,38 @@ function echo_docker_images_vers()
     local _TMP_ECHO_DOCKER_IMAGES_VERS_ARR=()
     function _echo_docker_images_vers_combine()
     {
+		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[${2}]='${1}'"
+    }
+	
+    items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS}" "_echo_docker_images_vers_combine"
+
+    echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
+
+    return $?
+}
+
+# 输出Docker镜像所有版本集合(已安装版本会打√)
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 参数2：忽略版本数组字符串，例 clean snapshot hub
+# 示例：
+#       echo_docker_images_mark_vers "browserless/chrome"
+#       echo_docker_images_mark_vers "browserless/chrome" "hub"
+function echo_docker_images_mark_vers()
+{
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
+	# local _TMP_ECHO_DOCKER_IMAGES_VERS_STORE="${3}"
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_VERS=$(echo_docker_images_vers "${1}" "${2}")
+	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
+	
+    # 打标记，已安装的版本做标注
+    local _TMP_ECHO_DOCKER_IMAGES_VERS_ARR=()
+    function _echo_docker_images_mark_vers_combine()
+    {
         local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${1}"
         local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX="${2}"
 
-        function _echo_docker_images_vers_combine_mark()
+        function _echo_docker_images_mark_vers_combine_mark()
         {
 			# # 列表版本等于latest版的情况
 			# if [ "${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}" == "latest" ]; then
@@ -5317,16 +5407,42 @@ function echo_docker_images_vers()
 			fi
         }
 
-        items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS}" "_echo_docker_images_vers_combine_mark"
+        items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS}" "_echo_docker_images_mark_vers_combine_mark"
 
 		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX}]='${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}'"
     }
 	
-    items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS}" "_echo_docker_images_vers_combine"
+    items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_VERS}" "_echo_docker_images_mark_vers_combine"
 
     echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
 
     return $?
+}
+
+# 输出Docker镜像存储方式
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 参数2：镜像版本
+# 示例：
+#       echo_docker_images_store "browserless/chrome"
+#       echo_docker_images_store "browserless/chrome" "hub"
+function echo_docker_images_store()
+{
+	if [ -n "$(echo_docker_images_vers "${1}" "snapshot hub" | egrep "^${2}$")" ]; then
+		echo "clean"
+		return $?
+	fi
+	
+	if [ -n "$(echo_docker_images_vers "${1}" "clean hub" | egrep "^${2}$")" ]; then
+		echo "snapshot"
+		return $?
+	fi
+	
+	if [ -n "$(echo_docker_images_vers "${1}" "clean snapshot" | egrep "^${2}$")" ]; then
+		echo "hub"
+		return $?
+	fi
+
+	return $?
 }
 
 # Docker镜像选中版本再执行
@@ -5375,7 +5491,7 @@ function docker_choice_cust_vers_action()
 #       docker_images_choice_vers_action "browserless/chrome" "choice echo text" "func_a" "hub"
 function docker_images_choice_vers_action()
 {
-	docker_choice_cust_vers_action "${1}" "${2}" "${3}" "$(echo_docker_images_vers "${1}" "${4}")"
+	docker_choice_cust_vers_action "${1}" "${2}" "${3}" "$(echo_docker_images_mark_vers "${1}" "${4}")"
     return $?
 }
 
@@ -5920,7 +6036,7 @@ function docker_snap_restore_choice_action()
 	
     # 合集操作
     if [ -z "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS}" ]; then
-        _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS=$(echo_docker_images_vers "${1}" "hub")
+        _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS=$(echo_docker_images_mark_vers "${1}" "hub")
     fi
 	
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS}" ]; then
@@ -7403,6 +7519,195 @@ function soft_npm_check_action()
 
 # Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
 # 参数1：镜像名称，用于检测
+# 参数2：镜像版本，为空时跳出选择框
+# 参数3：预编译脚本，即安装前执行（例：生成docker-compose.yml）
+# 参数4：安装脚本（例：docker pull、docker-compose）
+# 参数5：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+#        参数1：镜像名称，例 goharbor/prepare
+#        参数2：镜像版本，例 imgver111111_v1670329246
+#        参数3：启动命令，例 /bin/sh
+#        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#        参数5：快照类型（快照有效），例 image/container/dockerfile
+#        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
+# 参数6：重装选择N时 或镜像已存在时执行脚本
+# 参数7：动作类型描述，action/install
+# 示例：
+#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" "" 'docker pull ${1}:${2}' "exec_step_browserless_chrome"
+#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
+function soft_docker_check_upgrade_custom() 
+{
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME="${1}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_MARK_NAME="${1/\//_}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER="${2}"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT=${3}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT=${4}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT=${5}
+	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP=$(docker images | grep "^${1}")
+
+	# 检查Docker运行状态
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DC_STATUS=$(echo_service_node_content "docker" "Active")
+	if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DC_STATUS}" != "active" ]; then
+		echo_style_text "Checked 'docker status' is [not running], it take <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DC_STATUS}>, please check"
+		return
+	fi
+	
+	function _soft_docker_check_upgrade_custom_print_image()
+	{
+		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${1}\"){print}}"
+	}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}\" | eval script_channel_action '_soft_docker_check_upgrade_custom_print_image'"
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_E_SCRIPT=${6:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT}}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC=${7:-"install"}
+
+	function _soft_docker_check_upgrade_custom()
+	{
+		# 参数1：是否已安装，不为空则表示已安装
+		# 参数2：安装版本
+		# 参数3：版本存储类型，例 clean snapshot hub
+		function _soft_docker_check_upgrade_custom_choice_action()
+		{
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER="${2}"
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER="${2}"
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE="${3:-$(echo_docker_images_store "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")}"
+			
+			# 确认重装
+			function _soft_docker_check_upgrade_custom_confrim_reinstall()
+			{
+				# 重装
+				function _soft_docker_check_upgrade_custom_reinstall()
+				{
+					# 有镜像，没容器
+					# 有容器则备份数据，有镜像直接重装
+					echo_style_text "Starting <re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}> 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}])"
+					
+					function _soft_docker_check_upgrade_custom_ctn_trail()
+					{						
+						# 重装先确认备份，默认备份
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BACKUP_Y_N="Y"
+						confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BACKUP_Y_N" "Please sure the 'docker soft' of 'container'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]('${1}')) u will [backup check] 'still or not'"
+
+						# 是否强制删除这里取反，docker_soft_trail_clear参数需要
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_FORCE_TRAIL_Y_N="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BACKUP_Y_N}"
+						bind_exchange_yn_val "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_FORCE_TRAIL_Y_N"
+
+						# 卸载容器前检测，备份残留或NO
+						docker_soft_trail_clear "${1}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_FORCE_TRAIL_Y_N}"
+					}
+
+					function _soft_docker_check_upgrade_custom_img_trail()
+					{
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2~\"${1}\"){ print \$1}}")
+						echo_style_text "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS:-none}])"
+						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS}" "_soft_docker_check_upgrade_custom_ctn_trail"
+						
+						echo_style_text "Starting <remove> 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${1}])"
+						docker rmi ${1}
+					}
+
+					# 查找当前镜像的ID
+					local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}\"){print \$3}}")
+					echo_style_text "Starting <trail> exists 'images'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS:-none}])"
+					items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS}" "_soft_docker_check_upgrade_custom_img_trail"
+					
+					_soft_docker_check_upgrade_custom_install
+				}
+
+				# 已经存在版本，安装该版本可以走快照
+				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS:-none}]), please 'sure' u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}'"
+			}
+
+			function _soft_docker_check_upgrade_custom_install()
+			{
+				# 预先检索数字标记
+				local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
+
+				# 因为latest版本曾经被修改为IMAGE ID，故需要在此还原
+				if [ -n "$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk "{if(\$2==\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}\" && \$2==\$3){print}}")" ]; then
+					_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER="latest"
+				fi
+				
+				# 预编译
+				if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT}" ]; then
+					script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+				fi
+				
+				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}], hold on please"
+				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}" in 
+					"hub")
+						# docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}
+						script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+
+						# 重新获取数字标记
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
+						echo_style_text "'Image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}') pulled"
+
+						# 重新定义版本号
+						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" == "latest" ]; then
+							_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest | awk -F' ' 'NR==2{print $3}')
+
+							echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>) ver marked '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}', system remarked to 'image id'([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}])"
+							docker image tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}
+							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest
+						fi
+
+						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
+						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS}" "_soft_docker_check_upgrade_custom_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}' '' '' '' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}'"
+					;;
+					*)
+						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+				esac
+			}
+
+			if [ -n "${1}" ]; then
+				_soft_docker_check_upgrade_custom_confrim_reinstall
+			else
+				_soft_docker_check_upgrade_custom_install
+			fi
+		}
+
+		# 未指定版本则选择版本
+		if [ -z "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}" ]; then
+			docker_images_choice_vers_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "Please sure 'which version' u want to '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}' of 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>" "_soft_docker_check_upgrade_custom_choice_action"
+		else
+			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IS_INSTALL=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}" | egrep "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}$" && echo 1)
+			script_check_action "_soft_docker_check_upgrade_custom_choice_action" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IS_INSTALL}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}"
+		fi
+	}
+
+	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}" ]; then
+		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL="N"
+		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>) was got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS//[[:space:]]/,}]), please 'sure' u will [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_E_SCRIPT"
+	else
+		_soft_docker_check_upgrade_custom
+	fi
+
+    return $?
+}
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像名称，用于检测
+# 参数2：镜像版本，为空时跳出选择框
+# 参数3：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+#        参数1：镜像名称，例 browserless/chrome
+#        参数2：镜像版本，例 imgver111111_v1670329246
+#        参数3：启动命令，例 /bin/sh
+#        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#        参数5：快照类型（快照有效），例 image/container/dockerfile
+#        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
+# 参数4：重装选择N时 或镜像已存在时执行脚本
+# 参数5：动作类型描述，action/install
+# 示例：
+#     soft_docker_check_upgrade_action "browserless/chrome" "imgver111111" "exec_step_browserless_chrome"
+function soft_docker_check_upgrade_action() 
+{
+	soft_docker_check_upgrade_custom "${1}" "${2}" "" 'docker pull ${1}:${2}' "${@:3:5}"
+    return $?
+}
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像名称，用于检测
 # 参数2：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
 #        参数1：镜像名称，例 browserless/chrome
 #        参数2：镜像版本，例 imgver111111_v1670329246
@@ -7416,132 +7721,111 @@ function soft_npm_check_action()
 #     soft_docker_check_choice_upgrade_action "browserless/chrome" "exec_step_browserless_chrome"
 function soft_docker_check_choice_upgrade_action() 
 {
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME="${1}"
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_MARK_NAME="${1/\//_}"
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NE_SCRIPT=${2}
-	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_EXISTS_GREP=$(docker images | grep "^${1}")
+	soft_docker_check_upgrade_action "${1}" "" "${@:2:4}"
+    return $?
+}
 
-	# 检查Docker运行状态
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_DC_STATUS=$(echo_service_node_content "docker" "Active")
-	if [ "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_DC_STATUS}" != "active" ]; then
-		echo_style_text "Checked 'docker status' is [not running], it take <${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_DC_STATUS}>, please check"
-		return
-	fi
-	
-	function _soft_docker_check_choice_upgrade_action_print_image()
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像名称，用于检测
+# 参数2：预编译脚本，即安装前执行（例：生成docker-compose.yml）
+# 参数3：安装脚本（生成docker-compose.yml）
+# 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+#        参数1：镜像名称，例 browserless/chrome
+#        参数2：镜像版本，例 imgver111111_v1670329246
+#        参数3：启动命令，例 /bin/sh
+#        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#        参数5：快照类型（快照有效），例 image/container/dockerfile
+#        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
+# 参数5：重装选择N时 或镜像已存在时执行脚本
+# 参数6：动作类型描述，action/install
+# 示例：
+#     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
+function soft_docker_compose_check_upgrade_action() 
+{
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=""
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT=${3}
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
+
+	# 脚本执行
+	# 参数1：镜像名称
+	# 参数2：版本信息
+	function _soft_docker_compose_check_upgrade_action()
 	{
-		echo "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${1}\"){print}}"
+		echo_style_wrap_text "Checked 'increase image'(<${1}>:[${2}]), start bind param"
+
+		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=
+		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=
+
+		# 从已安装容器中提取参数
+		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_check_exists_jq_arr_echo "^${1}$")
+		
+		if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" != "[]" ]; then
+			function _soft_docker_compose_check_upgrade_action_install_bind_param()
+			{
+				_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${1}" | jq ".Cmd")
+				_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${1}" | jq ".Args")
+			}
+
+			# 绑定启动参数
+			json_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR" "_soft_docker_compose_check_upgrade_action_install_bind_param"
+			
+			_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER="${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER:-${2}}"
+		else
+			echo_style_text "Resolve 'image'(<${1}>:[${2}]) failure, setup skip"
+			return
+		fi
+
+		# script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${1}" "${2}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"
 	}
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_EXISTS_VERS}\" | eval script_channel_action '_soft_docker_check_choice_upgrade_action_print_image'"
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_E_SCRIPT=${3:-${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_PRINT_SCRIPT}}
-	local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_TYPE_DESC=${4:-"install"}
 
-	function _soft_docker_check_choice_upgrade_action()
+	# 编译操作
+	function _soft_docker_compose_check_upgrade_action_compile()
 	{
-		# 参数1：是否已安装，不为空则表示已安装
-		# 参数2：安装版本
-		# 参数3：版本存储类型，例 clean snapshot hub
-		function _soft_docker_check_choice_upgrade_action_choice_action()
+		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT}" ]; then
+			echo_style_wrap_text "Starting 'compile image'(<${1}>:[${2}]) from [${3}], hold on please"
+
+			# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS=($(docker images | awk '{print $3}'))
+			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT" "${1}" "${2}"
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS=($(docker images | awk '{print $3}'))
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
+
+			function _soft_docker_compose_check_upgrade_action_compile_bind_param()
+			{
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(docker images | awk "{if(\$3==\"${1}\"){print \$1}}")
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER="$(docker images | awk "{if(\$3==\"${1}\"){print \$2}}")"
+				_soft_docker_compose_check_upgrade_action "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}"
+			}
+
+			items_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS" "_soft_docker_compose_check_upgrade_action_compile_bind_param"
+		fi
+	}
+	
+	# 安装操作
+	function _soft_docker_compose_check_upgrade_action_compose()
+	{
+		# 自定义安装
+		script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
+
+		function _soft_docker_compose_check_upgrade_action_install()
 		{
-			local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER="${2}"
-			local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER="${2}"
-			local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_STORE_TYPE="${3}"
-
-			# 确认重装
-			function _soft_docker_check_choice_upgrade_action_confrim_reinstall()
-			{
-				# 重装
-				function _soft_docker_check_choice_upgrade_action_reinstall()
-				{
-					# 有镜像，没容器
-					# 有容器则备份数据，有镜像直接重装
-					echo_style_text "Starting <re${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_TYPE_DESC}> 'image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}])"
-					
-					function _soft_docker_check_choice_upgrade_action_ctn_trail()
-					{						
-						# 重装先确认备份，默认备份
-						local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_BACKUP_Y_N="Y"
-						confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_BACKUP_Y_N" "Please sure the 'docker soft' of 'container'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}]('${1}')) u will [backup check] 'still or not'"
-
-						# 是否强制删除这里取反，docker_soft_trail_clear参数需要
-						local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_FORCE_TRAIL_Y_N="${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_BACKUP_Y_N}"
-						bind_exchange_yn_val "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_FORCE_TRAIL_Y_N"
-
-						# 卸载容器前检测，备份残留或NO
-						docker_soft_trail_clear "${1}" "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_FORCE_TRAIL_Y_N}"
-					}
-
-					function _soft_docker_check_choice_upgrade_action_img_trail()
-					{
-						local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2~\"${1}\"){ print \$1}}")
-						echo_style_text "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CTN_IDS:-none}])"
-						items_split_action "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CTN_IDS}" "_soft_docker_check_choice_upgrade_action_ctn_trail"
-						
-						echo_style_text "Starting <remove> 'image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${1}])"
-						docker rmi ${1}
-					}
-
-					# 查找当前镜像的ID
-					local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}\"){print \$3}}")
-					echo_style_text "Starting <trail> exists 'images'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_IDS:-none}])"
-					items_split_action "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_IDS}" "_soft_docker_check_choice_upgrade_action_img_trail"
-					
-					_soft_docker_check_choice_upgrade_action_install
-				}
-
-				# 已经存在版本，安装该版本可以走快照
-				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_EXISTS_VERS:-none}]), please 'sure' u will [re${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_choice_upgrade_action_reinstall" "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}'"
-			}
-
-			function _soft_docker_check_choice_upgrade_action_install()
-			{
-				# 因为latest版本曾经被修改为IMAGE ID，故需要在此还原
-				if [ -n "$(echo "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2==\"${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}\" && \$2==\$3){print}}")" ]; then
-					_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER="latest"
-				fi
-				
-				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_STORE_TYPE}], hold on please"
-				case "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_STORE_TYPE}" in 
-					"hub")
-						local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_DIGESTS=$(docker images --digests | grep "^${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}" | grep "sha256:" | awk -F' ' '{print $3}')
-						local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_PULL_SHA256=$(docker pull ${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER} | grep -oP "(?<=^Digest: ).+")
-						echo_style_text "Image of <${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}> pulled, '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_PULL_SHA256}'"
-
-						# 重新定义版本号
-						if [ "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}" == "latest" ]; then
-							_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:latest | awk -F' ' 'NR==2{print $3}')
-
-							echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>) ver marked '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}', system remarked to 'image id'([${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}])"
-							docker image tag ${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:latest ${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}
-							docker rmi ${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:latest
-						fi
-
-						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
-						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_DIGESTS}" "_soft_docker_check_choice_upgrade_action_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}' '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}' '' '' '' '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_STORE_TYPE}'"
-					;;
-					*)
-						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_CHOICE_VER}')" "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_STORE_TYPE}"
-				esac
-			}
-
-			if [ -n "${1}" ]; then
-				_soft_docker_check_choice_upgrade_action_confrim_reinstall
-			else
-				_soft_docker_check_choice_upgrade_action_install
-			fi
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" |  cut -d':' -f1)
+			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" | cut -d':' -f1 | awk '$1=$1')
+			
+			_soft_docker_compose_check_upgrade_action "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}"
 		}
 
-		docker_images_choice_vers_action "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}" "Please sure 'which version' u want to '${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_TYPE_DESC}' of 'image' <${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>" "_soft_docker_check_choice_upgrade_action_choice_action"
+		# 从docker-compose.yml中取已安装镜像信息
+		if [ -a docker-compose.yml ]; then
+			yaml_split_action "$(cat docker-compose.yml | yq '.services')" 
+			return $?
+		fi
+
+		echo_style_wrap_text "Cannot found docker-compose.yml, please check"
 	}
 
-	if [ -n "${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_EXISTS_VERS}" ]; then
-		local _TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_YN_REINSTALL="N"
-		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_IMG_NAME}>) was got vers([${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_EXISTS_VERS//[[:space:]]/,}]), please 'sure' u will [${_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_TYPE_DESC}] 'still or not'" "_soft_docker_check_choice_upgrade_action" "_TMP_SOFT_DOCKER_CHECK_CHOICE_UPGRADE_ACTION_E_SCRIPT"
-	else
-		_soft_docker_check_choice_upgrade_action
-	fi
-
+	soft_docker_check_upgrade_custom "${1}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}" "_soft_docker_compose_check_upgrade_action_compile" "_soft_docker_compose_check_upgrade_action_compose" "${@:5:7}"
     return $?
 }

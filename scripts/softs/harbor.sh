@@ -355,7 +355,7 @@ function boot_build_dc_goharbor_harbor() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_IMG_VER}], hold on please"
     
     ## 标准启动参数
-    local TMP_DC_HB_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime --volume=/var/run/docker.sock:/var/run/docker.sock"
+    local TMP_DC_HB_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime"
     # local TMP_DC_HB_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_HB_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_HB_SETUP_OPN_HTTP_PORT}:${TMP_DC_HB_SETUP_INN_HTTP_PORT}"
     local TMP_DC_HB_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
@@ -429,17 +429,9 @@ function conf_dc_compose_goharbor_harbor() {
 
     ## 注释不需要的节点配置
     comment_yaml_file_node_item "harbor.yml" ".https"
-
-    cat harbor.yml
-    bash prepare
-    cp $(pwd) /root/
-ls -lia 
-return
-
-    bash install --with-chartmuseum
-
+ 
     # 重装/更新/安装
-    soft_docker_check_choice_upgrade_action "${1}" "boot_build_dc_goharbor_harbor"
+    soft_docker_compose_check_upgrade_action "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "bash prepare" "bash install --with-chartmuseum" "boot_build_dc_goharbor_harbor"
 
     return $?
 }
@@ -451,16 +443,8 @@ function check_setup_dc_goharbor_harbor() {
     
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
-    # 获取已安装创建JQ列表
-	local TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR=$(docker_check_exists_jq_arr_echo "^goharbor/")
-
-    if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" == "[]" ]; then
-        # 全新安装
-        soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
-    else
-        echo_style_text "Checked exists images↓:"
-        json_split_action "TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR" "echo '%s' | jq"
-    fi
+    # 全新安装
+    soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
 
     return $?
 }
