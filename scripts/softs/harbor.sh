@@ -431,7 +431,7 @@ function conf_dc_compose_goharbor_harbor() {
     comment_yaml_file_node_item "harbor.yml" ".https"
  
     # 重装/更新/安装
-    soft_docker_compose_check_upgrade_action "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "bash prepare" "bash install --with-chartmuseum" "boot_build_dc_goharbor_harbor"
+    soft_docker_compose_check_upgrade_action "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "bash prepare" "bash install.sh --with-chartmuseum" "boot_build_dc_goharbor_harbor"
 
     return $?
 }
