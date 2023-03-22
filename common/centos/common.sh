@@ -4852,13 +4852,48 @@ function fetch_docker_hub_release_ver_digests()
 	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_docker_hub_ver_digests.py" "_fetch_docker_hub_release_ver_digests_by_pw" "not implement"
 }
 
+# Docker容器检测输出
+# 参数1：容器ID值或变量名，用于检测
+# 参数2：查询到容器后执行脚本
+#       参数1：镜像ID，例 imgid111111
+#       参数2：容器ID，例 ctnid111111
+#       参数3：镜像名称，例 browserless/chrome
+#       参数4：镜像版本，例 imgver111111_v1670329246
+#       参数5：启动命令，例 /bin/sh
+#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
+# 示例：
+#     docker_container_param_check_action "browserless/" "exec_step_browserless_chrome"
+function docker_container_param_check_action() 
+{
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo_discern_exchange_var_val "${1}")
+	if [ -n "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" ]; then
+	
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}\"){print \$2}}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
+		
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
+		
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ARGS=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=docker run ).+(?=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME})")
+
+		script_check_action "${2}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ARGS}"
+		return $?
+	fi
+	
+    return $?
+}
+
 # Docker镜像检测输出（返回镜像列表）
 # 参数1：镜像ID值或变量名，用于检测
 # 参数2：查询到镜像后执行脚本
-#       参数1：镜像名称，例 browserless/chrome
-#       参数2：镜像版本，例 imgver111111_v1670329246
-#       参数3：启动命令，例 /bin/sh
-#       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#       参数1：镜像ID，例 imgid111111
+#       参数2：容器ID，例 ctnid111111
+#       参数3：镜像名称，例 browserless/chrome
+#       参数4：镜像版本，例 imgver111111_v1670329246
+#       参数5：启动命令，例 /bin/sh
+#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
 # 示例：
 #     docker_image_param_check_action "browserless/" "exec_step_browserless_chrome"
 function docker_image_param_check_action() 
@@ -4877,29 +4912,45 @@ function docker_image_param_check_action()
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID=$(docker ps -a --no-trunc | awk "{if(\$2==\"${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}\"){print \$1}}")
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=""
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=""
-			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}" ]; then
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.Path')
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.Args' | grep -oP "(?<=^  \").*(?=\",*$)"))
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
 
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ENVS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq ".Config.Env" | grep -oP "(?<=^  \").*(?=\",*$)")
+			# 优先取runlike参数，较为精准
+			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}"
+			function _docker_image_param_check_action_bind_ctn_data() {			
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=${5}
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=${6}
+
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT="$(docker container inspect ${2} | jq '.[0]')"
+			}
+			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}" "_docker_image_param_check_action_bind_ctn_data"
+
+			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD"
+			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" ]; then
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Path' | grep -oP '(?<=^\").*(?=\"$)')
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Args' | grep -oP "(?<=^  \").*(?=\",*$)"))
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
+			fi
+
+			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS"
+			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}" ]; then
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ENVS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Config.Env' | grep -oP "(?<=^  \").*(?=\",*$)")
 				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_ENVS=
 				if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ENVS}" ]; then
 					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_ENVS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ENVS}" | xargs printf "--env=%s ")
 				fi
 
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IMG_HOSTCONF}" | jq '.Mounts[] | .Source + ":" + .Destination' | grep -oP "(?<=^\").*(?=\"$)")
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Mounts[] | .Source + ":" + .Destination + ":" + .Mode' | grep -oP "(?<=^\").*(?=\"$)")
 				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=
 				if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" ]; then
 					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" | xargs printf "--volume=%s ")
 				fi
 
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_ENVS} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS}"
-			else
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}")
-				
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=$(echo '${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_RUNLIKE}' | grep -oP '(?<=docker run ).+(?=${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME})')
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_LBLS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Config.Labels' | grep -oP "(?<=^  \").*(?=\",*$)" | awk -F'": "' "{print \$1\"='\"\$2\"'\"}")
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_LBLS=
+				if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_LBLS}" ]; then
+					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_LBLS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_LBLS}" | xargs printf "--label='%s' ")
+				fi
+
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_ENVS} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_LBLS}"
 			fi
 
 			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD"
@@ -4907,7 +4958,7 @@ function docker_image_param_check_action()
 			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=$([[ "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" != "null" ]] && echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" || echo)
 			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=$([[ "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}" != "null" ]] && echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}" || echo)
 
-			script_check_action "${2}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}"
+			script_check_action "${2}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}"
 			return $?
 		fi
 	fi
@@ -4947,7 +4998,7 @@ function docker_images_param_check_jq_arr_echo()
 
 	function _docker_images_param_check_jq_arr_echo_jq_arr_bind()
 	{
-		change_json_node_arr "_TMP_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR" "." "" "{ \"Image\": \"${1}\", \"Version\": \"${2}\", \"Cmd\": \"${3}\", \"Args\": \"${4}\" }"
+		change_json_node_arr "_TMP_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR" "." "" "{ \"ImageID\": \"${1}\", \"ContainerID\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
 	}
 
 	docker_images_param_check_action "${1}" '_docker_images_param_check_jq_arr_echo_jq_arr_bind'
@@ -4983,11 +5034,12 @@ function docker_images_param_check_jq_arr_bind()
 #      docker_image_param_check_jq_item_echo "imgid1111111"
 function docker_image_param_check_jq_item_echo()
 {
+	local _TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_IMG_ID="${1}"
 	local _TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{}"
 
 	function _docker_image_param_check_jq_item_echo_jq_item_bind()
 	{
-		_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"Image\": \"${1}\", \"Version\": \"${2}\", \"Cmd\": \"${3}\", \"Args\": \"${4}\" }"
+		_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"ImageID\": \"${1}\", \"ContainerID\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
 	}
 
 	docker_image_param_check_action "${1}" '_docker_image_param_check_jq_item_echo_jq_item_bind'
@@ -7801,38 +7853,6 @@ function soft_docker_compose_check_upgrade_action()
 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
 
-	# 脚本执行
-	# 参数1：镜像名称
-	# 参数2：版本信息
-	function _soft_docker_compose_check_upgrade_action()
-	{
-		echo_style_wrap_text "Checked 'increase image'(<${1}>:[${2}]), start bind param"
-
-		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=
-		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=
-
-		# 从已安装容器中提取参数
-		local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_images_param_check_jq_arr_echo "^${1}")
-		
-		if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" != "[]" ]; then
-			function _soft_docker_compose_check_upgrade_action_install_bind_param()
-			{
-				_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${1}" | jq ".Cmd")
-				_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${1}" | jq ".Args")
-			}
-
-			# 绑定启动参数
-			json_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR" "_soft_docker_compose_check_upgrade_action_install_bind_param"
-			
-			_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER="${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER:-${2}}"
-		else
-			echo_style_text "Resolve 'image'(<${1}>:[${2}]) failure, setup skip"
-			return
-		fi
-
-		# script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${1}" "${2}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"
-	}
-
 	# 编译操作
 	# 参数1：镜像名称
 	# 参数2：版本信息
@@ -7851,18 +7871,19 @@ function soft_docker_compose_check_upgrade_action()
 			# 参数1：ID
 			function _soft_docker_compose_check_upgrade_action_compile_bind_param()
 			{
-
 				# 从已安装容器中提取参数
 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
 				
 				if [ "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" != "{}" ]; then
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Image")
+					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageID")
+					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ContainerID")
+					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageName")
 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Version")
 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Cmd")
 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Args")
 					
-					echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}('${1}')]), start bind param"
-					echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}"
+					echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}('${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID}'/'${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID:-None}')]), start bind param"
+					echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq
 
 					script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"
 				else
@@ -7898,7 +7919,7 @@ function soft_docker_compose_check_upgrade_action()
 				echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}]), start bind param"
 
 				# 从已安装容器中提取参数
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_images_param_check_jq_arr_echo "^${1}")
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_images_param_check_jq_arr_echo "^${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}")
 				
 				# 绑定参数
 				# 参数1：JQ-ITEM
@@ -7906,7 +7927,7 @@ function soft_docker_compose_check_upgrade_action()
 					function _soft_docker_compose_check_upgrade_action_install_bind_param()
 					{
 						echo_style_text "View 'bind param'↓:"
-						echo "${1}"
+						echo "${1}" | jq
 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER:-$(echo "${1}" | jq ".Version")}
 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${1}" | jq ".Cmd")
 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${1}" | jq ".Args")
