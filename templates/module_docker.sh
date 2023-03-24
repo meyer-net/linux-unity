@@ -277,7 +277,7 @@ function reconf_dc_$setup_name()
 #    参数3：最终启动版本
 #    参数4：最终启动命令
 #    参数5：最终启动参数
-function exec_step_$setup_name() {
+function exec_step_dc_$setup_name() {
     # 变量覆盖特性，其它方法均可读取
     ## 执行传入参数
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ID="${1}"
@@ -289,7 +289,6 @@ function exec_step_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS="${5}"
 
     ## 统一编排到的路径
-    local TMP_DC_$soft_upper_short_name_CURRENT_DIR=$(pwd)
     local TMP_DC_$soft_upper_short_name_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
@@ -362,13 +361,21 @@ function boot_build_dc_$setup_name() {
     ## 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "Starting 'combine container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}] boot args, hold on please"
     echo "${TMP_SPLITER2}"
-    echo_style_text "<Container> 'pre' args(${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-"None"})"
-    echo_style_text "<Container> 'ctn' args(${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'pre' args && cmd↓:"
+    echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-None}"
+    echo "${TMP_SPLITER3}"
+    echo_style_text "<Container> 'ctn' args && cmd↓:"
+    echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS:-None}"
+    echo "Cmd：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-None}"
+    echo "${TMP_SPLITER3}"
     docker_image_args_combine_bind "TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS" "TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS"
-    echo_style_text "<Container> 'combine' args(${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'combine' args && cmd↓:"
+    echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-None}"
 
     # 开始启动
-    docker_image_boot_print "${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD}" "${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS}" "" "exec_step_$setup_name"
+    docker_image_boot_print "${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD}" "${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS}" "" "exec_step_dc_$setup_name"
 
     return $?
 }
@@ -377,6 +384,9 @@ function boot_build_dc_$setup_name() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_$setup_name() {
+	# 当前路径（仅记录）
+    local TMP_DC_$soft_upper_short_name_CURRENT_DIR=$(pwd)
+
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装

@@ -7827,12 +7827,7 @@ function soft_docker_check_upgrade_custom()
 				if [ -n "$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk "{if(\$2==\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}\" && \$2==\$3){print}}")" ]; then
 					_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER="latest"
 				fi
-				
-				# # 预编译
-				# if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT}" ]; then
-				# 	script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
-				# fi
-				
+
 				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}], hold on please"
 				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}" in 
 					"hub" | "unknow")
@@ -7840,13 +7835,14 @@ function soft_docker_check_upgrade_custom()
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
 						# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
-						# docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}
+
 						script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+
 						# 执行安装脚本后的镜像
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
 						# 差异镜像ID集合
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
-						
+
 						# 绑定参数
 						# 参数1：ID
 						function _soft_docker_check_upgrade_custom_compile_bind_exec()
@@ -7871,6 +7867,7 @@ function soft_docker_check_upgrade_custom()
 								fi
 								
 								echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER}]), start bind param"
+								echo_style_text "View the 'boot json'↓:"
 								echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq
 
 								# 修正镜像全局参数								
