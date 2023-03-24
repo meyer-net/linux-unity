@@ -265,7 +265,7 @@ function exec_step_dc_goharbor_harbor() {
     local TMP_DC_HB_CURRENT_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
     local TMP_DC_HB_CURRENT_IMG_NAME=$(echo "${TMP_DC_HB_CURRENT_IMG_FULL_NAME}" |  cut -d':' -f1)
     # 参照data,log的规则命名
-    local TMP_DC_HB_CURRENT_IMG_MARK_NAME="echo ${TMP_DC_HB_CURRENT_IMG_NAME} | cut -d'/' -f2"
+    local TMP_DC_HB_CURRENT_IMG_MARK_NAME=$(echo ${TMP_DC_HB_CURRENT_IMG_NAME} | cut -d'/' -f2)
     local TMP_DC_HB_CURRENT_IMG_VER=$(echo "${TMP_DC_HB_CURRENT_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
     local TMP_DC_HB_CURRENT_CTN_ARG_CMD=
     local TMP_DC_HB_CURRENT_CTN_ARGS=
