@@ -16,10 +16,10 @@
 # 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
-local TMP_DC_HB_SETUP_INN_HTTP_PORT="0080"
-local TMP_DC_HB_SETUP_INN_HTTPS_PORT="0443"
-local TMP_DC_HB_SETUP_OPN_HTTP_PORT=1${TMP_DC_HB_SETUP_INN_HTTP_PORT}
-local TMP_DC_HB_SETUP_OPN_HTTPS_PORT=1${TMP_DC_HB_SETUP_INN_HTTPS_PORT}
+local TMP_DC_HB_SETUP_INN_HTTP_PORT="80"
+local TMP_DC_HB_SETUP_INN_HTTPS_PORT="443"
+local TMP_DC_HB_SETUP_OPN_HTTP_PORT=100${TMP_DC_HB_SETUP_INN_HTTP_PORT}
+local TMP_DC_HB_SETUP_OPN_HTTPS_PORT=10${TMP_DC_HB_SETUP_INN_HTTPS_PORT}
 
 ##########################################################################################################
 
@@ -351,7 +351,7 @@ function boot_build_dc_goharbor_harbor() {
     local TMP_DC_HB_SETUP_CTN_ARGS="${4}"
     local TMP_DC_HB_SETUP_IMG_SNAP_TYPE="${5}"
     local TMP_DC_HB_SETUP_IMG_STORE="${6}"
-
+    
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_IMG_VER}], hold on please"
     
     ## 标准启动参数
@@ -364,54 +364,53 @@ function boot_build_dc_goharbor_harbor() {
     ## 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "Starting 'combine container' <${TMP_DC_HB_SETUP_IMG_NAME}>:[${TMP_DC_HB_SETUP_IMG_VER}] boot args, hold on please"
     echo "${TMP_SPLITER2}"
-    echo_style_text "<Container> 'pre' args(${TMP_DC_HB_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
-    echo_style_text "<Container> 'ctn' args(${TMP_DC_HB_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "View <container> 'pre' args && cmd↓:"
+    echo "Args：${TMP_DC_HB_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_HB_SETUP_CTN_ARG_CMD:-None}"
+    echo "${TMP_SPLITER3}"
+    echo_style_text "View <container> 'ctn' args && cmd↓:"
+    echo "Args：${TMP_DC_HB_SETUP_CTN_ARGS:-None}"
+    echo "Cmd：${TMP_DC_HB_SETUP_CTN_ARG_CMD:-None}"
+    echo "${TMP_SPLITER3}"
     docker_image_args_combine_bind "TMP_DC_HB_SETUP_PRE_ARGS" "TMP_DC_HB_SETUP_CTN_ARGS"
-    echo_style_text "<Container> 'combine' args(${TMP_DC_HB_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_HB_SETUP_CTN_ARG_CMD:-"None"})"
-
-    # 开始启动
-    docker_image_boot_print "${TMP_DC_HB_SETUP_IMG_NAME}" "${TMP_DC_HB_SETUP_IMG_VER}" "${TMP_DC_HB_SETUP_CTN_ARG_CMD}" "${TMP_DC_HB_SETUP_PRE_ARGS}" "" "exec_step_goharbor_harbor"
+    echo_style_text "View <container> 'combine' args && cmd↓:"
+    echo "Args：${TMP_DC_HB_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_HB_SETUP_CTN_ARG_CMD:-None}"
+    
+    # 开始启动(启动区)
+    # docker_image_boot_print "${TMP_DC_HB_SETUP_IMG_NAME}" "${TMP_DC_HB_SETUP_IMG_VER}" "${TMP_DC_HB_SETUP_CTN_ARG_CMD}" "${TMP_DC_HB_SETUP_PRE_ARGS}" "" "exec_step_goharbor_harbor"
+    # 无需启动
 
     return $?
 }
 
 ##########################################################################################################
 
-# x2-配置composer信息
+# x3-配置composer信息
 # 参数1：软件安装名称
 # 参数2：软件安装路径(docker/conda无需采用)
 # 参数3：软件解压路径
-function conf_dc_compose_goharbor_harbor() {
+# 参数4：软件版本
+function conf_check_compose_dc_goharbor_harbor() {
 	# 变量覆盖特性，其它方法均可读取
 	## 执行传入参数
 	local TMP_DC_CPS_HB_SETUP_NAME=${1}
+    local TMP_DC_CPS_HB_SETUP_MARK_NAME="${1/\//_}"
 	# local TMP_DC_CPS_HB_SETUP_DIR=${2}
     local TMP_DC_CPS_HB_EXTRA_DIR=${3}
-
+    
     cd ${TMP_DC_CPS_HB_EXTRA_DIR}
-
-    echo_style_wrap_text "Starting 'configuration composor', hold on please"
+    
+    echo_style_wrap_text "Starting 'configuration install yaml', hold on please"
 
     ## 版本获取
-    local TMP_DC_CPS_HB_SETUP_VER=$(yq '._version' harbor.yml)
+    local TMP_DC_CPS_HB_SETUP_VER="v${4:-$(yq '._version' harbor.yml)}"
     
     ## 统一编排到的路径
-    local TMP_DC_CPS_HB_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
-    local TMP_DC_CPS_HB_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
-    local TMP_DC_CPS_HB_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
-    local TMP_DC_CPS_HB_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_CPS_HB_SETUP_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
-
-    ## 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_CPS_HB_SETUP_WORK_MARK="work"
-    local TMP_DC_CPS_HB_SETUP_LOGS_MARK="logs"
-    local TMP_DC_CPS_HB_SETUP_DATA_MARK="data"
-    local TMP_DC_CPS_HB_SETUP_ETC_MARK="etc"
-
-    ## 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_CPS_HB_SETUP_WORK_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_WORK_MARK}
-    local TMP_DC_CPS_HB_SETUP_LOGS_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_LOGS_MARK}
-    local TMP_DC_CPS_HB_SETUP_DATA_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_DATA_MARK}
-    local TMP_DC_CPS_HB_SETUP_ETC_DIR=${TMP_DC_CPS_HB_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_ETC_MARK}
+    local TMP_DC_CPS_HB_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_CPS_HB_SETUP_MARK_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_CPS_HB_SETUP_MARK_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_CPS_HB_SETUP_MARK_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
+    local TMP_DC_CPS_HB_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_CPS_HB_SETUP_MARK_NAME}/${TMP_DC_CPS_HB_SETUP_VER}
     
 	## 修改配置文件
     yq -i '.hostname = "'${LOCAL_HOST}'"' harbor.yml
@@ -431,25 +430,24 @@ function conf_dc_compose_goharbor_harbor() {
     comment_yaml_file_node_item "harbor.yml" ".https"
  
     # 重装/更新/安装
-    soft_docker_compose_check_upgrade_action "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "bash prepare" "bash install.sh --with-chartmuseum" "boot_build_dc_goharbor_harbor"
-
+    soft_docker_compose_check_upgrade_action "goharbor/prepare" "${TMP_DC_CPS_HB_SETUP_VER}" "bash prepare" "bash install.sh --with-chartmuseum" "boot_build_dc_goharbor_harbor"
     return $?
 }
 
 # x1-下载/安装/更新软件
-function check_setup_dc_goharbor_harbor() {
+function download_package_dc_goharbor_harbor() {
 	# 当前路径（仅记录）
 	local TMP_DC_CPS_HB_CURRENT_DIR=$(pwd)
     
-    echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
+    echo_style_wrap_text "Download 'install package' <${1}>, hold on please"
 
-    # 全新安装
-    soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_dc_compose_goharbor_harbor"
-
+    # 选择及下载安装版本
+    soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "1.10.17" "conf_check_compose_dc_goharbor_harbor"
+    
     return $?
 }
 
 ##########################################################################################################
 
 # 安装主体
-soft_setup_basic "goharbor/harbor" "check_setup_dc_goharbor_harbor"
+soft_setup_basic "goharbor/harbor" "download_package_dc_goharbor_harbor"

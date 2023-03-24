@@ -916,7 +916,16 @@ function bind_style_text()
 			
 			function _TMP_BIND_STYLE_TEXT_GUM_FUNC() {
 				# Gum模式存在默认样式，普通模式不存在
+				# 加个空格，不然不识别--，会与自身命令冲突
+				if [[ "${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}" =~ ^- ]]; then
+					_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM=" ${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}"
+				fi
 				_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM=$(gum style --foreground ${_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE:-"${GUM_INPUT_PROMPT_FOREGROUND}"} "${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}")
+				if [[ "${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}" =~ ^- ]]; then
+					local _TMP_BIND_STYLE_TEXT_MATCH_STYLE_PREFIX_ITEM=$(echo "${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}" | awk '{print $1}')
+					local _TMP_BIND_STYLE_TEXT_MATCH_STYLE_NONE_PREFIX_ITEM=$(echo "${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM}" | awk '{$1="\b";print $0}')
+					_TMP_BIND_STYLE_TEXT_MATCH_STYLE_ITEM="${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_PREFIX_ITEM}${_TMP_BIND_STYLE_TEXT_MATCH_STYLE_NONE_PREFIX_ITEM}"
+				fi
 
 				return $?
 			}
@@ -1246,21 +1255,21 @@ function item_exists_yn_action()
 		_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX="${1}"
 	fi
 
-	local _TMP_ITEM_EXISTS_YN_ACTION_ARR=(${2})
 	local _TMP_ITEM_EXISTS_YN_ACTION_CON_E_ACTION=${3}
 	local _TMP_ITEM_EXISTS_YN_ACTION_CON_NE_ACTION=${4}
 
 	#create group if not exists
 	local _TMP_ITEM_EXISTS_YN_ACTION_ITEM_MATCHED=""
-	local _TMP_ITEM_EXISTS_YN_ACTION_INDEX=0
-	for _TMP_ITEM_EXISTS_YN_ACTION_INDEX in ${!_TMP_ITEM_EXISTS_YN_ACTION_ARR[@]}; do
-		local _TMP_ITEM_EXISTS_YN_ACTION_CURRENT="${_TMP_ITEM_EXISTS_YN_ACTION_ARR[${_TMP_ITEM_EXISTS_YN_ACTION_INDEX}]}"
-		echo "${_TMP_ITEM_EXISTS_YN_ACTION_CURRENT}" | egrep "${_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX}" >& /dev/null
+	function _item_exists_yn_action_check()
+	{
+		echo "${1}" | egrep "${_TMP_ITEM_EXISTS_YN_ACTION_VAR_REGEX}" >& /dev/null
 		if [ $? -eq 0 ]; then
-			_TMP_ITEM_EXISTS_YN_ACTION_ITEM_MATCHED=${_TMP_ITEM_EXISTS_YN_ACTION_CURRENT}
-			script_check_action "_TMP_ITEM_EXISTS_YN_ACTION_CON_E_ACTION" "${_TMP_ITEM_EXISTS_YN_ACTION_CURRENT}" ${_TMP_ITEM_EXISTS_YN_ACTION_INDEX}
+			_TMP_ITEM_EXISTS_YN_ACTION_ITEM_MATCHED=${1}
+			script_check_action "_TMP_ITEM_EXISTS_YN_ACTION_CON_E_ACTION" "${1}" ${2}
 		fi
-	done
+	}
+	
+	items_split_action "${2}" "_item_exists_yn_action_check"
 	
 	if [ -z "${_TMP_ITEM_EXISTS_YN_ACTION_ITEM_MATCHED}" ]; then
 		script_check_action "_TMP_ITEM_EXISTS_YN_ACTION_CON_NE_ACTION"
@@ -1336,6 +1345,7 @@ function item_exists_action()
 function item_check_action() 
 {    
 	local _TMP_ITEM_CHECK_ACTION_CHANGE_ARR=($(echo_discern_exchange_var_val "${2}"))
+	bind_fix_arr "_TMP_ITEM_CHECK_ACTION_CHANGE_ARR"
 	local _TMP_ITEM_CHECK_ACTION_ARR_CHANGE_INDEX=${#_TMP_ITEM_CHECK_ACTION_CHANGE_ARR[@]}
 	local _TMP_ITEM_CHECK_ACTION_CHANGE_MATCH_ITEM=""
 
@@ -1345,7 +1355,7 @@ function item_check_action()
         _TMP_ITEM_CHECK_ACTION_ARR_CHANGE_INDEX=${2}
     }
 	
-	item_exists_action "${1}" "${2}" "_item_check_action_change"
+	item_exists_action "${1}" "_TMP_ITEM_CHECK_ACTION_CHANGE_ARR" "_item_check_action_change"
 	
 	script_check_action "${3}" "${_TMP_ITEM_CHECK_ACTION_CHANGE_MATCH_ITEM}" "${_TMP_ITEM_CHECK_ACTION_ARR_CHANGE_INDEX}"
 	return $?
@@ -1377,13 +1387,14 @@ function item_change_cover_action()
 	function _item_change_cover_action()
 	{
 		local _TMP_ITEM_CHANGE_COVER_ACTION_ITEM_ARR=(${_TMP_ITEM_CHANGE_COVER_ACTION_VAR_VAL})
+		bind_fix_arr "_TMP_ITEM_CHANGE_COVER_ACTION_ITEM_ARR"
 		_TMP_ITEM_CHANGE_COVER_ACTION_ITEM_ARR[${2}]=${_TMP_ITEM_CHANGE_COVER_ACTION_ITEM}
 
 		script_check_action "${_TMP_ITEM_CHANGE_COVER_ACTION_AFTER_COVER_SCRIPTS}" "${1}" "${2}" "${_TMP_ITEM_CHANGE_COVER_ACTION_ITEM_ARR[*]}"
 		return $?
 	}
 
-	item_check_action "${1}" "${_TMP_ITEM_CHANGE_COVER_ACTION_VAR_VAL}" "_item_change_cover_action"
+	item_check_action "${1}" "_TMP_ITEM_CHANGE_COVER_ACTION_VAR_VAL" "_item_change_cover_action"
 	return $?
 }
 
@@ -1545,6 +1556,7 @@ function item_change_remove_action()
 	{
 		if [ -n "${1}" ]; then
 			local _TMP_ITEM_CHANGE_REMOVE_ACTION_ITEM_ARR=(${_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEMS})
+			bind_fix_arr "_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEM_ARR"
 			unset _TMP_ITEM_CHANGE_REMOVE_ACTION_ITEM_ARR[${2}]
 			
 			_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEMS="${_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEM_ARR[*]}"
@@ -1555,7 +1567,7 @@ function item_change_remove_action()
 	}
 
 	while [ 1=1 ]; do 
-		item_check_action "${1}" "${_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEMS}" "_item_change_remove_action"
+		item_check_action "${1}" "_TMP_ITEM_CHANGE_REMOVE_ACTION_ITEMS" "_item_change_remove_action"
 	done
 
 	return $?
@@ -1732,7 +1744,7 @@ function item_change_replace_action()
 	{
 		if [ -n "${1}" ]; then
 			local _TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM_ARR=(${_TMP_ITEM_CHANGE_REPLACE_ACTION_ITEMS})
-
+			bind_fix_arr "_TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM_ARR"
 			_TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM_ARR[${2}]=${_TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM}
 
 			script_check_action "${_TMP_ITEM_CHANGE_REPLACE_ACTION_AFTER_REPLACE_SCRIPTS}" "${1}" "${2}" "${_TMP_ITEM_CHANGE_REPLACE_ACTION_ITEM_ARR[*]}"
@@ -1809,7 +1821,7 @@ function item_change_append_action()
 	{
 		if [ -z "${1}" ]; then
 			local _TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR=(${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEMS})
-
+			bind_fix_arr "_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR"
 			_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR[${2}]=${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM}
 
 			script_check_action "${_TMP_ITEM_CHANGE_APPEND_ACTION_AFTER_APPEND_SCRIPTS}" "${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM}" "${2}" "${_TMP_ITEM_CHANGE_APPEND_ACTION_ITEM_ARR[*]}"
@@ -1908,6 +1920,64 @@ function item_change_append_ignore_prefix_bind()
 	return ${_TMP_ITEM_CHANGE_APPEND_IGNORE_PREFIX_BIND_CHECK_RET}
 }
 
+# 用于修复错误的数组分割
+# 参数1：用于分割的数组字符串变量名/值
+# 示例：
+#       local _ARR=(--env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=LANG=en_US.UTF-8 --label='build-date=20221224' --label='name=Photon OS 2.0 Base Image' --label='vendor=VMware')
+#       bind_fix_arr "_ARR" && echo "${#_ARR[@]}"
+function bind_fix_arr()
+{
+	local _TMP_BIND_FIX_ARR_VAR_ARR=()
+	bind_discern_exchange_var_arr "_TMP_BIND_FIX_ARR_VAR_ARR" "${1}"
+	local _TMP_BIND_FIX_ARR_VAR_NAME=${_TMP_BIND_FIX_ARR_VAR_ARR[0]}
+	local _TMP_BIND_FIX_ARR_VAR_TYPE=${_TMP_BIND_FIX_ARR_VAR_ARR[1]}
+	local _TMP_BIND_FIX_ARR_VAR_VAL=${_TMP_BIND_FIX_ARR_VAR_ARR[2]}
+
+	if [ "${_TMP_BIND_FIX_ARR_VAR_TYPE}" != "array" ]; then
+		_TMP_BIND_FIX_ARR_VAR_VAL=(${_TMP_BIND_FIX_ARR_VAR_VAL//,/ })
+	else
+		_TMP_BIND_FIX_ARR_VAR_VAL=(${_TMP_BIND_FIX_ARR_VAR_VAL})
+	fi
+
+
+	# 清空原数组
+	eval ${_TMP_BIND_FIX_ARR_VAR_NAME}='()'
+
+	# 整理切割的字符串，谨防变量被切割，例如：--env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=LANG=en_US.UTF-8 --label='build-date=20221224' --label='name=Photon OS 2.0 Base Image' --label='vendor=VMware'
+	local _TMP_BIND_FIX_ARR_CURR_INDEX=0
+	local _TMP_BIND_FIX_ARR_CURR_SPLING=0
+	for _TMP_BIND_FIX_ARR_CURR_ITEM in ${_TMP_BIND_FIX_ARR_VAR_VAL[@]}; do
+		# 当前内容存在特殊字符做分割
+		local _TMP_BIND_FIX_ARR_CHAR_COUNT=$(echo "${_TMP_BIND_FIX_ARR_CURR_ITEM}" | grep -o "'" | wc -l)		
+		if [ $((${_TMP_BIND_FIX_ARR_CHAR_COUNT}%2)) -gt 0 ]; then
+			_TMP_BIND_FIX_ARR_CURR_SPLING=1
+		fi
+		
+		local _TMP_BIND_FIX_ARR_ARR_POINT=${_TMP_BIND_FIX_ARR_VAR_NAME}'['${_TMP_BIND_FIX_ARR_CURR_INDEX}']'
+
+		# 未被分割，直接赋值，索引+1
+		if [ ${_TMP_BIND_FIX_ARR_CURR_SPLING} -eq 0 ]; then
+			eval ${_TMP_BIND_FIX_ARR_ARR_POINT}='${_TMP_BIND_FIX_ARR_CURR_ITEM}'
+			_TMP_BIND_FIX_ARR_CURR_INDEX=$((_TMP_BIND_FIX_ARR_CURR_INDEX+1))
+		else
+			# 已处于分割中
+			local _TMP_BIND_FIX_ARR_CURR_PREV_ITEM=$(eval echo '${'${_TMP_BIND_FIX_ARR_ARR_POINT}'}')
+			if [ -n "${_TMP_BIND_FIX_ARR_CURR_PREV_ITEM}" ]; then
+				_TMP_BIND_FIX_ARR_CURR_ITEM="${_TMP_BIND_FIX_ARR_CURR_PREV_ITEM} ${_TMP_BIND_FIX_ARR_CURR_ITEM}"
+				eval ${_TMP_BIND_FIX_ARR_ARR_POINT}='${_TMP_BIND_FIX_ARR_CURR_ITEM}'
+				if [ $((${_TMP_BIND_FIX_ARR_CHAR_COUNT}%2)) -gt 0 ]; then
+					_TMP_BIND_FIX_ARR_CURR_SPLING=0
+					_TMP_BIND_FIX_ARR_CURR_INDEX=$((_TMP_BIND_FIX_ARR_CURR_INDEX+1))
+				fi
+			else
+				eval ${_TMP_BIND_FIX_ARR_ARR_POINT}='${_TMP_BIND_FIX_ARR_CURR_ITEM}'
+			fi
+		fi
+	done
+	
+	return $?
+}
+
 # 分割并执行动作
 # 参数1：用于分割的数组字符串变量名/值
 # 参数2：对分割字符串执行脚本
@@ -1918,21 +1988,13 @@ function item_change_append_ignore_prefix_bind()
 #       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function items_split_action()
 {
-	local _TMP_ITEMS_SPLIT_ACTION_VAR_ARR=()
-	bind_discern_exchange_var_arr "_TMP_ITEMS_SPLIT_ACTION_VAR_ARR" "${1}"
-	local _TMP_ITEMS_SPLIT_ACTION_VAR_NAME=${_TMP_ITEMS_SPLIT_ACTION_VAR_ARR[0]}
-	local _TMP_ITEMS_SPLIT_ACTION_VAR_TYPE=${_TMP_ITEMS_SPLIT_ACTION_VAR_ARR[1]}
-	local _TMP_ITEMS_SPLIT_ACTION_VAR_VAL=${_TMP_ITEMS_SPLIT_ACTION_VAR_ARR[2]}
-
-	if [ "${_TMP_ITEMS_SPLIT_ACTION_VAR_TYPE}" != "array" ]; then
-		_TMP_ITEMS_SPLIT_ACTION_VAR_VAL=(${_TMP_ITEMS_SPLIT_ACTION_VAR_VAL//,/ })
-	else
-		_TMP_ITEMS_SPLIT_ACTION_VAR_VAL=(${_TMP_ITEMS_SPLIT_ACTION_VAR_VAL})
-	fi
+	local _TMP_ITEMS_SPLIT_ACTION_VAR_VAL=$(echo_discern_exchange_var_val "${1}") 
+	bind_fix_arr "_TMP_ITEMS_SPLIT_ACTION_VAR_VAL"
 	
 	# local _TMP_ITEMS_SPLIT_ACTION_SPLIT_ARR=(${1//,/ })
 	local _TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT=${2}
 	if [ -n "${_TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT}" ]; then
+		_TMP_ITEMS_SPLIT_ACTION_CURR_INDEX=0
 		for _TMP_ITEMS_SPLIT_ACTION_CURR_INDEX in ${!_TMP_ITEMS_SPLIT_ACTION_VAR_VAL[@]}; do
 			local _TMP_ITEMS_SPLIT_ACTION_SPLIT_ITEM=${_TMP_ITEMS_SPLIT_ACTION_VAR_VAL[_TMP_ITEMS_SPLIT_ACTION_CURR_INDEX]}
 
@@ -4862,7 +4924,7 @@ function fetch_docker_hub_release_ver_digests()
 #       参数5：启动命令，例 /bin/sh
 #       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
 # 示例：
-#     docker_container_param_check_action "browserless/" "exec_step_browserless_chrome"
+#     docker_container_param_check_action "ctnid111111" "func_a"
 function docker_container_param_check_action() 
 {
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo_discern_exchange_var_val "${1}")
@@ -4895,7 +4957,7 @@ function docker_container_param_check_action()
 #       参数5：启动命令，例 /bin/sh
 #       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
 # 示例：
-#     docker_image_param_check_action "browserless/" "exec_step_browserless_chrome"
+#     docker_image_param_check_action "imgid111111" "func_a"
 function docker_image_param_check_action() 
 {
 	local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID=$(echo_discern_exchange_var_val "${1}")
@@ -4938,10 +5000,12 @@ function docker_image_param_check_action()
 					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_ENVS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ENVS}" | xargs printf "--env=%s ")
 				fi
 
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Mounts[] | .Source + ":" + .Destination + ":" + .Mode' | grep -oP "(?<=^\").*(?=\"$)")
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=
-				if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" ]; then
-					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" | xargs printf "--volume=%s ")
+				if [ "$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Mounts')" != "null" ]; then
+					local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Mounts[] | .Source + ":" + .Destination + ":" + .Mode' | grep -oP "(?<=^\").*(?=\"$)")
+					local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=
+					if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" ]; then
+						_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_ARG_MOUNTS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_MOUNTS}" | xargs printf "--volume=%s ")
+					fi
 				fi
 
 				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_LBLS=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Config.Labels' | grep -oP "(?<=^  \").*(?=\",*$)" | awk -F'": "' "{print \$1\"='\"\$2\"'\"}")
@@ -4974,7 +5038,7 @@ function docker_image_param_check_action()
 #       参数3：启动命令，例 /bin/sh
 #       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
 # 示例：
-#     docker_images_param_check_action "browserless/" "exec_step_browserless_chrome"
+#     docker_images_param_check_action "browserless/" "func_a"
 function docker_images_param_check_action() 
 {
 	local _TMP_DOCKER_CHECK_EXISTS_ACTION_REGEX_VAL=$(echo_discern_exchange_var_val "${1}")	
@@ -5412,7 +5476,7 @@ function echo_docker_image_digests()
 #       echo_docker_images_exists_vers "browserless/chrome"
 function echo_docker_images_exists_vers()
 {
-	docker images | grep "^${1}" | awk -F' ' '{if($2=="latest"||$2=="<none>"){print $3} else {print $2}}' | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+$)" | sed 's/S[A-Z][0-9|A-Z]*$//' | uniq
+	docker images | awk "NR>1{if(\$1~\"${1}\"){if(\$2==\"latest\"||\$2==\"<none>\"){print \$3} else {print \$2}}}" | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+$)" | sed 's/S[A-Z][0-9|A-Z]*$//' | uniq
 
 	return $?
 }
@@ -5421,50 +5485,50 @@ function echo_docker_images_exists_vers()
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 参数2：忽略版本数组字符串，例 clean snapshot hub
 # 示例：
-#       echo_docker_images_vers "browserless/chrome"
-#       echo_docker_images_vers "browserless/chrome" "hub"
-function echo_docker_images_vers()
+#       echo_docker_image_vers "browserless/chrome"
+#       echo_docker_image_vers "browserless/chrome" "hub"
+function echo_docker_image_vers()
 {
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
+	local _TMP_ECHO_DOCKER_IMAGE_VERS_IMG="${1}"
+	local _TMP_ECHO_DOCKER_IMAGE_VERS_IMG_MARK_NAME="${1/\//_}"
 	
     # /mountdisk/repo/migrate/snapshot/browserless_chrome/
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
+    local _TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_DIR="${MIGRATE_DIR}/snapshot/${_TMP_ECHO_DOCKER_IMAGE_VERS_IMG_MARK_NAME}"
     # /mountdisk/repo/migrate/clean/browserless_chrome/
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME}"
+    local _TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_DIR="${MIGRATE_DIR}/clean/${_TMP_ECHO_DOCKER_IMAGE_VERS_IMG_MARK_NAME}"
 
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS=""
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS=""
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS=""
-
-	function _echo_docker_images_vers_fill_snapshot()
+    local _TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_VERS=""
+    local _TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_VERS=""
+	local _TMP_ECHO_DOCKER_IMAGE_VERS_HUB_VERS=""
+	
+	function _echo_docker_image_vers_fill_snapshot()
 	{
-		if [[ -a "${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR}" ]]; then
-			_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_DIR} | cut -d'.' -f1 | uniq)
+		if [[ -a "${_TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_DIR}" ]]; then
+			_TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_DIR} | cut -d'.' -f1 | uniq)
 		fi
 	}
-	item_not_exists_action "^snapshot$" "${2}" "_echo_docker_images_vers_fill_snapshot"
+	item_not_exists_action "^snapshot$" "${2}" "_echo_docker_image_vers_fill_snapshot"
 
-	function _echo_docker_images_vers_fill_clean()
+	function _echo_docker_image_vers_fill_clean()
 	{
-		if [[ -a "${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR}" ]]; then
-			_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_DIR} | cut -d'.' -f1 | uniq)
+		if [[ -a "${_TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_DIR}" ]]; then
+			_TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_VERS=$(ls ${_TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_DIR} | cut -d'.' -f1 | uniq)
 		fi
 	}
-	item_not_exists_action "^clean$" "${2}" "_echo_docker_images_vers_fill_clean"
+	item_not_exists_action "^clean$" "${2}" "_echo_docker_image_vers_fill_clean"
 
-	item_not_exists_action "^hub$" "${2}" "_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS=\$(fetch_docker_hub_release_vers '${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG}')"
+	item_not_exists_action "^hub$" "${2}" "_TMP_ECHO_DOCKER_IMAGE_VERS_HUB_VERS=\$(fetch_docker_hub_release_vers '${_TMP_ECHO_DOCKER_IMAGE_VERS_IMG}')"
 
     # 打标记，已安装的版本做标注
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_ARR=()
-    function _echo_docker_images_vers_combine()
+    local _TMP_ECHO_DOCKER_IMAGE_VERS_ARR=()
+    function _echo_docker_image_vers_combine()
     {
-		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[${2}]='${1}'"
+		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGE_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGE_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGE_VERS_ARR[${2}]='${1}'"
     }
 	
-    items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_SNAP_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_CLEAN_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_HUB_VERS}" "_echo_docker_images_vers_combine"
+    items_split_action "${_TMP_ECHO_DOCKER_IMAGE_VERS_SNAP_VERS} ${_TMP_ECHO_DOCKER_IMAGE_VERS_CLEAN_VERS} ${_TMP_ECHO_DOCKER_IMAGE_VERS_HUB_VERS}" "_echo_docker_image_vers_combine"
 
-    echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
+    echo "${_TMP_ECHO_DOCKER_IMAGE_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
 
     return $?
 }
@@ -5473,54 +5537,54 @@ function echo_docker_images_vers()
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 参数2：忽略版本数组字符串，例 clean snapshot hub
 # 示例：
-#       echo_docker_images_mark_vers "browserless/chrome"
-#       echo_docker_images_mark_vers "browserless/chrome" "hub"
-function echo_docker_images_mark_vers()
+#       echo_docker_image_mark_vers "browserless/chrome"
+#       echo_docker_image_mark_vers "browserless/chrome" "hub"
+function echo_docker_image_mark_vers()
 {
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG="${1}"
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_MARK_NAME="${1/\//_}"
-	# local _TMP_ECHO_DOCKER_IMAGES_VERS_STORE="${3}"
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_VERS=$(echo_docker_images_vers "${1}" "${2}")
-	local _TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
+	local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG="${1}"
+	local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_MARK_NAME="${1/\//_}"
+	# local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_STORE="${3}"
+	local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_VERS=$(echo_docker_image_vers "${1}" "${2}")
+	local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
 	
     # 打标记，已安装的版本做标注
-    local _TMP_ECHO_DOCKER_IMAGES_VERS_ARR=()
-    function _echo_docker_images_mark_vers_combine()
+    local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_ARR=()
+    function _echo_docker_image_mark_vers_combine()
     {
-        local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${1}"
-        local _TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX="${2}"
+        local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP="${1}"
+        local _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_INDEX="${2}"
 
-        function _echo_docker_images_mark_vers_combine_mark()
+        function _echo_docker_image_mark_vers_combine_mark()
         {
 			# # 列表版本等于latest版的情况
-			# if [ "${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}" == "latest" ]; then
+			# if [ "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}" == "latest" ]; then
 			# 	# 已安装版本ID，在hub的latest-IMGID中存在时，latest版本标记为已安装
-			# 	if [ -n "$(echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_LAST_VER_IMG_IDS[*]}" | grep "^${1}$")" ]; then
-			# 		_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}√"
+			# 	if [ -n "$(echo "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_LAST_VER_IMG_IDS[*]}" | grep "^${1}$")" ]; then
+			# 		_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}√"
 			# 	fi
 			# fi
 
 			# 已安装版本与版本列表版本号相同
-            if [ "${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}" == "${1}" ]; then
-                _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}√"
+            if [ "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}" == "${1}" ]; then
+                _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}√"
 				return
             fi
 
 			# 已安装版本是版本列表的子版本，例：imgver111111_v1675941850SRC -> imgver111111_v1675941850
-			if [ -n "$(echo "${1}" | grep -oP "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}")" ]; then
-                _TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}√"
+			if [ -n "$(echo "${1}" | grep -oP "^${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}")" ]; then
+                _TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP="${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}√"
 				return
 			fi
         }
 
-        items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS}" "_echo_docker_images_mark_vers_combine_mark"
+        items_split_action "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_EXISTS_VERS}" "_echo_docker_image_mark_vers_combine_mark"
 
-		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_INDEX}]='${_TMP_ECHO_DOCKER_IMAGES_VERS_VER_TEMP}'"
+		item_not_exists_action "^${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}$" "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_ARR[*]}" "_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_ARR[${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_INDEX}]='${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_VER_TEMP}'"
     }
 	
-    items_split_action "${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_EXISTS_VERS} ${_TMP_ECHO_DOCKER_IMAGES_VERS_IMG_VERS}" "_echo_docker_images_mark_vers_combine"
+    items_split_action "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_EXISTS_VERS} ${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_IMG_VERS}" "_echo_docker_image_mark_vers_combine"
 
-    echo "${_TMP_ECHO_DOCKER_IMAGES_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
+    echo "${_TMP_ECHO_DOCKER_IMAGE_MARK_VERS_ARR[*]}" | sed 's@ @\n@g' | uniq
 
     return $?
 }
@@ -5533,21 +5597,22 @@ function echo_docker_images_mark_vers()
 #       echo_docker_images_store "browserless/chrome" "hub"
 function echo_docker_images_store()
 {
-	if [ -n "$(echo_docker_images_vers "${1}" "snapshot hub" | egrep "^${2}$")" ]; then
+	if [ -n "$(echo_docker_image_vers "${1}" "snapshot hub" | egrep "^${2}$")" ]; then
 		echo "clean"
 		return $?
 	fi
 	
-	if [ -n "$(echo_docker_images_vers "${1}" "clean hub" | egrep "^${2}$")" ]; then
+	if [ -n "$(echo_docker_image_vers "${1}" "clean hub" | egrep "^${2}$")" ]; then
 		echo "snapshot"
 		return $?
 	fi
 	
-	if [ -n "$(echo_docker_images_vers "${1}" "clean snapshot" | egrep "^${2}$")" ]; then
+	if [ -n "$(echo_docker_image_vers "${1}" "clean snapshot" | egrep "^${2}$")" ]; then
 		echo "hub"
 		return $?
 	fi
 
+	echo "unknow"
 	return $?
 }
 
@@ -5597,7 +5662,7 @@ function docker_choice_cust_vers_action()
 #       docker_images_choice_vers_action "browserless/chrome" "choice echo text" "func_a" "hub"
 function docker_images_choice_vers_action()
 {
-	docker_choice_cust_vers_action "${1}" "${2}" "${3}" "$(echo_docker_images_mark_vers "${1}" "${4}")"
+	docker_choice_cust_vers_action "${1}" "${2}" "${3}" "$(echo_docker_image_mark_vers "${1}" "${4}")"
     return $?
 }
 
@@ -5653,18 +5718,15 @@ function docker_image_args_combine_bind()
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL" "^--env=.+$"
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL" "^--volume=.+$"
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_LBL_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
+	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_LBL_VAL" "^--label=.+$"
 	# 清理无关联变量
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--env=.+$"
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--volume=.+$"
+	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--label=.+$"
 
 	# 不为空则操作
 	if [ -n "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}" ]; then
-		# 记录特定变量
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
-		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "^--env=.+$"
-		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}
-		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "^--volume=.+$"
-
 		# 卸载无用的变量
 		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
 		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL//-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR}/}
@@ -5673,11 +5735,20 @@ function docker_image_args_combine_bind()
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--mac-address=\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--runtime=runc\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--detach=\w+$"
+		
+		# 记录特定变量
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL}
+		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "^--env=.+$"
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL}
+		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "^--volume=.+$"
+		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_LBL_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL}
+		item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_LBL_VAL" "^--label=.+$"
 
 		# 清理无关联变量
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--env=.+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--volume=.+$"
-
+		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--label=.+$"
+		
 		# 覆盖环境变量
 		function _docker_image_args_combine_bind_split()
 		{
@@ -5694,9 +5765,10 @@ function docker_image_args_combine_bind()
 			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_UPPER_KEY="${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}"
 			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_VAL=$(echo "${1}" | grep -oP "(?<=^--${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}\=).+")
 			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR=""	
+			local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_WRAP_CHAR=""
 
 			case "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_KEY}" in
-			'env')
+			'env' | 'label')
 				_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_ARG_SPLIT_CHAR="="
 			;;
 			'volume')
@@ -5744,6 +5816,7 @@ function docker_image_args_combine_bind()
 		_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR:-${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR}}
 		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_ENV_VAL" "_docker_image_args_combine_bind_pair_split"
 		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VOLUME_VAL" "_docker_image_args_combine_bind_pair_split"
+		items_split_action "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_LBL_VAL" "_docker_image_args_combine_bind_pair_split"
 	fi
 
 	# 网络参数不存在的情况直接删除
@@ -5754,7 +5827,7 @@ function docker_image_args_combine_bind()
 		fi
 	fi
 
-	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_FINAL_VAL="-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL}"
+	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_FINAL_VAL="-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL} ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_LBL_VAL}"
 	if [ "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_TYPE}" == "array" ]; then
 		eval ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_NAME}='(${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_FINAL_VAL})'
 	else
@@ -5997,7 +6070,7 @@ EOF
 	# 【3】提取Docker ADD/COPY指令添加的文件
 	# 【4】展示暴露的端口、环境变量信息等等。
 	local _TMP_DOCKER_SNAP_ALISA_BASE="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock"
-	if [ -z "$(docker images | grep 'alpine/dfimage')" ]; then
+	if [ -z "$(docker images | awk 'NR>1{if($1=="alpine/dfimage"){print}}')" ]; then
 		docker pull alpine/dfimage
 
 		# dfimage -sV=1.36 nginx:latest
@@ -6005,7 +6078,7 @@ EOF
 		echo
 	fi
 
-	if [ -z "$(docker images | grep 'cucker/image2df')" ]; then
+	if [ -z "$(docker images | awk 'NR>1{if($1=="cucker/image2df"){print}}')" ]; then
 		docker pull cucker/image2df
 
 		echo "alias image2df='${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df'" >> /etc/bashrc
@@ -6015,7 +6088,7 @@ EOF
 	# 如果想要更加详细的内容，比如每一层的信息，以及每一层对应的文件增减情况，那么dive工具可以帮助我们更好的分析镜像。
 	# dive用于探索docker镜像、layer内容和发现缩小docker/OCI镜像大小的方法的工具。
 	# 左边是镜像和layer的信息，右边是当前选中镜像layer对应的文件磁盘文件信息，右边是会根据左边的选择变动的，比如我在某一层进行了文件的复制新增或者删除，右边会以不同的颜色进行展示的。
-	if [ -z "$(docker images | grep 'wagoodman/dive')" ]; then
+	if [ -z "$(docker images | awk 'NR>1{if($1=="wagoodman/dive"){print}}')" ]; then
 		docker pull wagoodman/dive
 		
 		alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
@@ -6035,7 +6108,7 @@ EOF
 	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
 	### 还原标记则为SR(Snap restore c/i/d)			
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | grep "^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}" | awk -F' ' '{print $2}' | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v[0-9]{10})SC(?=[0-9]+$)" | wc -l)
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | awk "NR>1{if(\$1~\"${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}\"){print \$2}}" | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v[0-9]{10})SC(?=[0-9]+$)" | wc -l)
 	# imgver111111_v1675749340SC0
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT}"
 	# browserless_chrome:imgver111111_v1675749340SC0
@@ -6142,7 +6215,7 @@ function docker_snap_restore_choice_action()
 	
     # 合集操作
     if [ -z "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS}" ]; then
-        _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS=$(echo_docker_images_mark_vers "${1}" "hub")
+        _TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS=$(echo_docker_image_mark_vers "${1}" "hub")
     fi
 	
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_CHOICE_ACTION_VERS}" ]; then
@@ -6259,7 +6332,7 @@ function docker_snap_restore_action()
 	# 检测 镜像是否存在，存在则不开启还原行为(暂未判断结束版本标记，例如SRC/SCI等)
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_RESTORED=""
     echo_style_wrap_text "Checking 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) exists of <${1}>:[${2}] from docker images"
-	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS=$(docker images | grep "^${1}")
+	local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS=$(docker images | awk "NR>1{if(\$1~\"${1}\"){print}}")
 	if [ -n "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" ]; then
 		local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMGS}" | awk -F' ' '{print $2}' | egrep "^${2}" | grep -Pv ".+_v[0-9]{10}(?=SC[0-9]+$)")
 		echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${1}>:[${2}] from docker images exists versions('${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CURR_IMG_VERS}')"
@@ -6422,7 +6495,7 @@ function docker_image_boot_print()
     local _TMP_DOCKER_IMG_BOOT_PRINT_VER="${2}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_CMD="${3}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_ARGS="${4}"
-	local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_GREP=$(docker images | grep "^${1}")
+	local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_GREP=$(docker images | awk "NR>1{if(\$1~\"${1}\"){print}}")
 		
 	# -P :是容器内部端口随机映射到主机的端口。
 	# -p : 是容器内部端口绑定到指定的主机端口。
@@ -6821,10 +6894,13 @@ function path_check_wget_action()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
 # 参数5：软件已安装执行函数
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数6-N：附加参数
 # 示例：
 #      soft_setup_common_wget "gum" "0.8.0" "exec_step_gum"
 function soft_setup_common_wget() 
@@ -6836,11 +6912,12 @@ function soft_setup_common_wget()
 	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT=${4}
 	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT=${5}
 	local _TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR=
-
+	local _TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS=("${@:6}")
+	
 	function _soft_setup_common_wget()
 	{
 		_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR="${1}"
-		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}"
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
 
 		# 清理解压包
 		if [ -n "${1}" ]; then
@@ -6850,8 +6927,8 @@ function soft_setup_common_wget()
 
 	path_check_wget_action "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_COMMON_WGET_URL}" "_soft_setup_common_wget"
     # ls -d ${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_COMMON_WGET_NAME} | grep -v grep
-	if [[ -z "${_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR}" ]]; then
-		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}"
+	if [ -z "${_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR}" ]; then
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
 		return $?
 	fi
 
@@ -6865,10 +6942,13 @@ function soft_setup_common_wget()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
 # 参数4：软件已安装执行函数
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
 # 示例：
 #      soft_setup_wget "gum" "0.8.0" "exec_step_gum"
 function soft_setup_wget() 
@@ -6880,7 +6960,7 @@ function soft_setup_wget()
 	local _TMP_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_WGET_NAME}
 	local _TMP_SOFT_SETUP_WGET_SETUP_DIR=${SETUP_DIR}/${_TMP_SOFT_SETUP_WGET_LOWER_NAME}
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -6891,10 +6971,13 @@ function soft_setup_wget()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
 # 参数4：软件已安装执行函数
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
 # 示例：
 #      soft_setup_docker_wget "browserless/chrome" "0.8.0" "exec_step_gum"
 function soft_setup_docker_wget() 
@@ -6906,7 +6989,7 @@ function soft_setup_docker_wget()
 	local _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_DOCKER_WGET_NAME}
 	local _TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}" "${3}" "${4}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -6917,10 +7000,13 @@ function soft_setup_docker_wget()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
 # 参数4：软件已安装执行函数
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
 # 示例：
 #      soft_setup_conda_wget "browserless/chrome" "0.8.0" "exec_step_gum"
 function soft_setup_conda_wget() 
@@ -6932,7 +7018,7 @@ function soft_setup_conda_wget()
 	local _TMP_SOFT_SETUP_CONDA_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_CONDA_WGET_NAME}
 	local _TMP_SOFT_SETUP_CONDA_WGET_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_CONDA_WGET_MARK_NAME}
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_CONDA_WGET_SETUP_DIR}" "${3}" "${4}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_CONDA_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -6946,26 +7032,29 @@ function soft_setup_conda_wget()
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：软件安装版本
 # 参数7：软件已安装执行函数
 #       参数1：软件安装名称
 #       参数2：软件安装路径
 #       参数3：软件解压路径
+#       参数4：软件安装版本
 # 示例：
 #      soft_setup_git_common_wget "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.8.0" "" "exec_step_gum"
 function soft_setup_git_common_wget() 
 {
 	# 查找及确认版本
 	local _TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER="${4}"
-	
 	set_github_soft_releases_newer_version "_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER" "${2}"
-	exec_text_printf "_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER" "${3}"
+	
+	local _TMP_SOFT_SETUP_GIT_COMMON_WGET_NEWER_LINK="${_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER}"
+	exec_text_printf "_TMP_SOFT_SETUP_GIT_COMMON_WGET_NEWER_LINK" "${3}"
 
 	local _TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME="soft_setup_wget"
 	if [ -n "${5}" ]; then
 		_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME="soft_setup_${5}_wget"
 	fi
 	
-	${_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME} "${1}" "${_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER}" "${6}" "${7}"
+	${_TMP_SOFT_SETUP_GIT_COMMON_WGET_FUNC_NAME} "${1}" "${_TMP_SOFT_SETUP_GIT_COMMON_WGET_NEWER_LINK}" "${6}" "${7}" "${_TMP_SOFT_SETUP_GIT_COMMON_WGET_VER_NEWER}"
 	
 	return $?
 }
@@ -7626,31 +7715,29 @@ function soft_npm_check_action()
 # Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
 # 参数1：镜像名称，用于检测
 # 参数2：镜像版本，为空时跳出选择框
-# 参数3：预编译脚本，即安装前执行（例：生成docker-compose.yml）
-# 参数4：安装脚本（例：docker pull、docker-compose）
-# 参数5：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+# 参数3：安装脚本（例：docker pull、docker-compose）
+# 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
 #        参数1：镜像名称，例 goharbor/prepare
 #        参数2：镜像版本，例 imgver111111_v1670329246
 #        参数3：启动命令，例 /bin/sh
 #        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
 #        参数5：快照类型（快照有效），例 image/container/dockerfile
 #        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
-# 参数6：重装选择N时 或镜像已存在时执行脚本
-# 参数7：动作类型描述，action/install
+# 参数5：重装选择N时 或镜像已存在时执行脚本
+# 参数6：动作类型描述，action/install
 # 示例：
-#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" "" 'docker pull ${1}:${2}' "exec_step_browserless_chrome"
-#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
+#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" 'docker pull ${1}:${2}' "exec_step_browserless_chrome"
+#     soft_docker_check_upgrade_custom "goharbor/prepare" "imgver111111" "bash prepare" "exec_step_browserless_chrome"
 function soft_docker_check_upgrade_custom() 
 {
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME="${1}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_MARK_NAME="${1/\//_}"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER="${2}"
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT=${3}
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT=${4}
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT=${5}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT=${3}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT=${4}
 	#  | grep -oP "(?<=^_v)[0-9]+(?=\w+$)"
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS=$(echo_docker_images_exists_vers "${1}")
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP=$(docker images | grep "^${1}")
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP=$(docker images | awk "NR>1{if(\$1~\"${1}\"){print}}")
 
 	# 检查Docker运行状态
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DC_STATUS=$(echo_service_node_content "docker" "Active")
@@ -7661,11 +7748,12 @@ function soft_docker_check_upgrade_custom()
 	
 	function _soft_docker_check_upgrade_custom_print_image()
 	{
-		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${1}\"){print}}"
+		echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk "{if(\$2~\"${1}\"){print}}"
 	}
+
 	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT="(docker images | awk 'NR==1') && echo \"\${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}\" | eval script_channel_action '_soft_docker_check_upgrade_custom_print_image'"
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_E_SCRIPT=${6:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT}}
-	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC=${7:-"install"}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_E_SCRIPT=${5:-${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT}}
+	local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC=${6:-"install"}
 
 	function _soft_docker_check_upgrade_custom()
 	{
@@ -7677,7 +7765,7 @@ function soft_docker_check_upgrade_custom()
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER="${2}"
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER="${2}"
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE="${3:-$(echo_docker_images_store "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")}"
-			
+
 			# 确认重装
 			function _soft_docker_check_upgrade_custom_confrim_reinstall()
 			{
@@ -7704,7 +7792,7 @@ function soft_docker_check_upgrade_custom()
 
 					function _soft_docker_check_upgrade_custom_img_trail()
 					{
-						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS=$(docker ps -a | awk -F" " "{if(\$2~\"${1}\"){ print \$1}}")
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS=$(docker ps -a | awk "{if(\$2~\"${1}\"){ print \$1}}")
 						echo_style_text "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS:-none}])"
 						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS}" "_soft_docker_check_upgrade_custom_ctn_trail"
 						
@@ -7713,60 +7801,102 @@ function soft_docker_check_upgrade_custom()
 					}
 
 					# 查找当前镜像的ID
-					local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk -F" " "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}\"){print \$3}}")
+					local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk "{if(\$2~\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}\"){print \$3}}")
 					echo_style_text "Starting <trail> exists 'images'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS:-none}])"
 					items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_IDS}" "_soft_docker_check_upgrade_custom_img_trail"
 					
 					_soft_docker_check_upgrade_custom_install
 				}
 
-				# 已经存在版本，安装该版本可以走快照
-				confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS:-none}]), please 'sure' u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}'"
+				# 原始未指定版本的情况下不提示，避免多次选择
+				if [ -z "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}" ]; then
+					confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Special 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS:-none}]), please 'sure' u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}'"
+				else
+					_soft_docker_check_upgrade_custom_reinstall
+				fi
 			}
 
 			function _soft_docker_check_upgrade_custom_install()
 			{
-				# 预先检索数字标记
-				local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
+				# 为空则不进行安装操作
+				if [ -z "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT}" ]; then
+					return
+				fi
 
 				# 因为latest版本曾经被修改为IMAGE ID，故需要在此还原
 				if [ -n "$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_EXISTS_GREP}" | awk "{if(\$2==\"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}\" && \$2==\$3){print}}")" ]; then
 					_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER="latest"
 				fi
 				
-				# 预编译
-				if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT}" ]; then
-					script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
-				fi
+				# # 预编译
+				# if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT}" ]; then
+				# 	script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_COMPILE_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+				# fi
 				
 				echo_style_text "Starting 'pull image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) from [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}], hold on please"
 				case "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}" in 
-					"hub")
+					"hub" | "unknow")
+						# 预先检索对应数字标记（针对 自定义tag与latest版本情况）
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
+						# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
 						# docker pull ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}
 						script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
+						# 执行安装脚本后的镜像
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
+						# 差异镜像ID集合
+						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
+						
+						# 绑定参数
+						# 参数1：ID
+						function _soft_docker_check_upgrade_custom_compile_bind_exec()
+						{
+							# 提取参数信息
+							local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
+							if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" != "{}" ]; then
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ImageID" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ContainerID" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Image" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Version" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Cmd" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Args" | xargs echo)
+							
+								# 重新定义版本号
+								if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" == "latest" ]; then
+									_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER=${1}
 
-						# 重新获取数字标记
-						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
-						echo_style_text "'Image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}') pulled"
+									echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>) ver marked 'latest', system remarked to 'image id'([${1}])"
+									docker image tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}:${1}
+									docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}:latest
+								fi
+								
+								echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER}]), start bind param"
+								echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq
 
-						# 重新定义版本号
-						if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" == "latest" ]; then
-							_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER=$(docker images ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest | awk -F' ' 'NR==2{print $3}')
+								# 修正镜像全局参数								
+								_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}"
+								_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_MARK_NAME="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME/\//_}"
+								# _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER}"
 
-							echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>) ver marked '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}', system remarked to 'image id'([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}])"
-							docker image tag ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}
-							docker rmi ${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:latest
-						fi
+								# 重新获取数字标记
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256=$(docker inspect ${1} | jq ".[0].RepoDigests[]" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+								# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
+								item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS}" "_soft_docker_check_upgrade_custom_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}' \"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARG_CMD}\" \"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARGS}\" '' 'hub'"
+							else
+								echo_style_text "Resolve 'image'(<${1}>) failure, setup skip"
+								return
+							fi
+						}
 
-						# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
-						item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS}" "_soft_docker_check_upgrade_custom_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}' '' '' '' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}'"
+						items_split_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_IDS" "_soft_docker_check_upgrade_custom_compile_bind_exec"
 					;;
 					*)
 						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
 				esac
 			}
-
+			
 			if [ -n "${1}" ]; then
+				# 第二次确认，确认选择是否是安装过的版本。
 				_soft_docker_check_upgrade_custom_confrim_reinstall
 			else
 				_soft_docker_check_upgrade_custom_install
@@ -7777,11 +7907,13 @@ function soft_docker_check_upgrade_custom()
 		if [ -z "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}" ]; then
 			docker_images_choice_vers_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "Please sure 'which version' u want to '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}' of 'image' <${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>" "_soft_docker_check_upgrade_custom_choice_action"
 		else
+			# 确认当前版本是否已安装
 			local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IS_INSTALL=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}" | egrep "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}$" && echo 1)
 			script_check_action "_soft_docker_check_upgrade_custom_choice_action" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IS_INSTALL}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}"
 		fi
 	}
 
+	# 第一次确认，确认有安装过的版本。是否继续选择安装其它版本
 	if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS}" ]; then
 		local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL="N"
 		confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>) was got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS//[[:space:]]/,}]), please 'sure' u will [${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_E_SCRIPT"
@@ -7808,7 +7940,7 @@ function soft_docker_check_upgrade_custom()
 #     soft_docker_check_upgrade_action "browserless/chrome" "imgver111111" "exec_step_browserless_chrome"
 function soft_docker_check_upgrade_action() 
 {
-	soft_docker_check_upgrade_custom "${1}" "${2}" "" 'docker pull ${1}:${2}' "${@:3:5}"
+	soft_docker_check_upgrade_custom "${1}" "${2}" 'docker pull ${1}:${2}' "${@:3:5}"
     return $?
 }
 
@@ -7831,128 +7963,157 @@ function soft_docker_check_choice_upgrade_action()
     return $?
 }
 
-# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker镜像检测类型的安装，并具有备份提示操作）
-# 参数1：镜像名称，用于检测
-# 参数2：预编译脚本，即安装前执行（例：生成docker-compose.yml）
-# 参数3：Compose脚本（生成docker-compose.yml）
-# 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+# # Docker镜像检测后安装，存在时提示覆盖安装（基于Docker-Compose镜像检测类型的安装，并具有备份提示操作）
+# # 参数1：镜像正则名称变量值或名，用于检测的基准镜像名，例：goharbor/ 或 browserless/chrome
+# # 参数2：预编译脚本，即安装前执行（例：生成docker-compose.yml）
+# # 参数3：Compose脚本（生成docker-compose.yml）
+# # 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+# #        参数1：镜像名称，例 browserless/chrome
+# #        参数2：镜像版本，例 imgver111111_v1670329246
+# #        参数3：启动命令，例 /bin/sh
+# #        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+# #        参数5：快照类型（快照有效），例 image/container/dockerfile
+# #        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
+# # 参数5：重装选择N时 或镜像已存在时执行脚本
+# # 参数6：动作类型描述，action/install
+# # 示例：
+# #     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
+# function soft_docker_compose_check_upgrade_action() 
+# {
+# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=""
+# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT=${3}
+# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
+# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
+# soft_docker_check_upgrade_custom "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "" 'docker pull ${1}:${2}' "${@:3:5}"
+# 	# 编译操作
+# 	# 参数1：镜像名称
+# 	# 参数2：版本信息
+# 	function _soft_docker_compose_check_upgrade_action_compile()
+# 	{
+# 		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT}" ]; then
+# 			echo_style_wrap_text "Starting 'compile image'(<${1}>:[${2}]) from [${3}], hold on please"
+
+# 			# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
+# 			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
+# 			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT" "${1}" "${2}"
+# 			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
+# 			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
+
+# 			# 绑定参数
+# 			# 参数1：ID
+# 			function _soft_docker_compose_check_upgrade_action_compile_bind_param()
+# 			{
+# 				# 从已安装容器中提取参数
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
+				
+# 				if [ "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" != "{}" ]; then
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageID")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ContainerID")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageName")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Version")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Cmd")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Args")
+					
+# 					echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}('${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID}'/'${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID:-None}')]), start bind param"
+# 					echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq
+
+# 					script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"
+# 				else
+# 					echo_style_text "Resolve 'image'(<${1}>) failure, setup skip"
+# 					return
+# 				fi
+# 			}
+
+# 			items_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS" "_soft_docker_compose_check_upgrade_action_compile_bind_param"
+# 		fi
+# 	}
+	
+# 	# 安装操作(compose之前需判断是否已安装)
+# 	# 参数1：镜像名称
+# 	# 参数2：版本信息
+# 	function _soft_docker_compose_check_upgrade_action_compose()
+# 	{
+# 		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT}" ]; then
+# 			# 自定义安装
+# 			echo_style_wrap_text "Starting 'compose image'(<${1}>:[${2}]) from [${3}], hold on please"
+# 			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
+
+# 			# 执行安装
+# 			# 参数1：yaml节点
+# 			function _soft_docker_compose_check_upgrade_action_install()
+# 			{
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" |  cut -d':' -f1)
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=
+				
+# 				echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}]), start bind param"
+
+# 				# 从已安装容器中提取参数
+# 				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_images_param_check_jq_arr_echo "^${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}")
+				
+# 				# 绑定参数
+# 				# 参数1：JQ-ITEM
+# 				if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" != "[]" ]; then
+# 					function _soft_docker_compose_check_upgrade_action_install_bind_param()
+# 					{
+# 						echo_style_text "View 'bind param'↓:"
+# 						echo "${1}" | jq
+# 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER:-$(echo "${1}" | jq ".Version")}
+# 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${1}" | jq ".Cmd")
+# 						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${1}" | jq ".Args")
+
+# 						script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"	
+# 					}
+
+# 					# 绑定启动参数
+# 					json_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR" "_soft_docker_compose_check_upgrade_action_install_bind_param"
+# 				else
+# 					echo_style_text "Resolve 'image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}]) failure, setup skip"
+# 					return
+# 				fi
+# 			}
+
+# 			# 从docker-compose.yml中取已安装镜像信息
+# 			if [ -a docker-compose.yml ]; then
+# 				yaml_split_action "$(cat docker-compose.yml | yq '.services')" "_soft_docker_compose_check_upgrade_action_install"
+# 				return $?
+# 			fi
+
+# 			echo_style_wrap_text "Cannot found docker-compose.yml, please check"
+# 		fi
+# 	}
+
+# 	soft_docker_check_upgrade_custom "${1}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}" "_soft_docker_compose_check_upgrade_action_compile" "${@:4:6}"
+#     return $?
+# }
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker-Compose镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像正则名称变量值或名，用于检测的基准镜像名，例：goharbor/ 或 browserless/chrome
+# 参数2：镜像版本变量值或名，用于检测的基准镜像版本，例：imgver111111
+# 参数3：预编译脚本，即安装前执行（例：生成docker-compose.yml）
+# 参数4：Compose脚本（生成docker-compose.yml）
+# 参数5：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
 #        参数1：镜像名称，例 browserless/chrome
 #        参数2：镜像版本，例 imgver111111_v1670329246
 #        参数3：启动命令，例 /bin/sh
 #        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
 #        参数5：快照类型（快照有效），例 image/container/dockerfile
 #        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
-# 参数5：重装选择N时 或镜像已存在时执行脚本
-# 参数6：动作类型描述，action/install
+# 参数6：重装选择N时 或镜像已存在时执行脚本
+# 参数7：动作类型描述，action/install
 # 示例：
 #     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
 function soft_docker_compose_check_upgrade_action() 
 {
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=""
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER="${2}"
 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT=${3}
 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
-
-	# 编译操作
-	# 参数1：镜像名称
-	# 参数2：版本信息
-	function _soft_docker_compose_check_upgrade_action_compile()
-	{
-		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT}" ]; then
-			echo_style_wrap_text "Starting 'compile image'(<${1}>:[${2}]) from [${3}], hold on please"
-
-			# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
-			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
-			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT" "${1}" "${2}"
-			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
-			local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
-
-			# 绑定参数
-			# 参数1：ID
-			function _soft_docker_compose_check_upgrade_action_compile_bind_param()
-			{
-				# 从已安装容器中提取参数
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
-				
-				if [ "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" != "{}" ]; then
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageID")
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ContainerID")
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageName")
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Version")
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Cmd")
-					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Args")
-					
-					echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}('${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID}'/'${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID:-None}')]), start bind param"
-					echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq
-
-					script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"
-				else
-					echo_style_text "Resolve 'image'(<${1}>) failure, setup skip"
-					return
-				fi
-			}
-
-			items_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_IDS" "_soft_docker_compose_check_upgrade_action_compile_bind_param"
-		fi
-	}
 	
-	# 安装操作(compose之前需判断是否已安装)
-	# 参数1：镜像名称
-	# 参数2：版本信息
-	function _soft_docker_compose_check_upgrade_action_compose()
-	{
-		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT}" ]; then
-			# 自定义安装
-			echo_style_wrap_text "Starting 'compose image'(<${1}>:[${2}]) from [${3}], hold on please"
-			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
+	soft_docker_check_upgrade_custom "${1}" "${2}" "${3}" "${5}" "${6}" "${7}"
+    echo $?
 
-			# 执行安装
-			# 参数1：yaml节点
-			function _soft_docker_compose_check_upgrade_action_install()
-			{
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" |  cut -d':' -f1)
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=
-				
-				echo_style_wrap_text "Checked 'increase image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}]), start bind param"
-
-				# 从已安装容器中提取参数
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR=$(docker_images_param_check_jq_arr_echo "^${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}")
-				
-				# 绑定参数
-				# 参数1：JQ-ITEM
-				if [ "${TMP_DC_CPS_HB_IMG_BUILD_JQ_ARR}" != "[]" ]; then
-					function _soft_docker_compose_check_upgrade_action_install_bind_param()
-					{
-						echo_style_text "View 'bind param'↓:"
-						echo "${1}" | jq
-						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER:-$(echo "${1}" | jq ".Version")}
-						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${1}" | jq ".Cmd")
-						_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS=$(echo "${1}" | jq ".Args")
-
-						script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARGS}" "hub"	
-					}
-
-					# 绑定启动参数
-					json_split_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ARR" "_soft_docker_compose_check_upgrade_action_install_bind_param"
-				else
-					echo_style_text "Resolve 'image'(<${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME}>:[${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}]) failure, setup skip"
-					return
-				fi
-			}
-
-			# 从docker-compose.yml中取已安装镜像信息
-			if [ -a docker-compose.yml ]; then
-				yaml_split_action "$(cat docker-compose.yml | yq '.services')" "_soft_docker_compose_check_upgrade_action_install"
-				return $?
-			fi
-
-			echo_style_wrap_text "Cannot found docker-compose.yml, please check"
-		fi
-	}
-
-	soft_docker_check_upgrade_custom "${1}" "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}" "_soft_docker_compose_check_upgrade_action_compile" "_soft_docker_compose_check_upgrade_action_compose" "${@:5:7}"
-    return $?
+	return $?
 }
