@@ -294,7 +294,7 @@ function migrate_cps_dc_goharbor_harbor() {
     echo_style_wrap_text "Starting 'migrate compose', hold on please"
 
     function _migrate_cps_dc_goharbor_harbor_cp_source() {
-        echo_style_text "View the 'compose copy'↓:"
+        echo_style_text "View the 'compose migrate'↓:"
 
         # 拷贝应用目录
         cp -r ${TMP_DC_CPL_HB_EXTRA_DIR} ${1}
@@ -320,6 +320,66 @@ function formal_cps_dc_goharbor_harbor() {
 
     echo_style_wrap_text "Starting 'formal compose dirs' <${TMP_DC_HB_CURRENT_IMG_NAME}>:[${TMP_DC_HB_CURRENT_IMG_VER}], hold on please"
 
+    # # 传入卷信息，分多卷与单点
+    # # 参数1：当前节点内容
+    # # 参数2：当前节点索引
+    # # 参数3：当前节点key
+    # function _formal_dc_goharbor_harbor_etcs()
+    # {
+    #     # .service.core.volumes[0]
+    #     local TMP_DC_HB_CURRENT_YML_VOL_ITEM="${TMP_DC_HB_CURRENT_YML_NODE}${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}[${2}]"
+
+    #     if [ "${1}" != "null" ]; then
+    #         # 匹配节点模型
+    #         local TMP_DC_HB_SETUP_CURRENT_NODE_MODE=$([[ $(echo "${1}" | yq ".source") ]] && echo "node" || echo "item")
+    #         local TMP_DC_HB_SETUP_SOURCE=
+    #         if [ "${TMP_DC_HB_SETUP_CURRENT_NODE_MODE}" == "item" ]; then
+    #             # 匹配KV模型
+    #             TMP_DC_HB_SETUP_SOURCE=$(echo "${1}" | cut -d':' -f1)
+    #         else
+    #             TMP_DC_HB_SETUP_SOURCE=$(echo "${1}" | yq ".source")
+    #         fi
+
+    #         # 在当前compose目录的情况
+    #         ## 相对路径
+    #         ### 适配 ./common/config/core/app.conf 或 common/config/core/app.conf
+    #         if [ "$(echo "${TMP_DC_HB_SETUP_SOURCE}" | egrep -o '^[.|a-zA-Z]')" ]; then
+    #             # 相对路径 /core/app.conf
+    #             local TMP_DC_HB_SETUP_REL_SOURCE="${TMP_DC_HB_SETUP_SOURCE##*${TMP_DC_CPS_HB_ETC_REL_NODE}}"
+    #             # core
+    #             local TMP_DC_HB_SETUP_REL_KEY=$(echo "${TMP_DC_HB_SETUP_REL_SOURCE}" | cut -d'/' -f2)
+    #             # /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core
+    #             local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE=${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/${TMP_DC_HB_SETUP_REL_KEY}
+    #             # /opt/docker_apps/goharbor_harbor/v1.10.0/compose/common/config/core
+    #             local TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE=$(pwd)/${TMP_DC_CPS_HB_ETC_REL_NODE}/${TMP_DC_HB_SETUP_REL_KEY}
+    #             # /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core/app.conf
+    #             local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE=${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}${TMP_DC_HB_SETUP_REL_SOURCE}
+                
+    #             if [[ ! -a ${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE} && -a ${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE} ]]; then
+    #                 # 迁移
+    #                 soft_path_restore_confirm_swap "${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE}" "${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE}"
+    #                 echo "[-]"
+    #                 ls -lia ${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE}
+    #                 echo "[-]"
+    #                 ls -lia ${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE}
+    #             fi
+
+    #             local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE="${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}${TMP_DC_HB_SETUP_REL_SOURCE}"
+    #             # 修改compose.yml中对应的数据为最新节点
+    #             if [ "${TMP_DC_HB_SETUP_CURRENT_NODE_MODE}" == "item" ]; then
+    #                 if [ "${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}" == ".volume" ]; then
+    #                     local TMP_DC_CPL_HB_SETUP_FULL_TARGET=$(echo "${1}" | awk -F':' '{print $2":"$3}')
+    #                     yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}' = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}:${TMP_DC_CPL_HB_SETUP_FULL_TARGET}'"' docker-compose.yml
+    #                 else
+    #                     yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}' = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
+    #                 fi
+    #             else
+    #                 yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}'.source = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
+    #             fi
+    #         fi
+    #     fi
+    # }
+
     # 传入卷信息，分多卷与单点
     # 参数1：当前节点内容
     # 参数2：当前节点索引
@@ -328,54 +388,7 @@ function formal_cps_dc_goharbor_harbor() {
     {
         # .service.core.volumes[0]
         local TMP_DC_HB_CURRENT_YML_VOL_ITEM="${TMP_DC_HB_CURRENT_YML_NODE}${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}[${2}]"
-
-        if [ "${1}" != "null" ]; then
-            # 匹配节点模型
-            local TMP_DC_HB_SETUP_CURRENT_NODE_MODE=$([[ $(echo "${1}" | yq ".source") ]] && echo "node" || echo "item")
-            local TMP_DC_HB_SETUP_SOURCE=
-            if [ "${TMP_DC_HB_SETUP_CURRENT_NODE_MODE}" == "item" ]; then
-                # 匹配KV模型
-                TMP_DC_HB_SETUP_SOURCE=$(echo "${1}" | cut -d':' -f1)
-            else
-                TMP_DC_HB_SETUP_SOURCE=$(echo "${1}" | yq ".source")
-            fi
-
-            # 在当前compose目录的情况
-            ## 相对路径
-            ### 适配 ./common/config/core/app.conf 或 common/config/core/app.conf
-            if [ "$(echo "${TMP_DC_HB_SETUP_SOURCE}" | egrep -o '^[.|a-zA-Z]')" ]; then
-                # 相对路径 /core/app.conf
-                local TMP_DC_HB_SETUP_REL_SOURCE="${TMP_DC_HB_SETUP_SOURCE##*${TMP_DC_CPS_HB_ETC_REL_NODE}}"
-                # core
-                local TMP_DC_HB_SETUP_REL_KEY=$(echo "${TMP_DC_HB_SETUP_REL_SOURCE}" | cut -d'/' -f2)
-                # /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core
-                local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE=${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/${TMP_DC_HB_SETUP_REL_KEY}
-                # /opt/docker_apps/goharbor_harbor/v1.10.0/compose/common/config/core
-                local TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE=$(pwd)/${TMP_DC_CPS_HB_ETC_REL_NODE}/${TMP_DC_HB_SETUP_REL_KEY}
-                # /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core/app.conf
-                local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE=${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}${TMP_DC_HB_SETUP_REL_SOURCE}
-                
-                if [[ ! -a ${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE} && -a ${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE} ]]; then
-                    # 迁移
-                    soft_path_restore_confirm_swap "${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE}" "${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE}"
-                    ls -lia ${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE}
-                    ls -lia ${TMP_DC_HB_SETUP_CURRENT_CPS_ETC_NODE_SOURCE}
-                fi
-
-                local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_NODE_SOURCE="${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}${TMP_DC_HB_SETUP_REL_SOURCE}"
-                # 修改compose.yml中对应的数据为最新节点
-                if [ "${TMP_DC_HB_SETUP_CURRENT_NODE_MODE}" == "item" ]; then
-                    if [ "${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}" == ".volume" ]; then
-                        local TMP_DC_CPL_HB_SETUP_FULL_TARGET=$(echo "${1}" | awk -F':' '{print $2":"$3}')
-                        yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}' = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}:${TMP_DC_CPL_HB_SETUP_FULL_TARGET}'"' docker-compose.yml
-                    else
-                        yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}' = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
-                    fi
-                else
-                    yq -i ${TMP_DC_HB_CURRENT_YML_VOL_ITEM}'.source = "'${TMP_DC_HB_SETUP_CURRENT_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
-                fi
-            fi
-        fi
+        docker_compose_formal_print_node_volumes "${1}" "${TMP_DC_CPS_HB_ETC_REL_NODE}" "${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}" "${TMP_DC_HB_CURRENT_YML_VOL_ITEM}"
     }
 
     # 开始标准化
@@ -384,12 +397,12 @@ function formal_cps_dc_goharbor_harbor() {
     #### /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111
     local TMP_DC_HB_SETUP_CURRENT_LNK_ETC_DIR=${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/${TMP_DC_HB_CURRENT_SERVICE_KEY}
     function _formal_dc_goharbor_harbor_cp_etc() {
-        echo "${TMP_SPLITER2}"
         echo_style_text "View the 'etc format'↓:"
 
         # 调整env_file节点匹配
         local TMP_DC_HB_CURRENT_YML_CURRENT_NODE=".env_file"
         yaml_split_action "$(echo "${TMP_DC_HB_CURRENT_SERVICE_NODE}" | yq "${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}")" "_formal_dc_goharbor_harbor_etcs"
+        echo "[-]"
         cat docker-compose.yml | yq "${TMP_DC_HB_CURRENT_YML_NODE}${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}"
         
         echo "${TMP_SPLITER2}"
@@ -397,6 +410,7 @@ function formal_cps_dc_goharbor_harbor() {
         # /mountdisk/etc/docker_apps/goharbor_harbor/imgver111111/core
         TMP_DC_HB_CURRENT_YML_CURRENT_NODE=".volumes"
         yaml_split_action "$(echo "${TMP_DC_HB_CURRENT_SERVICE_NODE}" | yq "${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}")" "_formal_dc_goharbor_harbor_etcs"
+		echo "[-]"
         cat docker-compose.yml | yq "${TMP_DC_HB_CURRENT_YML_NODE}${TMP_DC_HB_CURRENT_YML_CURRENT_NODE}"
     }
 
@@ -510,7 +524,7 @@ function resolve_compose_dc_goharbor_harbor_loop()
         # 解析执行
         echo_style_wrap_text "Starting 'configuration' <compose> 'yaml', hold on please"
         yaml_split_action "$(cat docker-compose.yml | yq '.services')" "exec_compose_step_dc_goharbor_harbor"
-cat docker-compose.yml
+cat docker-compose.yml | yq
         return $?
     fi
 }

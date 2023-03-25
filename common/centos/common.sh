@@ -5837,6 +5837,66 @@ function docker_image_args_combine_bind()
 	return $?
 }
 
+# 传入卷信息，分多卷与单点
+# 参数1：当前节点信息
+# 参数2：节点内容相对地址 例 common/config
+# 参数3：需要挂载到的路径 例 /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0
+# 参数4：要写入的节点路径 例 .service.core.volumes[0]
+function docker_compose_formal_print_node_volumes()
+{
+	if [ "${1}" != "null" ]; then
+		# 匹配节点模型
+		local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_NODE_MODE=$([[ $(echo "${1}" | yq ".source") ]] && echo "node" || echo "item")
+		local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE=
+		if [ "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_NODE_MODE}" == "item" ]; then
+			# 匹配KV模型
+			_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE=$(echo "${1}" | cut -d':' -f1)
+		else
+			_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE=$(echo "${1}" | yq ".source")
+		fi
+
+		# 在当前compose目录的情况
+		## 相对路径
+		### 适配 ./common/config/core/app.conf 或 common/config/core/app.conf
+		if [ "$(echo "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE}" | egrep -o '^[.|a-zA-Z]')" ]; then
+			# 相对路径 /core/app.conf
+			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE="${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE##*${2}}"
+			# core
+			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY=$(echo "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE}" | cut -d'/' -f2)
+			# /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core
+			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE=${3}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
+			# /opt/docker_apps/goharbor_harbor/v1.10.0/compose/common/config/core
+			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE=$(pwd)/${2}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
+			# /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core/app.conf
+			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_CHANGE_SOURCE=${3}${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE}
+			
+			if [[ ! -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE} && -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE} ]]; then
+				# 迁移
+				soft_path_restore_confirm_swap "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}" "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}"
+				echo "[-]"
+				ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}
+				echo "[-]"
+				ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}
+			fi
+
+			# 修改compose.yml中对应的数据为最新节点
+			if [ "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_NODE_MODE}" == "item" ]; then
+				local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CURRENT_NODE=$(echo "${4}" | awk -F'.' '{print $NF}' | egrep -o "\w+" | awk 'NR==1')
+				if [ "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CURRENT_NODE}" == "volumes" ]; then
+					local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_FULL_TARGET=$(echo "${1}" | awk -F':' '{print $2":"$3}')
+					yq -i ${4}' = "'${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_CHANGE_SOURCE}:${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_FULL_TARGET}'"' docker-compose.yml
+				else
+					yq -i ${4}' = "'${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
+				fi
+			else
+				yq -i ${4}'.source = "'${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_CHANGE_SOURCE}'"' docker-compose.yml
+			fi
+		fi
+	fi
+	
+	return $?
+}
+
 # 创建 docker 快照
 # 参数1：容器ID，例 e75f9b427730
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
