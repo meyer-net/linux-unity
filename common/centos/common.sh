@@ -508,27 +508,44 @@ function set_if_empty()
 	return $?
 }
 
-#设置变量值函数如果相同
-# 参数1：需要对比的原始变量名1
-# 参数2：需要对比的原始变量名2/值2
-# 参数3：相同时，设置的变量的 名/值
+# 设置变量值函数如果相同
+# 参数1：相同时，设置的变量的 名/值
+# 参数2：需要对比的原始变量名1
+# 参数3：需要对比的原始变量名2/值2
 # 示例：
-#       set_if_equals "_HOST" "127.0.0.1" "192.168.0.1" 
-#       _HOST="127.0.0.1" && _HOST="192.168.0.1" && set_if_equals "_HOST" "127.0.0.1" "LOCAL_HOST" 
+#       _BIND_HOST= && set_if_equals "_BIND_HOST" "127.0.0.1" "192.168.0.1" && echo "${_BIND_HOST}"
+#       _BIND_HOST= && _COMPARE_HOST="192.168.0.1" && set_if_equals "_BIND_HOST" "_COMPARE_HOST" "192.168.0.1" && echo "${_BIND_HOST}"
+#       _BIND_HOST="127.0.0.1" && _COMPARE_HOST="192.168.0.1" && set_if_equals "_BIND_HOST" "_COMPARE_HOST" "LOCAL_HOST" && echo "${_BIND_HOST}"
 function set_if_equals()
 {
-	local _TMP_SET_IF_EQS_COMPARE_VAR_VAL=$(echo_discern_exchange_var_val "${2}")
-	local _TMP_SET_IF_EQS_SET_VAR_VAL=$(echo_discern_exchange_var_val "${3}")
+	local _TMP_SET_IF_EQS_COMPARE_VAR_NAME=$(echo_discern_exchange_var_name "${1}")
 
 	function _set_if_equals()
 	{
-		local _TMP_SET_IF_EQS_SOURCE_VAR_VAL=$(eval echo '${'"${1}"'}')
-		if [ "${_TMP_SET_IF_EQS_SOURCE_VAR_VAL}" == "${_TMP_SET_IF_EQS_COMPARE_VAR_VAL}" ]; then
-			eval ${1}='${_TMP_SET_IF_EQS_SET_VAR_VAL}'
-		fi		
+		eval ${_TMP_SET_IF_EQS_COMPARE_VAR_NAME}='${1}'
+		return $?
 	}
 
-	discern_exchange_var_action "${1}" "_set_if_equals" "${@}"
+	equals_action "${2}" "${3}" "_set_if_equals"
+	return $?
+}
+
+# 执行指定函数如果变量对比相同
+# 参数1：需要对比的原始变量名1
+# 参数2：需要对比的原始变量名2/值2
+# 参数3：相同时，执行的变量的 名/值
+# 示例：
+#       equals_action "127.0.0.1" "192.168.0.1" "echo 1"
+function equals_action()
+{
+	local _TMP_ACTION_IF_EQS_SOURCE_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
+	local _TMP_ACTION_IF_EQS_COMPARE_VAR_VAL=$(echo_discern_exchange_var_val "${2}")
+
+	if [ "${_TMP_ACTION_IF_EQS_SOURCE_VAR_VAL}" == "${_TMP_ACTION_IF_EQS_COMPARE_VAR_VAL}" ]; then
+		script_check_action "${3}" "${_TMP_ACTION_IF_EQS_SOURCE_VAR_VAL}"
+		return $?
+	fi
+
 	return $?
 }
 
@@ -2137,10 +2154,10 @@ function convert_path () {
 # 查找软链接真实路径
 # 参数1：用于查找的变量名/值
 # 示例：
-#       _PATH="/opt/docker/logs" && symlink_link_path "_PATH"
-function symlink_link_path()
+#       _PATH="/opt/docker/logs" && bind_symlink_link_path "_PATH"
+function bind_symlink_link_path()
 {
-	function _symlink_link_path()
+	function _bind_symlink_link_path()
 	{
 		local _TMP_SYMLINK_TRUE_PATH_SOURCE=$(eval echo '${'"${1}"'}')
 		convert_path "_TMP_SYMLINK_TRUE_PATH_SOURCE"
@@ -2168,7 +2185,35 @@ function symlink_link_path()
 		eval ${1}='${_TMP_SYMLINK_TRUE_PATH_TMP}'
 	}
 
-	discern_exchange_var_action "${1}" "_symlink_link_path" "${@}"
+	discern_exchange_var_action "${1}" "_bind_symlink_link_path" "${@}"
+	return $?
+}
+
+# 交换路径，将来源迁移到指定路径，并创建软连接
+# 参数1：指定路径
+# 参数2：来源路径(为空则默认取还原路径)
+# 示例：
+#      path_swap_link "/mountdisk/data/docker" "/var/lib/docker"
+#      path_swap_link "/mountdisk/etc/docker_apps/browserless_chrome/04d7d58d0a96/container" "/mountdisk/data/docker/containers/ffcf89d0c7a907ff7dd7d232f8d448e22b422364e9b28a4cb7678ed0ccb6fb18"
+#      path_swap_link "/mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/container/core" "/mountdisk/data/docker/containers/d2c785c861d4dd9a93d03e1bf9dc6e7156e5495f5648dce66137c3ad5d03d881"
+function path_swap_link()
+{
+	local _TMP_PATH_SWAP_LINK_DEST_PATH=${1}
+	local _TMP_PATH_SWAP_LINK_FROM_PATH=${2}
+	convert_path "_TMP_PATH_SWAP_LINK_FROM_PATH"
+	bind_symlink_link_path "_TMP_PATH_SWAP_LINK_FROM_PATH"
+
+	# 转换后路径不相同的情况
+	if [[ "${_TMP_PATH_SWAP_LINK_FROM_PATH}" != "${_TMP_PATH_SWAP_LINK_DEST_PATH}" ]]; then
+		# mv ${2} ${_TMP_PATH_SWAP_LINK_DEST_PATH}_clean_${LOCAL_TIMESTAMP} && ln -sf ${_TMP_PATH_SWAP_LINK_DEST_PATH} ${2}
+		if [[ -a ${_TMP_PATH_SWAP_LINK_DEST_PATH} ]]; then
+			mv ${_TMP_PATH_SWAP_LINK_FROM_PATH} ${_TMP_PATH_SWAP_LINK_DEST_PATH}_clean_${LOCAL_TIMESTAMP} && ln -sf ${_TMP_PATH_SWAP_LINK_DEST_PATH} ${_TMP_PATH_SWAP_LINK_FROM_PATH}
+		else
+			mkdir -pv $(dirname ${_TMP_PATH_SWAP_LINK_DEST_PATH}) && ([[ -a ${_TMP_PATH_SWAP_LINK_FROM_PATH} ]] && (cp -Rp ${_TMP_PATH_SWAP_LINK_FROM_PATH} ${_TMP_PATH_SWAP_LINK_DEST_PATH} && mv ${_TMP_PATH_SWAP_LINK_FROM_PATH} ${_TMP_PATH_SWAP_LINK_DEST_PATH}_clean_${LOCAL_TIMESTAMP}) || mkdir -pv $(dirname ${_TMP_PATH_SWAP_LINK_FROM_PATH}) ${_TMP_PATH_SWAP_LINK_DEST_PATH}) && ln -sf ${_TMP_PATH_SWAP_LINK_DEST_PATH} ${_TMP_PATH_SWAP_LINK_FROM_PATH}
+		fi
+	fi
+
+	ls -lia ${_TMP_PATH_SWAP_LINK_FROM_PATH}
 	return $?
 }
 
@@ -2231,7 +2276,7 @@ function bind_dirs_convert_truthful_action()
 
 		# 真实链接
 		local _TMP_BIND_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR="${_TMP_BIND_DIRS_CONVERT_TRUTHFUL_ACTION_SYM_DIR}"
-		symlink_link_path "_TMP_BIND_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR"
+		bind_symlink_link_path "_TMP_BIND_DIRS_CONVERT_TRUTHFUL_ACTION_LNK_DIR"
 		
 		# 如果是软链接，直接删除
 		local _TMP_BIND_DIRS_CONVERT_TRUTHFUL_ACTION_MARK_TEXT=""
@@ -2418,12 +2463,12 @@ function path_not_exists_link()
 	local _TMP_PATH_NOT_EXISTS_LINK_SOUR=${3}
 	local _TMP_PATH_NOT_EXISTS_LINK_SCRIPT=${4}
 
-	function _path_not_exists_link()
+	function _path_not_exists_link_echo()
 	{
 		script_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
 	
-    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "mkdir -pv $(dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}) && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
+    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "[[ -a ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ]] && (mkdir -pv $(dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}) && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && ls -lia ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link_echo) || echo_style_text 'Path <${_TMP_PATH_NOT_EXISTS_LINK_SOUR}> not exists'" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
 
@@ -4818,7 +4863,8 @@ function soft_path_restore_confirm_action()
 #	   soft_path_restore_confirm_custom "/opt/docker"
 function soft_path_restore_confirm_custom() 
 {
-	soft_path_restore_confirm_action "${1}" "" "script_check_action '${2}' '${1}'" ""
+	# soft_path_restore_confirm_action "${1}" "" "script_check_action '${2}' '${1}'" ""
+	soft_path_restore_confirm_action "${1}" "" "${2}" ""
 	return $?
 }
 
@@ -4915,7 +4961,7 @@ function fetch_docker_hub_release_ver_digests()
 }
 
 # Docker容器检测输出
-# 参数1：容器ID值或变量名，用于检测
+# 参数1：容器ID或名称值或变量名，用于检测
 # 参数2：查询到容器后执行脚本
 #       参数1：镜像ID，例 imgid111111
 #       参数2：容器ID，例 ctnid111111
@@ -4927,20 +4973,21 @@ function fetch_docker_hub_release_ver_digests()
 #     docker_container_param_check_action "ctnid111111" "func_a"
 function docker_container_param_check_action() 
 {
-	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo_discern_exchange_var_val "${1}")
-	if [ -n "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" ]; then
-	
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}\"){print \$2}}")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME=$(echo_discern_exchange_var_val "${1}")
+	if [ -n "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}" ]; then
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"||\$NF==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"){print}}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
 		
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
-		
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ARGS=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=docker run ).+(?=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME})")
 
-		script_check_action "${2}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ARGS}"
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=docker run ).+(?=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME})")
+
+		script_check_action "${2}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS}"
 		return $?
 	fi
 	
@@ -5367,7 +5414,7 @@ function docker_change_container_volume_migrate()
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
 
 			# 转换为挂载的真实路径
-			symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_MOUNT_POINT"
+			bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_MOUNT_POINT"
 
 			if [[ -a ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_MOUNT_POINT} ]]; then
 				rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_MOUNT_POINT}
@@ -5862,22 +5909,23 @@ function docker_compose_formal_print_node_volumes()
 			# 相对路径 /core/app.conf
 			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE="${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_SOURCE##*${2}}"
 			# core
-			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY=$(echo "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE}" | cut -d'/' -f2)
+			# local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY=$(echo "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE}" | cut -d'/' -f2)
 			# /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core
-			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE=${3}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
+			# local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE=${3}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
 			# /opt/docker_apps/goharbor_harbor/v1.10.0/compose/common/config/core
-			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE=$(pwd)/${2}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
+			# local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE=$(pwd)/${2}/${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_KEY}
 			# /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/core/app.conf
 			local _TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_CHANGE_SOURCE=${3}${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_REL_SOURCE}
 			
-			if [[ ! -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE} && -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE} ]]; then
-				# 迁移
-				soft_path_restore_confirm_swap "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}" "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}"
-				echo "[-]"
-				ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}
-				echo "[-]"
-				ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}
-			fi
+			# if [[ ! -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE} && -a ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE} ]]; then
+			# 	# 复制配置（只能复制，不能迁移，否则会无法识别软连接从而无法编译）
+			# 	soft_path_restore_confirm_copy "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}" "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}"
+
+			# 	echo "[-]"
+			# 	ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_LNK_ETC_NODE_SOURCE}
+			# 	echo "[-]"
+			# 	ls -lia ${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_CPS_ETC_NODE_SOURCE}
+			# fi
 
 			# 修改compose.yml中对应的数据为最新节点
 			if [ "${_TMP_DOCKER_COMPOSE_FORMAL_PRINT_NODE_NODE_MODE}" == "item" ]; then
@@ -6068,7 +6116,7 @@ EOF
 		# 还原挂载的路径
 		local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
 		# 转换为挂载的真实路径
-		symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
+		bind_symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
 
 		# 备份挂载盘路径
 		echo "${TMP_SPLITER2}"

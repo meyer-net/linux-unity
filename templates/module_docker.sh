@@ -74,10 +74,10 @@ function formal_dc_$setup_name() {
     #     echo_style_text "View the 'logs copy'↓:"
 
     #     # 拷贝日志目录
-    #     ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app_output
-    #     # mkdir -pv ${1}/app_output
-    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app_output >& /dev/null
-    #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app_output >& /dev/null
+    #     ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
+    #     # mkdir -pv ${1}/app
+    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+    #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app >& /dev/null
     #
     #     # 查看列表
     #     ls -lia ${1}
@@ -101,7 +101,6 @@ function formal_dc_$setup_name() {
     soft_path_restore_confirm_pcreate "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "_formal_dc_$setup_name_cp_data"
 
     ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
-    ### ETC目录规范
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}"
     #### /mountdisk/etc/docker_apps/$setup_name/imgver111111/container
@@ -126,9 +125,9 @@ function formal_dc_$setup_name() {
    
     ### 迁移ETC下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
-    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/$setup_name/imgver111111/docker_output/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
-    #### /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/$setup_name/imgver111111/docker_output/${CTN_ID}-json.log
-    # soft_path_restore_confirm_move "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
+    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/$setup_name/imgver111111/container/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
+    #### /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
+    # soft_path_restore_confirm_move "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
     #### ]
 
     ## 创建链接规则
@@ -139,10 +138,10 @@ function formal_dc_$setup_name() {
     path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/$setup_name/imgver111111 -> /mountdisk/logs/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/$setup_name/imgver111111/docker_output/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
+    #### /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
     ### 数据
-    #### /opt/docker_apps/$setup_name/imgver111111/workspace -> /mountdisk/data/docker_apps/$setup_name/imgver111111
+    #### /opt/docker_apps/$setup_name/imgver111111/data -> /mountdisk/data/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
     #### /opt/docker/data/apps/$setup_name/imgver111111 -> /mountdisk/data/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
@@ -162,8 +161,8 @@ function formal_dc_$setup_name() {
     # ${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}:/tmp"
     #
     # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app_output:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app_output:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK}
@@ -211,11 +210,6 @@ function test_dc_$setup_name() {
 ##########################################################################################################
 
 # 6-启动后检测脚本
-# 参数1：启动后的进程ID
-# 参数2：最终启动端口
-# 参数3：最终启动版本
-# 参数3：最终启动命令
-# 参数4：最终启动参数
 function boot_check_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
@@ -226,9 +220,9 @@ function boot_check_dc_$setup_name() {
         echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}
         echo
-    fi
 
-    echo_soft_port "TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT"
+        echo_soft_port "TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT"
+    fi
 }
 
 ##########################################################################################################

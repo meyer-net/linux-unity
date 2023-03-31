@@ -80,7 +80,11 @@ function formal_dc_portainer() {
     #### /mountdisk/etc/docker_apps/portainer/imgver111111/container
     local TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_PTN_SETUP_LNK_ETC_DIR}/container"
     #### /mountdisk/etc/docker_apps/portainer/imgver111111
-    soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}"
+    function _formal_dc_portainer_cp_etc() {
+        soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_PTN_SETUP_CTN_DIR}"
+    }
+    #### /mountdisk/etc/docker_apps/portainer/imgver111111
+    soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}" "_formal_dc_portainer_cp_etc"
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
@@ -90,8 +94,8 @@ function formal_dc_portainer() {
     path_not_exists_link "${TMP_DC_PTN_SETUP_LOGS_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/portainer/imgver111111 -> /mountdisk/logs/docker_apps/portainer/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/portainer/imgver111111/docker_output/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/portainer/imgver111111/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_PTN_SETUP_CTN_ID}-json.log" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_PTN_SETUP_CTN_ID}-json.log"
+    #### /mountdisk/logs/docker_apps/portainer/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/portainer/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_PTN_SETUP_CTN_ID}-json.log" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_PTN_SETUP_CTN_ID}-json.log"
     ### 数据
     #### /opt/docker_apps/portainer/imgver111111/workspace -> /mountdisk/data/docker_apps/portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_DATA_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
@@ -143,11 +147,6 @@ function test_dc_portainer() {
 ##########################################################################################################
 
 # 6-启动后检测脚本
-# 参数1：启动后的进程ID
-# 参数2：最终启动端口
-# 参数3：最终启动版本
-# 参数3：最终启动命令
-# 参数4：最终启动参数
 function boot_check_dc_portainer() {
     cd ${TMP_DC_PTN_SETUP_DIR}
 
@@ -158,9 +157,9 @@ function boot_check_dc_portainer() {
         echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_PTN_SETUP_CTN_PORT}
         echo
-    fi
 
-    echo_soft_port "TMP_DC_PTN_SETUP_OPN_PORT"
+        echo_soft_port "TMP_DC_PTN_SETUP_OPN_PORT"
+    fi
 }
 
 ##########################################################################################################

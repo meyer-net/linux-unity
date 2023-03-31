@@ -111,9 +111,9 @@ function formal_dc_browserless_chrome() {
    
     ### 迁移ETC下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
-    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/browserless_chrome/imgver111111/docker_output/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
-    #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/docker_output/${CTN_ID}-json.log
-    # soft_path_restore_confirm_move "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
+    ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/browserless_chrome/imgver111111/container/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
+    #### /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log
+    # soft_path_restore_confirm_move "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
     #### ]
 
     ## 创建链接规则
@@ -124,8 +124,8 @@ function formal_dc_browserless_chrome() {
     path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/browserless_chrome/imgver111111 -> /mountdisk/logs/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_BLC_SETUP_IMG_MARK_NAME}/${TMP_DC_BLC_SETUP_CTN_VER}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/docker_output/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/docker_output/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
+    #### /mountdisk/logs/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_BLC_SETUP_CTN_ID}-json.log" "" "${TMP_DC_BLC_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_BLC_SETUP_CTN_ID}-json.log"
     ### 数据
     #### /opt/docker_apps/browserless_chrome/imgver111111/workspace -> /mountdisk/data/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${TMP_DC_BLC_SETUP_DATA_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_DATA_DIR}"
@@ -147,8 +147,8 @@ function formal_dc_browserless_chrome() {
     # ${TMP_DC_BLC_SETUP_CTN_TMP}:/tmp"
     #
     # ${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app"
-    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK}"
-    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app_output:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK}"
+    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK}"
+    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_ETC_DIR}/app:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK}
@@ -194,11 +194,6 @@ function test_dc_browserless_chrome() {
 ##########################################################################################################
 
 # 6-启动后检测脚本
-# 参数1：启动后的进程ID
-# 参数2：最终启动端口
-# 参数3：最终启动版本
-# 参数3：最终启动命令
-# 参数4：最终启动参数
 function boot_check_dc_browserless_chrome() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
@@ -209,9 +204,9 @@ function boot_check_dc_browserless_chrome() {
         echo_style_text "View the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
         echo
-    fi
 
-    echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
+        echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
+    fi
 }
 
 ##########################################################################################################
