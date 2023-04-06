@@ -812,7 +812,7 @@ function rand_passwd() {
 	typeset -u _TMP_RAND_PASSWD_SOFT_TYPE
 	local _TMP_RAND_PASSWD_SOFT_TYPE="${2}"
 
-	echo "${_TMP_RAND_PASSWD_SOFT_NAME}%${_TMP_RAND_PASSWD_SOFT_TYPE}^m${LOCAL_ID}.${3:-0}~"
+	echo "${_TMP_RAND_PASSWD_SOFT_NAME}*${_TMP_RAND_PASSWD_SOFT_TYPE}!m${LOCAL_ID}.${3:-0}~"
 
 	return $?
 }
@@ -898,6 +898,35 @@ function comment_yaml_file_node_item()
 	fi
 	
     return $?
+}
+
+# 传入卷信息，分多卷与单点
+# 参数1：yml内容变量名/值
+# 参数2：要读取的节点信息 例 .services.core.volumes[0]/.services.core.volumes.[]
+function echo_yaml_formal_volumes()
+{
+	local _TMP_ECHO_YML_FORMAL_VOLS_YML_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
+	local _TMP_ECHO_YML_FORMAL_VOLS_PATH_VAR_VAL=$(echo_discern_exchange_var_val "${2}")
+
+	function _echo_yaml_formal_volumes() {
+		if [ "${1}" != "null" ]; then
+			# 匹配节点模型，始终包含(type source dest)
+			if [[ $(echo "${1}" | wc -l) -eq 1 ]]; then
+				# 匹配KV模型
+				echo "${1}"
+			else
+				local _TMP_ECHO_YML_FORMAL_VOLS_VOL_MODE=$(echo "${1}" | yq '.mode')
+				if [[ "${_TMP_ECHO_YML_FORMAL_VOLS_VOL_MODE}" == "null" || -z "${_TMP_ECHO_YML_FORMAL_VOLS_VOL_MODE}" ]]; then
+					echo "${1}" | yq '.source + ":" + .target'
+				else
+					echo "${1}" | yq '.source + ":" + .target + ":" + .mode'
+				fi
+			fi
+		fi
+	}
+	
+	yaml_split_action "$(echo "${_TMP_ECHO_YML_FORMAL_VOLS_YML_VAR_VAL}" | yq "${_TMP_ECHO_YML_FORMAL_VOLS_PATH_VAR_VAL}")" "_echo_yaml_formal_volumes"	
+	return $?
 }
 
 # 执行文本格式化
@@ -1053,12 +1082,12 @@ function echo_style_wrap_text() {
 	return $?
 }
 
-# 执行文本格式化
+# 执行文本格式化(仅支持单参数，匹配一个变量内的多个%)
 # 参数1：需要格式化的变量名/值
-# 参数2：格式化字符串规格变量名/值
+# 参数2：格式化字符串模板变量名/值
 # 示例：
 #	    TMP_TEST_FORMATED_TEXT="World"
-#	    exec_text_printf "TMP_TEST_FORMATED_TEXT" "Hello %s"
+#	    exec_text_printf "TMP_TEST_FORMATED_TEXT" "Hello %s，%s"
 #	    echo "The formated text is ‘$TMP_TEST_FORMATED_TEXT’"
 function exec_text_printf()
 {
@@ -1092,6 +1121,35 @@ function exec_text_printf()
 	local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(script_check_action "${_TMP_EXEC_TEXT_PRINTF_SCRIPT}")
 	
 	eval ${_TMP_EXEC_TEXT_PRINTF_VAR_NAME}='${_TMP_EXEC_TEXT_PRINTF_FORMATED_VAL}'
+	
+	return $?
+}
+
+# 执行文本格式化(仅支持1:1的参数，匹配一个变量内的多个%)
+# 参数1：需要格式化的模板变量名/值
+# 参数2：格式化字符串规格动态参数列表
+# 示例：
+#	    TMP_TEST_FORMATED_TEXT="Hello %s %s"
+#	    exec_multy_printf "TMP_TEST_FORMATED_TEXT" "Java" "World"
+#	    echo "The formated text is ‘$TMP_TEST_FORMATED_TEXT’"
+function exec_multy_printf()
+{
+	local _TMP_EXEC_MULTY_PRINTF_VAR_PAIR=()
+	bind_discern_exchange_var_pair "_TMP_EXEC_MULTY_PRINTF_VAR_PAIR" "${1}"
+	local _TMP_EXEC_MULTY_PRINTF_VAR_NAME=${_TMP_EXEC_MULTY_PRINTF_VAR_PAIR[0]}
+	local _TMP_EXEC_MULTY_PRINTF_VAR_VAL=${_TMP_EXEC_MULTY_PRINTF_VAR_PAIR[1]}
+	
+	# 判断格式化模板是否为空，为空不继续执行
+	shift
+	if [ ${#@} -eq 0 ]; then
+		return $?
+	fi
+	
+	local _TMP_EXEC_MULTY_PRINTF_LESS_COUNT=$(echo "${_TMP_EXEC_MULTY_PRINTF_VAR_VAL}" | grep -o "%" | wc -l)
+	if [ ${_TMP_EXEC_MULTY_PRINTF_LESS_COUNT} -gt 0 ]; then
+		_TMP_EXEC_MULTY_PRINTF_VAR_VAL=$(printf "${_TMP_EXEC_MULTY_PRINTF_VAR_VAL}" "${@:1:${_TMP_EXEC_MULTY_PRINTF_LESS_COUNT}}")
+		eval ${_TMP_EXEC_MULTY_PRINTF_VAR_NAME}='${_TMP_EXEC_MULTY_PRINTF_VAR_VAL}'
+	fi
 	
 	return $?
 }
@@ -1939,6 +1997,7 @@ function item_change_append_ignore_prefix_bind()
 
 # 用于修复错误的数组分割
 # 参数1：用于分割的数组字符串变量名/值
+# 参数2：用于分割数组字符变量名/值，默认空格
 # 示例：
 #       local _ARR=(--env=PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin --env=LANG=en_US.UTF-8 --label='build-date=20221224' --label='name=Photon OS 2.0 Base Image' --label='vendor=VMware')
 #       bind_fix_arr "_ARR" && echo "${#_ARR[@]}"
@@ -1950,12 +2009,14 @@ function bind_fix_arr()
 	local _TMP_BIND_FIX_ARR_VAR_TYPE=${_TMP_BIND_FIX_ARR_VAR_ARR[1]}
 	local _TMP_BIND_FIX_ARR_VAR_VAL=${_TMP_BIND_FIX_ARR_VAR_ARR[2]}
 
+	local _TMP_BIND_FIX_ARR_IFS=$(echo_discern_exchange_var_val "${2}")
+
+	# ???删除逗号了，暂时无法判断是否有影响
 	if [ "${_TMP_BIND_FIX_ARR_VAR_TYPE}" != "array" ]; then
-		_TMP_BIND_FIX_ARR_VAR_VAL=(${_TMP_BIND_FIX_ARR_VAR_VAL//,/ })
+		_TMP_BIND_FIX_ARR_VAR_VAL=(${_TMP_BIND_FIX_ARR_VAR_VAL//${_TMP_BIND_FIX_ARR_IFS:- }/ })
 	else
 		_TMP_BIND_FIX_ARR_VAR_VAL=(${_TMP_BIND_FIX_ARR_VAR_VAL})
 	fi
-
 
 	# 清空原数组
 	eval ${_TMP_BIND_FIX_ARR_VAR_NAME}='()'
@@ -2000,13 +2061,14 @@ function bind_fix_arr()
 # 参数2：对分割字符串执行脚本
 #       参数1：内容下正文
 #       参数2：内容所在索引
+# 参数3：用于分割数组字符变量名/值，默认空格
 # 参数x-N：动态参数
 # 示例：
 #       TMP=1 && while_exec "TMP=\$((TMP+1))" "[ \$TMP -eq 10 ] && echo 1" "echo \$TMP"
 function items_split_action()
 {
 	local _TMP_ITEMS_SPLIT_ACTION_VAR_VAL=$(echo_discern_exchange_var_val "${1}") 
-	bind_fix_arr "_TMP_ITEMS_SPLIT_ACTION_VAR_VAL"
+	bind_fix_arr "_TMP_ITEMS_SPLIT_ACTION_VAR_VAL" "${3}"
 	
 	# local _TMP_ITEMS_SPLIT_ACTION_SPLIT_ARR=(${1//,/ })
 	local _TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT=${2}
@@ -2167,7 +2229,20 @@ function bind_symlink_link_path()
 		# 记录链接层数，有可能是死链
 		local _TMP_SYMLINK_TRUE_PATH_INDEX=0
 		local _TMP_SYMLINK_TRUE_PATH_TMP="${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}"
-		[[ ${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} =~ ^/ ]] && _TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} || _TMP_SYMLINK_TRUE_PATH_TMP=$(pwd)/${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}
+		
+		# 判断是否是绝对路径
+		if [[ ${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL} =~ ^/ ]]; then
+			_TMP_SYMLINK_TRUE_PATH_TMP=${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}
+		else
+			# 相对路径，以.开始
+			local _TMP_SYMLINK_TRUE_REL_PATH_TMP=$(echo "${_TMP_SYMLINK_TRUE_PATH_TMP}" | grep -oP '(?<=\./).+')
+			if [ -n "${_TMP_SYMLINK_TRUE_REL_PATH_TMP}" ]; then
+				_TMP_SYMLINK_TRUE_PATH_TMP=$(pwd)/${_TMP_SYMLINK_TRUE_REL_PATH_TMP}
+			else
+				_TMP_SYMLINK_TRUE_PATH_TMP=$(pwd)/${_TMP_SYMLINK_TRUE_PATH_CONVERT_VAL}
+			fi
+		fi
+		
 		while [ -h ${_TMP_SYMLINK_TRUE_PATH_TMP} ];
 		do
 			local _TMP_SYMLINK_TRUE_PATH_TMP_1=$(ls -ld ${_TMP_SYMLINK_TRUE_PATH_TMP} | awk '{print $NF}')
@@ -2468,7 +2543,7 @@ function path_not_exists_link()
 		script_check_action "_TMP_PATH_NOT_EXISTS_LINK_SCRIPT" "${_TMP_PATH_NOT_EXISTS_LINK_SOUR}" "${_TMP_PATH_NOT_EXISTS_LINK_PATH}"
 	}
 	
-    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "[[ -a ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ]] && (mkdir -pv $(dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}) && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && ls -lia ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link_echo) || echo_style_text 'Path <${_TMP_PATH_NOT_EXISTS_LINK_SOUR}> not exists'" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
+    path_not_exists_action "${_TMP_PATH_NOT_EXISTS_LINK_PATH}" "[[ -a ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ]] && (mkdir -pv $(dirname ${_TMP_PATH_NOT_EXISTS_LINK_PATH}) && ln -sf ${_TMP_PATH_NOT_EXISTS_LINK_SOUR} ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && ls -lia ${_TMP_PATH_NOT_EXISTS_LINK_PATH} && _path_not_exists_link_echo) || echo_style_text 'Source path <${_TMP_PATH_NOT_EXISTS_LINK_SOUR}> not exists, link stoped'" "${_TMP_PATH_NOT_EXISTS_LINK_ECHO}"
 	return $?
 }
 
@@ -3997,14 +4072,23 @@ function set_github_soft_releases_newer_version()
 
 		local _TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH="https://github.com/${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases"
 		local _TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH="${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}/releases/tag/"
-
 		# 提取href中值，如需提取标签内值，则使用： sed 's/="[^"]*[><][^"]*"//g;s/<[^>]*>//g' | awk '{sub("^ *","");sub(" *$","");print}' | awk NR==1
 		
 		local _TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL=$(eval echo '${'"${1}"'}')
 
 		echo_style_text "Checking 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>), default 'val' is '${_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL}'"
 		# local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla ${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH} | grep "${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\">.*", "");print}' | awk NR==1)
-		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}')
+		# <a href="/goharbor/harbor/releases/tag/v2.8.0-rc1" data-view-component="true" class="Link--primary">v2.8.0-rc1</a>
+		# <a href="/goharbor/harbor/releases/tag/v1.10.17" data-view-component="true" class="Link--primary">v1.10.17</a>
+		# <a href="/goharbor/harbor/releases/tag/v1.10.17-rc1" data-view-component="true" class="Link--primary">v1.10.17-rc1</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.5.6" data-view-component="true" class="Link--primary">v2.5.6</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.5.6-rc1" data-view-component="true" class="Link--primary">v2.5.6-rc1</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.7.1" data-view-component="true" class="Link--primary">v2.7.1</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.7.1-rc1" data-view-component="true" class="Link--primary">v2.7.1-rc1</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.6.4" data-view-component="true" class="Link--primary">v2.6.4</a>
+		# <a href="/goharbor/harbor/releases/tag/v2.6.4-rc1" data-view-component="true" class="Link--primary">v2.6.4-rc1</a>
+		# <a href="/goharbor/harbor/releases/tag/v1.10.16" data-view-component="true" class="Link--primary">v1.10.16</a>
+		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}' | grep -vE "rc[0-9]+$" | awk 'NR==1')
 
 		if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
 			echo_style_text "Checking 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>), get released 'newer version': ([${_TMP_GITHUB_SOFT_NEWER_VERS}])"
@@ -4141,8 +4225,7 @@ function script_check_action() {
 			eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 		fi
 	else
-		# local _TMP_EXEC_CHECK_ACTION_FINAL_SCRIPT=${1}
-		# exec_text_printf "_TMP_EXEC_CHECK_ACTION_FINAL_SCRIPT" "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
+		exec_multy_printf "_TMP_EXEC_CHECK_ACTION_SCRIPT" "${@}"
 		eval "${_TMP_EXEC_CHECK_ACTION_SCRIPT}"
 	fi
 
@@ -5096,6 +5179,117 @@ function docker_images_param_check_action()
     return $?
 }
 
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：容器ID变量值或名，用于检测
+# 参数2：查询到卷后执行脚本
+#       参数1：JSON项目
+# 示例：
+#     docker_container_mounts_json_action "ctnid1111111" "func_a"
+function docker_container_mounts_json_action() 
+{
+	local _TMP_DOCKER_CONTAINER_MOUNTS_JSON_ACTION_CTN_ID_VAL=$(echo_discern_exchange_var_val "${1}")	
+	if [[ -n "${_TMP_DOCKER_CONTAINER_MOUNTS_JSON_ACTION_CTN_ID_VAL}" && -n "${2}" ]]; then
+		json_split_action "$(docker container inspect "${_TMP_DOCKER_CONTAINER_MOUNTS_JSON_ACTION_CTN_ID_VAL}" | jq ".[0].Mounts")" "${2}"
+		return $?
+	fi
+
+    return $?
+}
+
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：容器ID变量值或名，用于检测
+# 参数2：查询到卷后执行脚本
+#       参数1：挂载类型，例 bind/volume
+#       参数2：本地路径，例 /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose
+#       参数3：镜像路径，例 /var/log/docker
+#       参数4：读写模式，例 rw,z
+# 示例：
+#     docker_container_mounts_action "ctnid1111111" "func_a"
+function docker_container_mounts_action() 
+{
+	local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT=$(echo_discern_exchange_var_val "${2}")
+	function _docker_container_mounts_action()
+	{
+		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_TYPE=$(echo "${1}" | jq '.Type' | xargs echo)
+		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE=$(echo "${1}" | jq '.Source' | xargs echo)
+		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION=$(echo "${1}" | jq '.Destination' | xargs echo)
+		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE=$(echo "${1}" | jq '.Mode' | xargs echo)
+		
+		script_check_action "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_TYPE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE}"
+	}
+
+	docker_container_mounts_json_action "${1}" "_docker_container_mounts_action"
+    return $?
+}
+
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：容器ID变量值或名，用于检测
+# 示例：
+#     docker_container_mounts_echo "ctnid1111111"
+function docker_container_mounts_echo() 
+{
+	function _docker_container_mounts_echo()
+	{
+		local _TMP_DOCKER_CONTAINER_MOUNTS_ECHO_VOL_OUTPUT="${2}:${3}"		
+		if [ -n "${4}" ]; then
+			_TMP_DOCKER_CONTAINER_MOUNTS_ECHO_VOL_OUTPUT="${_TMP_DOCKER_CONTAINER_MOUNTS_ECHO_VOL_OUTPUT}:${4}"
+		fi
+		
+		echo "${_TMP_DOCKER_CONTAINER_MOUNTS_ECHO_VOL_OUTPUT}"
+	}
+
+	docker_container_mounts_action "${1}" "_docker_container_mounts_echo"
+    return $?
+}
+
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：容器ID变量值或名，用于检测
+# 参数2：查询到卷后执行脚本
+# 参数3：原始行
+#       参数2：本地路径，例 /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose
+#       参数3：镜像路径，例 /var/log/docker
+#       参数4：读写模式，例 rw,z
+# 示例：
+#     docker_container_hostconfig_binds_action "ctnid1111111" "func_a"
+function docker_container_hostconfig_binds_action() 
+{
+	local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_CTN_ID_VAL=$(echo_discern_exchange_var_val "${1}")	
+	local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT=$(echo_discern_exchange_var_val "${2}")
+	if [[ -n "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_CTN_ID_VAL}" && -n "${2}" ]]; then
+		function _docker_container_hostconfig_binds_action() 
+		{
+			local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE=$(echo "${1}" | awk -F':' '{print $1}')
+			local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION=$(echo "${1}" | awk -F':' '{print $2}')
+			local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE=$(echo "${1}" | awk -F':' '{print $3}')
+			
+			script_check_action "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT}" "${1}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE}"
+		}
+
+		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_CTN_INSPECT=$(docker container inspect "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_CTN_ID_VAL}")
+		if [ $(echo "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_CTN_INSPECT}" | jq ".[0].HostConfig.Binds | length") -gt 0 ]; then
+			items_split_action "$(echo "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_CTN_INSPECT}" | jq ".[0].HostConfig.Binds[]" | xargs -I {} echo {})" "_docker_container_hostconfig_binds_action"
+			return $?
+		fi
+	fi
+
+    return $?
+}
+
+# Docker镜像检测输出（返回镜像列表）
+# 参数1：容器ID变量值或名，用于检测
+# 示例：
+#     docker_container_hostconfig_binds_echo "ctnid1111111"
+function docker_container_hostconfig_binds_echo() 
+{
+	# function _docker_container_hostconfig_binds_echo()
+	# {
+	# 	echo "${1}"
+	# }
+
+	docker_container_hostconfig_binds_action "${1}" "echo '%s'"
+    return $?
+}
+
 # Docker镜像检测输出（返回JQ镜像列表）
 # 参数1：需要绑定的变量名/值
 # 参数2：镜像名称(模糊正则查询)，用于检测
@@ -5265,6 +5459,7 @@ function docker_change_container_inspect_env()
 # 参数3：容器路径 /usr/src/app
 # 参数4：指定的config.v2.json路径
 # 参数5：指定的hostconfig.json路径
+# 参数6：指定容器可操作的权限，例 rw,z
 # 示例：
 #       docker_change_container_inspect_mount "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111" "/usr/src/app"
 function docker_change_container_inspect_mount()
@@ -5275,6 +5470,14 @@ function docker_change_container_inspect_mount()
 	
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH="${5:-${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_DATA_PATH}/hostconfig.json}"
     local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF=$(cat ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH})
+
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE=${6}
+	if [ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE}" ]; then
+		local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_ITEM_INDEX=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF}" | jq ".Binds[]" | xargs -I {} echo {} | grep -n "" | awk -F':' "{if(\$3==\"${3}\"){print \$1}}" | xargs -I {} echo {}-1 | bc)
+		if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_ITEM_INDEX}" ]; then
+			_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF}" | jq ".Binds[${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_ITEM_INDEX}]" | xargs echo | awk -F':' '{print $3}')
+		fi
+	fi
     
     # {
     #     "Source": "/etc/localtime",
@@ -5320,10 +5523,16 @@ function docker_change_container_inspect_mount()
 		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${DOCKER_DATA_DIR}/volumes/${2}/_data\""
 		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Driver" "\"local\""
 		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Type" "\"volume\""
-		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Relabel" "\"z\""
 		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Spec.Type" "\"volume\""
 	else
 		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Source" "\"${2}\""
+	fi
+
+	# 读写属性
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_NEWER_BIND="${2}:${3}"
+	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE}" ]; then
+		change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Relabel" "\"${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE}\""
+		_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_NEWER_BIND="${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_NEWER_BIND}:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_MODE}"
 	fi
 
     change_json_node_item "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST" ".Destination" "\"${3}\""
@@ -5335,7 +5544,7 @@ function docker_change_container_inspect_mount()
     echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2}" | jq --argjson change "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_DEST}" ".MountPoints.\"${3}\" = \$change" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_PATH}
 
 	# 修改 hostconfig.json
-	change_json_node_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}$" "\"${2}:${3}\""
+	change_json_node_arr "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF" ".Binds" "^.+:${3}(:\S+)*$" "\"${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_CONFV2_MOUNT_NEWER_BIND}\""
 
 	echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF}" > ${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNT_HOSTCONF_PATH}
     
@@ -5357,40 +5566,102 @@ function docker_change_container_volume_migrate()
 	
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL=${4:-false}
+
+	# 没挂载卷，直接跳过
+	if [ -z "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" ]; then
+		echo_style_text "'|'Cannot found volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]), migrate stopped"
+		return
+	fi
 	
-	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR=()
-	function _docker_change_container_volume_migrate_create()
+	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_ARR=()
+	function _docker_change_container_volume_migrate_formal()
 	{
-		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
-		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
+		# 记录值，因为后期会被修改
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL_SOURCE=$(echo "${1}" | awk -F':' '{print $1}')
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL_SOURCE}
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(echo "${1}" | awk -F':' '{print $2}')
+
+		# 必须满足KV对的形式，循环中可能被rw,z的逗号给隔断
+		if [[ -z "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}" || -z "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}" ]]; then
+			return
+		fi
+
+		echo_style_text "'|'Starting 'formal volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
+		
+		# # 如果是文件的情况，直接转换为目录
+		# if [[ -f ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]]; then
+		# 	_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL})
+		# 	_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT=$(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT})
+		# fi
+		
+		# 谨防读取的路径为相对路径，而非绝对路径
+		if [[ -f ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]]; then
+			_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(cd $(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL});pwd)/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL##*/}
+			# 暂时忽略文件类型的挂载，因其会变成 _data -> 指向文件
+			echo_style_text "'|👉' Checked 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}>:[${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}]) is file, formal return"
+			return
+		else
+			_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(cd ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL};pwd)
+		fi
+
+		# 转换为真实链接
+		bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL"
+
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME="$(echo_docker_volume_name "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}")"
 
-		# 非挂载盘的情况
-		if [ -z "$(docker volume ls | grep "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}")" ]; then
-			# 如果容器中盘有相同挂载的目录
-			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME=$(docker inspect ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID} | jq --arg TYPE 'volume' --arg DEST "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}" '.[0].Mounts[] | select(.Type == $TYPE ) | select(.Destination == $DEST) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
-			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}" ]; then
+		# 符合指定命名挂载盘不存在的情况
+		if [ -z "$(docker volume ls | awk "NR>1{if(\$2==\"${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}\"){print \$2}}")" ]; then
+			# 查找容器中盘存在相同挂载的目录
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME=$(docker inspect ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID} | jq --arg TYPE 'volume' --arg DEST "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}" '.[0].Mounts[] | select(.Type == $TYPE) | select(.Destination == $DEST) | .Name' | xargs echo)
+			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}" ]; then
 				# 此处主要是新装可能产生（提示应该去除，但未去除） 及 备份还原后可能产生卷（已验证）
-				item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}$" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}"
-				echo_style_text "'|👉' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
+				item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}$" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}"
+				echo_style_text "'|👉' Record 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}>:[${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}])"
 			fi
 			
-			docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
+			# 已经是挂载卷，但命名未符合规范的情况
+			if [ -n "$(docker volume ls | awk "NR>1{if(\$2==\"${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}\"){print}}")" ]; then
+				local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH=$(docker volume inspect ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME} | jq ".[0].Mountpoint" | xargs echo)
+				
+				# 转换为真实链接
+				bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH"
+							
+				echo_style_text "'|'Create 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}> ← [${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}])"
+				docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
+				echo_style_text "'|' Rsync 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}> → [${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}])"
+				
+				# 重新调整挂载盘路径
+				rsync -av ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}/ ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data
+			else
+				echo_style_text "'|'Create 'newer volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>)"
+				docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
 
-			# 迁移源目录到新目录下
-			rm -rf ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data			
-			path_not_exists_link "${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}"	
+				# 迁移源目录到新目录下
+				rm -rf ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data
+
+				path_not_exists_link "${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}"	
+			fi
 			
 			# 修改源字符串为新的替代字符串
-			_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS/${1}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}:${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}}"
-
+			# _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL_SOURCE}:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}:}"
 		else
-			echo_style_text "Volume <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}]) already exists"
-		fi
-	}
+			# 多容器依赖的场景，即A，B两个容器挂载到了同一个地址（例如，harbor的registry与registryctl）
+			# if [ "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}" != "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}" ]; then			
+				echo_style_text "'|'Transfer 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}> ← [${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}])"
 
-	# 过滤
-	items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_create"
+				# 修改源字符串为新的替代字符串
+				# _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL_SOURCE}:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}:}"
+			# else
+			# 	echo_style_text "Volume <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}]:'${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}') already exists"
+			# fi
+		fi
+
+		# 修改源字符串为新的替代字符串
+		_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL_SOURCE}:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}:}"
+	}
+	
+	# 过滤，记录。格式化挂载盘信息
+	items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_formal"
 
 	function _docker_change_container_volume_migrate_mount()
 	{
@@ -5424,18 +5695,18 @@ function docker_change_container_volume_migrate()
 		}
 		
 		if [ ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL} == true ]; then
-			echo_style_text "Starting auto [remove unuse] volume(<${1}>) in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
+			echo_style_text "Starting auto [remove unuse] volume(<${1}>)"
 			docker volume rm ${1}
 		else
-			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE="N"
-			confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_YN_REMOVE" "'Volume'(<${1}>) already [unuse] in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]), please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_YN_REMOVE="N"
+			confirm_y_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_YN_REMOVE" "'Volume'(<${1}>) already [unuse], please sure u will <remove> 'still or not'" "_docker_change_container_volume_migrate_remove_local" "${@}"
 		fi
 	}
 
-	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR[*]}" ]; then
+	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_ARR[*]}" ]; then
 		echo "${TMP_SPLITER3}"
-		echo_style_text "Starting sure which [unuse] volumes in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}]) will <remove>, auto remove <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL}>)"
-		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_BIND_VOLUME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
+		echo_style_text "Starting sure which [unuse] volumes will be <remove>, auto remove <${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_AUTO_REMOVE_UNUSE_VOL}>)"
+		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_ARR" "_docker_change_container_volume_migrate_remove_local_confirm"
 	fi
 
 	return $?
@@ -5462,16 +5733,22 @@ function docker_change_container_inspect_mounts()
 		function formal_dc_browserless_chrome_ctn_bind()
 		{
 			# 检测倒未绑定对象
-			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | cut -d':' -f1)
-			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | cut -d':' -f2)
-			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" | grep -oE "[^:]+:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}$")
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | awk -F':' '{print $1}')
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | awk -F':' '{print $2}')
+			if [[ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" || -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}" ]]; then
+				return
+			fi
+			
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MOUNTS}" | grep -oE "[^:]+:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}(\S+)*$")
 			if [ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then				
 				echo_style_text "'Mounting' newer pair → <${1}>"	
 
 				docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 			else
-				if [ "${1}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then
-					echo_style_text "'Mounting' change pair → <${1}>('${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}')"
+				local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" | awk -F':' '{print $1}')
+				if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL}" ]; then
+					echo_style_text "'Matched' fit local: <${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL}> → [${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}]"
+					echo_style_text "'Mounting' fit pair → <${1}>"
 
 					docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
 				else
@@ -5494,8 +5771,14 @@ function docker_change_container_inspect_mounts()
 #       echo_docker_volume_name "/opt/docker/data" "verctnid"
 function echo_docker_volume_name()
 {
+	local _TMP_ECHO_DOCKER_VOLUME_NAME_VOL_PATH="${1}"
 	local _TMP_ECHO_DOCKER_VOLUME_NAME_CTN_ID="${2:-000000000000}"
-	echo "${_TMP_ECHO_DOCKER_VOLUME_NAME_CTN_ID:0:12}_$(echo -n "${1}" | md5sum | cut -d ' ' -f1)"
+	
+	# 如果是文件夹
+	if [ -d ${_TMP_ECHO_DOCKER_VOLUME_NAME_VOL_PATH} ]; then
+		_TMP_ECHO_DOCKER_VOLUME_NAME_VOL_PATH=$(cd ${_TMP_ECHO_DOCKER_VOLUME_NAME_VOL_PATH};pwd)
+	fi
+	echo "${_TMP_ECHO_DOCKER_VOLUME_NAME_CTN_ID:0:12}_$(echo -n "${_TMP_ECHO_DOCKER_VOLUME_NAME_VOL_PATH}" | md5sum | cut -d ' ' -f1)"
 
 	return $?
 }
@@ -5888,7 +6171,7 @@ function docker_image_args_combine_bind()
 # 参数1：当前节点信息
 # 参数2：节点内容相对地址 例 common/config
 # 参数3：需要挂载到的路径 例 /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0
-# 参数4：要写入的节点路径 例 .service.core.volumes[0]
+# 参数4：要写入的节点路径 例 .services.core.volumes[0]/.services.core.volumes.[]
 function docker_compose_formal_print_node_volumes()
 {
 	if [ "${1}" != "null" ]; then
@@ -8198,27 +8481,19 @@ function soft_docker_check_choice_upgrade_action()
 # 参数1：镜像正则名称变量值或名，用于检测的基准镜像名，例：goharbor/ 或 browserless/chrome
 # 参数2：镜像版本变量值或名，用于检测的基准镜像版本，例：imgver111111
 # 参数3：预编译脚本，即安装前执行（例：生成docker-compose.yml）
-# 参数4：Compose脚本（生成docker-compose.yml）
-# 参数5：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+# 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
 #        参数1：镜像名称，例 browserless/chrome
 #        参数2：镜像版本，例 imgver111111_v1670329246
 #        参数3：启动命令，例 /bin/sh
 #        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
 #        参数5：快照类型（快照有效），例 image/container/dockerfile
 #        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
-# 参数6：重装选择N时 或镜像已存在时执行脚本
-# 参数7：动作类型描述，action/install
+# 参数5：重装选择N时 或镜像已存在时执行脚本
+# 参数6：动作类型描述，action/install
 # 示例：
 #     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
 function soft_docker_compose_check_upgrade_action() 
 {
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER="${2}"
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT=${3}
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
-	
-	soft_docker_check_upgrade_custom "${1}" "${2}" "${3}" "${5}" "${6}" "${7}"
-    echo $?
-
+	soft_docker_check_upgrade_custom "${@}"
 	return $?
 }
