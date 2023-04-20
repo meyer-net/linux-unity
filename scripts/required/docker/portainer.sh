@@ -7,10 +7,14 @@
 # 相关参考：
 #		  
 #------------------------------------------------
-# 软件名称：portainer/portainer
-# 软件端口：9000
-# 软件大写分组与简称：DC_PTN
-# 软件安装名称：portainer
+# 安装镜像版本：latest
+#------------------------------------------------
+# Debug：
+# docker ps -a --no-trunc | awk '{if($2~"portainer/portainer"){print $1}}' | xargs docker stop
+# docker ps -a --no-trunc | awk '{if($2~"portainer/portainer"){print $1}}' | xargs docker rm
+# docker images | awk '{if($1~"portainer/portainer"){print $3}}' | xargs docker rmi
+# rm -rf /opt/docker_apps/portainer_portainer* && rm -rf /mountdisk/etc/docker_apps/portainer_portainer* && rm -rf /mountdisk/logs/docker_apps/portainer_portainer* && rm -rf /mountdisk/data/docker_apps/portainer_portainer* && rm -rf /opt/docker/data/apps/portainer_portainer* && rm -rf /opt/docker/etc/portainer_portainer* && rm -rf /opt/docker/logs/portainer_portainer* && rm -rf /mountdisk/repo/migrate/clean/portainer_portainer*
+# docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # docker run --name=portainer --volume=/var/run/docker.sock:/var/run/docker.sock --volume=/mountdisk/data/portainer:/data --workdir=/ -p 8000:8000 -p 9000:9000 --expose=9443 --restart=always --runtime=runc --detach=true portainer/portainer
 #------------------------------------------------
@@ -66,47 +70,47 @@ function formal_dc_portainer() {
     # 开始标准化
     ## 还原 & 创建 & 迁移
     ### 日志
-    #### /mountdisk/logs/docker_apps/portainer/imgver111111
+    #### /mountdisk/logs/docker_apps/portainer_portainer/imgver111111
     soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
 
     ### 数据
-    #### /mountdisk/data/docker_apps/portainer/imgver111111
+    #### /mountdisk/data/docker_apps/portainer_portainer/imgver111111
     soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}" "${TMP_DC_PTN_SETUP_WORK_DIR}/data"
 
     ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
     ### ETC目录规范
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_PTN_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_PTN_SETUP_CTN_ID}"
-    #### /mountdisk/etc/docker_apps/portainer/imgver111111/container
+    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container
     local TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_PTN_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/etc/docker_apps/portainer/imgver111111
+    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
     function _formal_dc_portainer_cp_etc() {
         soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_PTN_SETUP_CTN_DIR}"
     }
-    #### /mountdisk/etc/docker_apps/portainer/imgver111111
+    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
     soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}" "_formal_dc_portainer_cp_etc"
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'symlink create':↓"
     ### 日志
-    #### /opt/docker_apps/portainer/imgver111111/logs -> /mountdisk/logs/docker_apps/portainer/imgver111111
+    #### /opt/docker_apps/portainer_portainer/imgver111111/logs -> /mountdisk/logs/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_LOGS_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
-    #### /opt/docker/logs/portainer/imgver111111 -> /mountdisk/logs/docker_apps/portainer/imgver111111
+    #### /opt/docker/logs/portainer_portainer/imgver111111 -> /mountdisk/logs/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/portainer/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/portainer/imgver111111/container/${CTN_ID}-json.log
+    #### /mountdisk/logs/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log
     path_not_exists_link "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_PTN_SETUP_CTN_ID}-json.log" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_PTN_SETUP_CTN_ID}-json.log"
     ### 数据
-    #### /opt/docker_apps/portainer/imgver111111/workspace -> /mountdisk/data/docker_apps/portainer/imgver111111
+    #### /opt/docker_apps/portainer_portainer/imgver111111/workspace -> /mountdisk/data/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_DATA_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
-    #### /opt/docker/data/apps/portainer/imgver111111 -> /mountdisk/data/docker_apps/portainer/imgver111111
+    #### /opt/docker/data/apps/portainer_portainer/imgver111111 -> /mountdisk/data/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
     ### ETC
-    #### /opt/docker_apps/portainer/imgver111111/etc -> /mountdisk/etc/docker_apps/portainer/imgver111111
+    #### /opt/docker_apps/portainer_portainer/imgver111111/etc -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_ETC_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}"
-    #### /opt/docker/etc/portainer/imgver111111 -> /mountdisk/etc/docker_apps/portainer/imgver111111
+    #### /opt/docker/etc/portainer_portainer/imgver111111 -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}"
-    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/portainer/imgver111111/container
+    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container
     path_not_exists_link "${TMP_DC_PTN_SETUP_CTN_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}"
 
     # 预实验部分        
@@ -158,7 +162,11 @@ function boot_check_dc_portainer() {
         curl -s http://localhost:${TMP_DC_PTN_SETUP_CTN_PORT}
         echo
 
+        # 授权iptables端口访问
         echo_soft_port "TMP_DC_PTN_SETUP_OPN_PORT"
+
+        # 生成web授权访问脚本
+        echo_web_service_init_scripts "portainer${LOCAL_ID}" "portainer${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PTN_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
 }
 
@@ -190,12 +198,6 @@ function reconf_dc_portainer()
     cd ${TMP_DC_PTN_SETUP_DIR}
 	
     echo_style_wrap_text "Starting 'reconf', hold on please"
-
-    # 授权iptables端口访问
-    # echo_soft_port ${2}
-
-    # 生成web授权访问脚本
-    #echo_web_service_init_scripts "portainer${LOCAL_ID}" "portainer${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PTN_SETUP_OPN_PORT} "${LOCAL_HOST}"
 
 	return $?
 }
@@ -287,16 +289,25 @@ function boot_build_dc_portainer() {
     local TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime --volume=/var/run/docker.sock:/var/run/docker.sock"
     # local TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_PTN_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_PTN_SETUP_OPN_PORT}:${TMP_DC_PTN_SETUP_INN_PORT}"
-    local TMP_DC_PTN_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
-    local TMP_DC_PTN_SETUP_PRE_ARGS="${TMP_DC_PTN_SETUP_PRE_ARG_PORTS} ${TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_PTN_SETUP_PRE_ARG_ENVS} ${TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS}"
+    local TMP_DC_PTN_SETUP_PRE_ARG_ENVS=""
+    local TMP_DC_PTN_SETUP_PRE_ARGS="--name=${TMP_DC_PTN_SETUP_IMG_MARK_NAME}_${TMP_DC_PTN_SETUP_IMG_VER} ${TMP_DC_PTN_SETUP_PRE_ARG_PORTS} ${TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_PTN_SETUP_PRE_ARG_ENVS} ${TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
+    echo_style_text "<Container> 'pre' args && cmd↓:"
+    echo "Args：${TMP_DC_PTN_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-None}"
+
+    echo "${TMP_SPLITER3}"
+    echo_style_text "<Container> 'ctn' args && cmd↓:"
+    echo "Args：${TMP_DC_PTN_SETUP_CTN_ARGS:-None}"
+    echo "Cmd：${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-None}"
+	
+    echo "${TMP_SPLITER3}"
     echo_style_text "Starting 'combine container' <${TMP_DC_PTN_SETUP_IMG_NAME}>:[${TMP_DC_PTN_SETUP_IMG_VER}] boot args, hold on please"
-    echo "${TMP_SPLITER2}"
-    echo_style_text "<Container> 'pre' args(${TMP_DC_PTN_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-"None"})"
-    echo_style_text "<Container> 'ctn' args(${TMP_DC_PTN_SETUP_CTN_ARGS:-"None"}) && cmd(${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-"None"})"
     docker_image_args_combine_bind "TMP_DC_PTN_SETUP_PRE_ARGS" "TMP_DC_PTN_SETUP_CTN_ARGS"
-    echo_style_text "<Container> 'combine' args(${TMP_DC_PTN_SETUP_PRE_ARGS:-"None"}) && cmd(${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-"None"})"
+    echo_style_text "<Container> 'combine' args && cmd↓:"
+    echo "Args：${TMP_DC_PTN_SETUP_PRE_ARGS:-None}"
+    echo "Cmd：${TMP_DC_PTN_SETUP_CTN_ARG_CMD:-None}"
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_PTN_SETUP_IMG_NAME}" "${TMP_DC_PTN_SETUP_IMG_VER}" "${TMP_DC_PTN_SETUP_CTN_ARG_CMD}" "${TMP_DC_PTN_SETUP_PRE_ARGS}" "" "exec_step_portainer"

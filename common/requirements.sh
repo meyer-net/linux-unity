@@ -33,7 +33,12 @@ function setup_requriements()
         if [ -n "${LSBLK_MOUNT_ROOT}" ]; then
             local _TMP_RESIZE_DISK=$(df -h | awk "{if(\$6==\"${LSBLK_MOUNT_ROOT}\"){print \$1}}")
             if [ -n "${_TMP_RESIZE_DISK}" ]; then
-                resize2fs ${_TMP_RESIZE_DISK}
+                local _TMP_LSBLK_MOUNT_ROOT_REAL_SIZE=$(lsblk | awk "{if(\$7==\"${LSBLK_MOUNT_ROOT}\"){print \$4}}")
+                local _TMP_LSBLK_MOUNT_ROOT_CHECK_SIZE=$(df -h | awk "{if(\$6==\"${LSBLK_MOUNT_ROOT}\"){print \$2}}")
+                if [ "${_TMP_LSBLK_MOUNT_ROOT_REAL_SIZE}" != "${_TMP_LSBLK_MOUNT_ROOT_CHECK_SIZE}" ]; then
+                    local _TMP_RESIZE_DISK_YN="Y"
+                    confirm_y_action "_TMP_RESIZE_DISK_YN" "'Disk ${_TMP_RESIZE_DISK}'(<${LSBLK_MOUNT_ROOT}>) size was changed([${_TMP_LSBLK_MOUNT_ROOT_CHECK_SIZE}] → '${_TMP_LSBLK_MOUNT_ROOT_REAL_SIZE}'), please sure if u want to resize it 'still or not'" "resize2fs ${_TMP_RESIZE_DISK}"
+                fi
             fi
         fi
     fi
@@ -51,10 +56,12 @@ function setup_requriements()
     soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
     soft_${SYS_SETUP_COMMAND}_check_setup "rsync"
 
+    # 0.10.0开始的版本未有amd64的rpm
     soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.9.0" "rpm -ivh gum_%s_linux_amd64.rpm"
     soft_cmd_check_confirm_git_action "pup" "ericchiang/pup" "https://github.com/ericchiang/pup/releases/download/v%s/pup_v%s_linux_amd64.zip" "0.4.0" "unzip pup_v%s_linux_amd64.zip && mv -f pup /usr/bin/"
+    # ??? 默认值调整为最新版，为空时则按默认版
     # https://mikefarah.gitbook.io/yq/operators/keys
-    soft_cmd_check_confirm_git_action "yq" "mikefarah/yq" "https://github.com/mikefarah/yq/releases/download/v%s/yq_linux_amd64.tar.gz" "4.31.2" "tar -zxvf yq_linux_amd64.tar.gz && mv -f yq_linux_amd64 /usr/bin/yq"
+    soft_cmd_check_confirm_git_action "yq" "mikefarah/yq" "https://github.com/mikefarah/yq/releases/download/v%s/yq_linux_amd64.tar.gz" "4.33.3" "tar -zxvf yq_linux_amd64.tar.gz && mv -f yq_linux_amd64 /usr/bin/yq"
     
     # 优先，后续会输出port（注意此处，会受文件名控制安装先后顺序。conda>docker>sealos）
     for _TMP_SETUP_REQURIEMENTS_SH_FILE in $(ls scripts/required/*.sh); do

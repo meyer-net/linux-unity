@@ -10,6 +10,11 @@
 #         https://www.51cto.com/article/650560.html
 #         https://www.51cto.com/article/652770.html
 #------------------------------------------------
+# 安装时版本：
+# 依赖compose版本：2.16.0
+#------------------------------------------------
+# Debug：
+#------------------------------------------------
 # - 容器导入导出与镜像导入导出区别
 #       export/import 操作对象（容器）：
 #                             导出对象：tar文件 
@@ -194,14 +199,8 @@ function formal_docker()
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
     soft_path_restore_confirm_create "${DOCKER_APP_DATA_DIR}"
 	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
-    ## soft_path_restore_confirm_action "/etc/docker"
-    # soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}" "/etc/docker"
-    # if [[ -a /etc/docker ]]; then
-        soft_path_restore_confirm_move "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main" "/etc/docker"
-    # else
-        # soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main"
-        # path_not_exists_link "/etc/docker" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main"
-    # fi
+    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
+    soft_path_restore_confirm_create "/etc/docker"
     soft_path_restore_confirm_create "${DOCKER_APP_ATT_DIR}"
 
 	# 创建链接规则
@@ -211,6 +210,7 @@ function formal_docker()
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
 	## ETC - ①-2Y
     path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
+    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main" "" "/etc/docker"
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
@@ -231,12 +231,15 @@ function conf_docker()
 
 	# 开始配置，iptables为false时，容器间通讯会存在问题。但不影响安装
     ## 目录调整完重启进程(目录调整是否有效的验证点)
-    cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json << 'EOF'
+    if [ ! -a ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json ]; then
+        cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json << 'EOF'
 {
-  "registry-mirrors": ["https://hub.docker.com/", "https://hub.daocloud.io/"]
+  "registry-mirrors": ["https://hub.docker.com/", "https://hub.daocloud.io/"],
+  "insecure-registries": []
 }
 EOF
-    
+    fi
+
     ## 授权权限，否则无法写入
     ### 默认的安装有docker组，无docker用户
     create_user_if_not_exists root docker true
@@ -251,6 +254,24 @@ EOF
 
     # 启动服务
     systemctl start docker.service
+    
+    # 配置私有仓库
+    function _conf_docker_conf_insecure_registry()
+    {
+        # 确定是否存在私有仓库
+        local TMP_DOCKER_SETUP_INSECURE_REGISTRY=""
+        bind_if_input "TMP_DOCKER_SETUP_INSECURE_REGISTRY" "Please ender 'your insecure registries with protocol'"
+        
+        function _conf_docker_conf_insecure_registry_change_ref()
+        {
+            # 在本地添加仓库指向
+            docker_change_insecure_registries "${1}"
+        }
+
+        docker_login_insecure_registries_action "TMP_DOCKER_SETUP_INSECURE_REGISTRY" "" "" "_conf_docker_conf_insecure_registry_change_ref"
+    }
+
+    confirm_y_action "N" "Please sure if u got 'insecure registry'" "_conf_docker_conf_insecure_registry"
     
     ## 创建自有内部网络
     if [ -z "$(docker network ls | awk -F' ' "{if(\$2==\"${DOCKER_NETWORK}\"){print}}")" ]; then
@@ -411,7 +432,7 @@ function down_ext_docker()
     echo_style_wrap_text "Starting 'download' <docker> exts, hold on please"
         
     # 安装docker-compose
-    soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.16.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
+    soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.16.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && chmod +x ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
 
 	return $?
 }

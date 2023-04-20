@@ -33,7 +33,7 @@ function bootstrap() {
     source common/common_vars.sh
     source common/${MAJOR_OS_LOWER}/common.sh
     source common/${MAJOR_OS_LOWER}/${MAJOR_VERS}/overwrite_vars.sh
-    source common//bind_vars.sh
+    source common/bind_vars.sh
 
     func_test
 

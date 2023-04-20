@@ -7,6 +7,10 @@
 # 相关参考：
 #		  
 #------------------------------------------------
+# 安装版本：
+#------------------------------------------------
+# Debug：
+#------------------------------------------------
 # 安装标题：$title_name
 # 软件名称：$image_name
 # 软件端口：$soft_port
@@ -221,8 +225,18 @@ function boot_check_dc_$setup_name() {
         curl -s http://localhost:${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}
         echo
 
+        # 授权iptables端口访问
         echo_soft_port "TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT"
+        
+        # 生成web授权访问脚本
+        # echo_web_service_init_scripts "$setup_name${LOCAL_ID}" "$setup_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
+    
+    # 授权开机启动
+    echo "${TMP_SPLITER2}"
+    echo_style_text "View echo the 'supervisor startup conf'↓:"
+    # echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "systemctl start ${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
+    echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME} start"
 }
 
 ##########################################################################################################
@@ -253,12 +267,6 @@ function reconf_dc_$setup_name()
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 	
     echo_style_wrap_text "Starting 'reconf', hold on please"
-
-    # 授权iptables端口访问
-    # echo_soft_port ${2}
-
-    # 生成web授权访问脚本
-    #echo_web_service_init_scripts "$setup_name${LOCAL_ID}" "$setup_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} "${LOCAL_HOST}"
 
 	return $?
 }
@@ -350,19 +358,20 @@ function boot_build_dc_$setup_name() {
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
-    ## 参数覆盖, 镜像参数覆盖启动设定
-    echo_style_text "Starting 'combine container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}] boot args, hold on please"
-    echo "${TMP_SPLITER2}"
+    # 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "<Container> 'pre' args && cmd↓:"
     echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-None}"
+    
     echo "${TMP_SPLITER3}"
     echo_style_text "<Container> 'ctn' args && cmd↓:"
     echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS:-None}"
     echo "Cmd：${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD:-None}"
+    
     echo "${TMP_SPLITER3}"
+    echo_style_text "Starting 'combine container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}] boot args, hold on please"
     docker_image_args_combine_bind "TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS" "TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS"
     echo_style_text "<Container> 'combine' args && cmd↓:"
     echo "Args：${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS:-None}"

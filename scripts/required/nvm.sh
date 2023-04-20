@@ -29,7 +29,7 @@ function setup_nvm()
 {
     echo_style_wrap_text "Starting 'install' <nvm>, hold on please"
     
-	## 直装模式
+	# 直装模式
     cd ${SH_DIR}
 
     # 改变安装目录
@@ -73,8 +73,8 @@ function formal_nvm()
 	## 数据
 	path_not_exists_link "${TMP_NVM_SETUP_DATA_DIR}" "" "${TMP_NVM_SETUP_LNK_DATA_DIR}"
 
-	# # 预实验部分
-    # ## 目录调整完重启进程(目录调整是否有效的验证点)
+	# 预实验部分
+    ## 目录调整完重启进程(目录调整是否有效的验证点)
 
 	return $?
 }
@@ -254,6 +254,10 @@ function reconf_nvm()
     # 安装nrm
     echo_style_text "Starting install the tool of 'nrm'"
     npm install -g nrm
+
+    # 修改参数，不然会报错（偶发性，特定机器）：Error [ERR_REQUIRE_ESM]: require() of ES Module
+    sed -i "s@^const open = require('open');@const open = import('open');@g" $(npm root -g)/nrm/cli.js
+
     echo "${TMP_SPLITER2}"
     echo_style_text "View the 'nrm list'↓:"
 	nrm ls
@@ -283,7 +287,7 @@ function reconf_nvm()
     
     echo "${TMP_SPLITER2}"
     echo_style_text "Use the 'quickly registry'↓:"
-	nrm use ${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}
+	nrm use ${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO:-npm}
 
 	# npm config set registry https://registry.npm.taobao.org
 	# npm config set disturl https://npm.taobao.org/dist

@@ -7,6 +7,10 @@
 # 相关参考：
 #		  
 #------------------------------------------------
+# 安装版本：
+#------------------------------------------------
+# Debug：
+#------------------------------------------------
 # 安装标题：$title_name
 # 软件名称：$soft_name
 # 软件端口：$soft_port
@@ -238,7 +242,7 @@ function boot_$soft_name()
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
     echo_style_text "View echo the 'web service init script'↓:"
-    #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
+    # echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
     exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay 10 secs to exit"

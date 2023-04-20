@@ -9,17 +9,24 @@
 #		  安装：https://www.quanxiaoha.com/conda/linux-install-conda.html
 #         附加二进制相关：https://jingyan.baidu.com/article/19192ad8df4ed8e53e5707ad.html
 #------------------------------------------------
+# 安装时版本：23.3.1
+#------------------------------------------------
+# Debug：
+# rm -rf /opt/conda* && rm -rf /mountdisk/etc/conda* && rm -rf /mountdisk/logs/conda* && rm -rf /mountdisk/data/conda* && rm -rf /home/conda && rm -rf ~/.conda && rm -rf ~/.cache/conda && rm -rf /var/spool/mail/conda && systemctl stop supervisor.service && rm -rf /usr/lib/systemd/system/supervisor.service
+# ps -ef | grep conda | awk 'NR>1{print $2}' | xargs kill -9
+# userdel conda && groupdel conda
+#------------------------------------------------
 # 相关目录：
-#         /opt/miniconda/bin/conda
-#         /opt/miniconda/bin/conda-env
-#         /opt/miniconda/bin/activate
-#         /opt/miniconda/bin/deactivate
-#         /opt/miniconda/etc/profile.d/conda.sh
-#         /opt/miniconda/etc/fish/conf.d/conda.fish
-#         /opt/miniconda/shell/condabin/Conda.psm1
-#         /opt/miniconda/shell/condabin/conda-hook.ps1
-#         /opt/miniconda/lib/python3.9/site-packages/xontrib/conda.xsh
-#         /opt/miniconda/etc/profile.d/conda.csh
+#         /opt/conda/bin/conda
+#         /opt/conda/bin/conda-env
+#         /opt/conda/bin/activate
+#         /opt/conda/bin/deactivate
+#         /opt/conda/etc/profile.d/conda.sh
+#         /opt/conda/etc/fish/conf.d/conda.fish
+#         /opt/conda/shell/condabin/Conda.psm1
+#         /opt/conda/shell/condabin/conda-hook.ps1
+#         /opt/conda/lib/python3.9/site-packages/xontrib/conda.xsh
+#         /opt/conda/etc/profile.d/conda.csh
 #------------------------------------------------
 # 相关命令：
 #         conda create -n pyenv37 python=3.7	        创建一个 Python 版本为 3.7 的虚拟环境
@@ -62,7 +69,7 @@ function setup_miniconda()
 {
     echo_style_wrap_text "Starting 'install' <miniconda>, hold on please"
 
-    # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/miniconda3'）
+    # 检测还原安装（如果安装目录存在文件会报错：ERROR: File or directory already exists: '/opt/conda3'）
 
     ## 脚本安装(文件被下载在shell目录)
     function _setup_miniconda_down_install()
@@ -91,7 +98,7 @@ function change_down_miniconda()
         TMP_MCD_SETUP_SH_FILE_LINES=$(cat ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} | grep -naE "^@@END_HEADER@@$" | cut -d':' -f1)
     fi
 
-    # 临时修改SHELL部分{注意，修改文件必先记录脚本可修改的块，否则二进制文件会变得无法执行:行412: /opt/miniconda/conda.exe: 无法执行二进制文件}
+    # 临时修改SHELL部分{注意，修改文件必先记录脚本可修改的块，否则二进制文件会变得无法执行:行412: /opt/conda/conda.exe: 无法执行二进制文件}
     ## 临时修改文件，提取脚本可修改块（避免文件内容操作加大响应延迟）
     local TMP_MCD_SETUP_SH_FILE_SH_NAME="shell_${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}"
     local TMP_MCD_SETUP_SH_FILE_PCKS_NAME="package_${TMP_MCD_SETUP_DOWN_SH_FILE_NAME}"

@@ -158,12 +158,10 @@ numprocs = 1                                                                    
 EOF
 	else
 		echo ${TMP_SPLITER}
-		echo_style_text "Supervisor：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created at↓:"
+		echo_style_text "'Supervisor'：The startup config of <${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}> created at↓:"
 		ls -lia ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
 		echo "${TMP_SPLITER2}"
 		cat ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH}
-		echo "${TMP_SPLITER2}"
-		echo
 	fi
 
 	return $?
@@ -187,13 +185,15 @@ function echo_conda_startup_supervisor_config()
 	return $?
 }
 
-# 输出WEB映射生成脚本（必须在KONG所在机器下运行）
+# 输出WEB映射生成脚本（生成的脚本必须在KONG所在机器下运行）
 # 参数1：WEB命名
 # 参数2：WEB域名
 # 参数3：WEB端口
 # 参数4：WEB地址
 # 参数5：Kong地址
 # 参数6：Caddy地址
+# 示例：
+#       echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.myvnc.com" 19001 "${LOCAL_HOST}"
 function echo_web_service_init_scripts()
 {
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_NAME=${1}
@@ -202,21 +202,22 @@ function echo_web_service_init_scripts()
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT=${3}
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST=${4:-"${LOCAL_HOST}"}
 	
-	local TMP_KNG_SETUP_API_HTTP_PORT_DEFAULT=18000
+	local TMP_KNG_SETUP_API_HTTP_PORT_DEFAULT=10080
 	local TMP_KNG_SETUP_CHAR_PORT_SPLIT=":"
 	
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR=${5:-"127.0.0.1"}
-	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR=$([[ ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR} == *${TMP_KNG_SETUP_CHAR_PORT_SPLIT}* ]]  && echo ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR} || echo "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR}:${TMP_KNG_SETUP_API_HTTP_PORT_DEFAULT}" )
+	
+	_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR=$([[ ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR} == *${TMP_KNG_SETUP_CHAR_PORT_SPLIT}* ]]  && echo ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR} || echo "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR}:${TMP_KNG_SETUP_API_HTTP_PORT_DEFAULT}" )
 
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_CDY_HOST=${6}
 
 	# 开放端口给kong所在服务器
 	if [ -n "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR}" ]; then
-		echo_soft_port ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT} "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR}"
+		echo_soft_port ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT} "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST_PAIR%:*}"
 	fi
 
 	path_not_exists_create "${WWW_INIT_DIR}"
-    echo ${TMP_SPLITER}
+	echo_style_wrap_text "Gen '${WWW_INIT_DIR}/init_web_service_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME}_by_caddy_webhook.sh'"
 	tee ${WWW_INIT_DIR}/init_web_service_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME}_by_caddy_webhook.sh <<-EOF
 #!/bin/sh
 #----------------------------------------------------
@@ -224,7 +225,7 @@ function echo_web_service_init_scripts()
 #----------------------------------------------------
 TMP_INIT_WEB_SERVICE_CDY_HOST="${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_CDY_HOST}"
 TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip a | grep inet | grep -v inet6 | grep -v 127 | grep -v docker | awk '{print $2}' | awk -F'/' '{print $1}' | awk 'END {print}')
-[ -z \${TMP_INIT_WEB_SERVICE_LOCAL_HOST} ] && TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1\)
+[[ -z "\${TMP_INIT_WEB_SERVICE_LOCAL_HOST}" ]] && (TMP_INIT_WEB_SERVICE_LOCAL_HOST=\$(ip addr | egrep -o '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | egrep -v "^192\.168|^172\.1[6-9]\.|^172\.2[0-9]\.|^172\.3[0-2]\.|^10\.|^127\.|^255\.|^0\." | head -n 1\))
 
 # 本机未有kong_api直接退出执行
 if [ ! -f "/usr/bin/kong_api" ]; then
@@ -276,7 +277,8 @@ tee ${WWW_INIT_DIR}/Caddyroute_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_DOMAIN}.
 	curl \${TMP_INIT_WEB_SERVICE_CDY_HOST}:${CDY_API_PORT}/config/apps/http/servers/autohttps/routes -X POST -H "Content-Type: application/json" -d @Caddyroute_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_DOMAIN}.json
 	curl \${TMP_INIT_WEB_SERVICE_CDY_HOST}:${CDY_API_PORT}/config/apps/http/servers/autohttps/logs/logger_names -X POST -H "Content-Type: application/json" -d '{"${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_DOMAIN}": "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_DOMAIN}"}'
 EOF
-    echo ${TMP_SPLITER}
+
+	echo_style_wrap_text "Gen '${WWW_INIT_DIR}/init_web_service_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME}_by_acme_plugin.sh'"
 	tee ${WWW_INIT_DIR}/init_web_service_for_${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_UPPER_NAME}_by_acme_plugin.sh <<-EOF
 #!/bin/sh
 #----------------------------------------------------
@@ -308,7 +310,6 @@ echo "              firewall-cmd --permanent --add-port=${_TMP_ECHO_WEB_SERVICE_
 echo "              firewall-cmd --reload"
 echo "${TMP_SPLITER}"
 EOF
-    echo ${TMP_SPLITER}
 	echo
 	
 	chmod +x ${WWW_INIT_DIR}/*.sh
@@ -812,7 +813,7 @@ function rand_passwd() {
 	typeset -u _TMP_RAND_PASSWD_SOFT_TYPE
 	local _TMP_RAND_PASSWD_SOFT_TYPE="${2}"
 
-	echo "${_TMP_RAND_PASSWD_SOFT_NAME}*${_TMP_RAND_PASSWD_SOFT_TYPE}!m${LOCAL_ID}.${3:-0}~"
+	echo "${_TMP_RAND_PASSWD_SOFT_NAME}-${_TMP_RAND_PASSWD_SOFT_TYPE}!m${LOCAL_ID}.${3:-0}~"
 
 	return $?
 }
@@ -1096,7 +1097,7 @@ function exec_text_printf()
 	local _TMP_EXEC_TEXT_PRINTF_VAR_NAME=${_TMP_EXEC_TEXT_PRINTF_VAR_PAIR[0]}
 	local _TMP_EXEC_TEXT_PRINTF_VAR_VAL=${_TMP_EXEC_TEXT_PRINTF_VAR_PAIR[1]}
 	local _TMP_EXEC_TEXT_PRINTF_VAR_FORMAT=$(echo_discern_exchange_var_val "${2}")
-	
+
 	# 判断格式化模板是否为空，为空不继续执行
 	if [ -z "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ]; then
 		return $?
@@ -1104,21 +1105,26 @@ function exec_text_printf()
 
 	# 附加动态参数
 	local _TMP_EXEC_TEXT_PRINTF_COUNT=$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" | grep -o "%" | wc -l)
-	local _TMP_EXEC_TEXT_PRINTF_VAR_QUOTE=$(seq -s "{}" $((_TMP_EXEC_TEXT_PRINTF_COUNT+1)) | sed 's@[0-9]@ @g')
-	local _TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=()
+	local _TMP_EXEC_TEXT_PRINTF_QUOTE="{}"
+	local _TMP_EXEC_TEXT_PRINTF_VAR_QUOTE=$(seq -s "${_TMP_EXEC_TEXT_PRINTF_QUOTE}" $((_TMP_EXEC_TEXT_PRINTF_COUNT+1)) | sed 's@[0-9]@ @g')
+	# local _TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=()
 	
-	if [ -n "$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}" | grep -o "'")" ]; then
-		_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@\"${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}\"@g"))
-	else
-		if [ -n "$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}" | grep -o '"')" ]; then
-			_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@'${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}'@g"))
-		else
-			_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}@g"))
-		fi		 
-	fi
+	# if [ -n "$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}" | grep -o "'")" ]; then
+	# 	_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@\"${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}\"@g"))
+	# else
+	# 	if [ -n "$(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}" | grep -o '"')" ]; then
+	# 		_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@'${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}'@g"))
+	# 	else
+	# 		_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR=($(echo "${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE}" | sed "s@{}@${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}@g"))
+	# 	fi		 
+	# fi
 		
-	local _TMP_EXEC_TEXT_PRINTF_SCRIPT="printf \"${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}\" ${_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR[*]}"
-	local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(script_check_action "${_TMP_EXEC_TEXT_PRINTF_SCRIPT}")
+	# 废弃，因会有字符识别问题
+	## local _TMP_EXEC_TEXT_PRINTF_SCRIPT="printf \"${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}\" ${_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR[*]}"
+	## local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(script_check_action "${_TMP_EXEC_TEXT_PRINTF_SCRIPT}")
+	# 再次废弃，因单双引号问题
+	# local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(printf "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ${_TMP_EXEC_TEXT_PRINTF_VAR_VAL_ARR[*]})
+	local _TMP_EXEC_TEXT_PRINTF_FORMATED_VAL=$(printf "${_TMP_EXEC_TEXT_PRINTF_VAR_FORMAT}" ${_TMP_EXEC_TEXT_PRINTF_VAR_QUOTE//${_TMP_EXEC_TEXT_PRINTF_QUOTE}/${_TMP_EXEC_TEXT_PRINTF_VAR_VAL}})
 	
 	eval ${_TMP_EXEC_TEXT_PRINTF_VAR_NAME}='${_TMP_EXEC_TEXT_PRINTF_FORMATED_VAL}'
 	
@@ -2069,7 +2075,7 @@ function items_split_action()
 {
 	local _TMP_ITEMS_SPLIT_ACTION_VAR_VAL=$(echo_discern_exchange_var_val "${1}") 
 	bind_fix_arr "_TMP_ITEMS_SPLIT_ACTION_VAR_VAL" "${3}"
-	
+
 	# local _TMP_ITEMS_SPLIT_ACTION_SPLIT_ARR=(${1//,/ })
 	local _TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT=${2}
 	if [ -n "${_TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT}" ]; then
@@ -2080,7 +2086,7 @@ function items_split_action()
 			# 附加动态参数
 			local _TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT_FINAL="${_TMP_ITEMS_SPLIT_ACTION_SPLIT_ITEM}"
 			exec_text_printf "_TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT}"
-		
+
 			# 格式化运行动态脚本
 			script_check_action "_TMP_ITEMS_SPLIT_ACTION_EXEC_SCRIPT_FINAL" "${_TMP_ITEMS_SPLIT_ACTION_SPLIT_ITEM}" "${_TMP_ITEMS_SPLIT_ACTION_CURR_INDEX}" "${@:3}"
 		done
@@ -2550,22 +2556,25 @@ function path_not_exists_link()
 ##########################################################################################################
 # 数据录入类
 ##########################################################################################################
-# 弹出动态设置变量值函数
+# 弹出动态设置变量值函数(变量读取时，应该取最后一行)
 # 参数1：默认变量名/值
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
+# 参数4：为空时的变量名/值
 function console_input()
 {
 	local _TMP_CONSULE_INPUT_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
 	local _TMP_CONSULE_INPUT_ECHO="'|'${2}"
 	local _TMP_CONSULE_INPUT_VAR_SEC=${3}
+	local _TMP_CONSULE_INPUT_VAR_EMPTY_VAL=$(echo_discern_exchange_var_val "${4}")
 	
 	# 自动样式化消息前缀 
 	bind_style_text "_TMP_CONSULE_INPUT_ECHO"
 	
 	local _TMP_CONSULE_INPUT_INPUT_CURRENT=""
 	function _TMP_CONSULE_INPUT_NORMAL_FUNC() {
-		echo "|${_TMP_CONSULE_INPUT_ECHO}, default '${_TMP_CONSULE_INPUT_VAR_VAL}'"
+		_TMP_CONSULE_INPUT_ECHO=$(printf "%s, default '%s'" "${_TMP_CONSULE_INPUT_ECHO}" "${_TMP_CONSULE_INPUT_VAR_VAL}")
+		echo ${_TMP_CONSULE_INPUT_ECHO}
 		read -e _TMP_CONSULE_INPUT_INPUT_CURRENT
 	}
 	
@@ -2573,27 +2582,28 @@ function console_input()
 		# gum input --prompt "Please sure your country code，default：" --placeholder "HK"
 		# 必须转义，否则带样式的前提下会解析冲突
 		_TMP_CONSULE_INPUT_ECHO=${_TMP_CONSULE_INPUT_ECHO//\"/\\\"}
-		local _TMP_CONSULE_INPUT_GUM_ARGS="--placeholder '${_TMP_CONSULE_INPUT_VAR_VAL}' --value '${_TMP_CONSULE_INPUT_VAR_VAL}'"
+		local _TMP_CONSULE_INPUT_GUM_ARGS="--placeholder '${_TMP_CONSULE_INPUT_VAR_EMPTY_VAL:-${_TMP_CONSULE_INPUT_VAR_VAL}}' --value '${_TMP_CONSULE_INPUT_VAR_VAL}'"
 		
 		case ${_TMP_CONSULE_INPUT_VAR_SEC} in
 			"y" | "Y")
-			local _TMP_CONSULE_INPUT_ECHO_DEFAULT="[${_TMP_CONSULE_INPUT_VAR_VAL}]"
-			bind_style_text "_TMP_CONSULE_INPUT_ECHO_DEFAULT"
-			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}, default(${_TMP_CONSULE_INPUT_ECHO_DEFAULT}): ' --password"
+			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}: ' --password"
 			;;
-			*)
+		*)
 			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}, default: '"
-			#
 		esac
 
 		_TMP_CONSULE_INPUT_INPUT_CURRENT=$(eval gum input ${_TMP_CONSULE_INPUT_GUM_ARGS})
-
+		
 		return $?
 	}
 	
 	# path_exists_yn_action "${GUM_PATH}" "_${FUNCNAME[0]}_gum \"${1}\" \"${2}\"" "_TMP_CONSULE_INPUT_NORMAL_FUNC"
 	path_exists_yn_action "${GUM_PATH}" "_TMP_CONSULE_INPUT_GUM_FUNC" "_TMP_CONSULE_INPUT_NORMAL_FUNC"
-
+	
+	if [[ -z "${_TMP_CONSULE_INPUT_INPUT_CURRENT}" && -n "${_TMP_CONSULE_INPUT_VAR_EMPTY_VAL}" ]]; then
+		_TMP_CONSULE_INPUT_INPUT_CURRENT=${_TMP_CONSULE_INPUT_VAR_EMPTY_VAL}
+	fi
+	
 	echo "${_TMP_CONSULE_INPUT_INPUT_CURRENT}"
 
 	return $?
@@ -2603,15 +2613,17 @@ function console_input()
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
+# 参数4：为空时的变量名/值
 function bind_if_input()
 {
-	function _bind_if_input()
-	{
-		local _TMP_BIND_IF_INPUT_INPUT_CURRENT=$(console_input "${1}" "${2}" ${3})
-		eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
-	}
+	local _TMP_BIND_IF_INPUT_INPUT_CURRENT=$(console_input "${1}" "${2}" "${3}" "${4}")
+	# 多行的情况下，只打印最后一行
+	if [ $(echo "${_TMP_BIND_IF_INPUT_INPUT_CURRENT}" | wc -l) -gt 1 ]; then
+		_TMP_BIND_IF_INPUT_INPUT_CURRENT=$(echo "${_TMP_BIND_IF_INPUT_INPUT_CURRENT}" | awk 'END{print}')
+	fi
+	
+	eval ${1}='${_TMP_BIND_IF_INPUT_INPUT_CURRENT}'
 
-	discern_exchange_var_action "${1}" "_bind_if_input" "${@}"
 	return $?
 }
 
@@ -2619,16 +2631,14 @@ function bind_if_input()
 # 参数1：需要设置的变量名
 # 参数2：提示信息
 # 参数3：是否内容加密（默认：不显示，y/Y：密文）
+# 参数4：为空时的变量名/值
 function bind_empty_if_input()
 {
-	function _bind_empty_if_input()
-	{
-		if [ -z "${1}" ]; then
-			bind_if_input "${@}"
-		fi
-	}
+	local _TMP_BIND_EMPTY_IF_INPUT_VAR_VAL=$(echo_discern_exchange_var_val "${1}")
+	if [ -z "${_TMP_BIND_EMPTY_IF_INPUT_VAR_VAL}" ]; then
+		bind_if_input "${@}"
+	fi
 
-	discern_exchange_var_action "${1}" "_bind_empty_if_input" "${@}"
 	return $?
 }
 
@@ -2773,7 +2783,7 @@ function bind_if_choice()
 #       mark_if_choice_action "_CHOICE_BIND" "please sure which item u want to choice" "_funca"
 function mark_if_choice_action()
 {
-	local _TMP_MARK_IF_CHOICE_ACTION_ITEMS_COUNT=$(echo "${1}" | wc -w)
+	local _TMP_MARK_IF_CHOICE_ACTION_ITEMS_COUNT=$(echo "${1}" | grep -oP "(?<=^)[^]+" | wc -w)
 	local _TMP_MARK_IF_CHOICE_ACTION_ITEM=$(echo "${1}" | grep -v '√' | awk 'NR==1')
 
 	# 有多个版本时，才提供选择操作
@@ -2784,7 +2794,7 @@ function mark_if_choice_action()
 		_TMP_MARK_IF_CHOICE_ACTION_ITEM="${1}"
 	fi
 	
-	local _TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM=$(echo "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" | grep -oP "(?<=^).+(?=√)")
+	local _TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM=$(echo "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" | grep -oP "(?<=^)[^]+")
 	local _TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT=$([[ "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" != "${_TMP_MARK_IF_CHOICE_ACTION_ITEM}" ]] && echo 1)
 
 	script_check_action "${3}" "${_TMP_MARK_IF_CHOICE_ACTION_NONE_MARK_ITEM}" "${_TMP_MARK_IF_CHOICE_ACTION_INSTALL_OUTPUT}"
@@ -3532,6 +3542,7 @@ function resolve_unmount_disk () {
 			echo_style_text "                                Type <enter>"
 			echo_style_text "                                Type <enter>"
 			echo_style_text "                                Type 'w', then <enter>"
+			echo_style_text "                                Type 'y', then <enter>"
 			echo "${TMP_SPLITER2}"
 			fdisk ${_TMP_RESOLVE_UNMOUNT_DISK_POINT}
 			echo "${TMP_SPLITER2}"
@@ -3623,7 +3634,7 @@ EOF
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
 
-			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "999" "" "" false 0
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "1" "" "" false 0
 		fi
 	fi
 
@@ -4066,7 +4077,7 @@ function set_newer_by_url_list_link_text()
 # ??? 兼容没有tag标签的情况，类似filebeat
 function set_github_soft_releases_newer_version() 
 {
-	function _set_newer_by_url_list_link_date()
+	function _set_github_soft_releases_newer_version()
 	{
 		local _TMP_GITHUB_SOFT_NEWER_VERS_PATH=${2}
 
@@ -4088,12 +4099,12 @@ function set_github_soft_releases_newer_version()
 		# <a href="/goharbor/harbor/releases/tag/v2.6.4" data-view-component="true" class="Link--primary">v2.6.4</a>
 		# <a href="/goharbor/harbor/releases/tag/v2.6.4-rc1" data-view-component="true" class="Link--primary">v2.6.4-rc1</a>
 		# <a href="/goharbor/harbor/releases/tag/v1.10.16" data-view-component="true" class="Link--primary">v1.10.16</a>
-		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '(NR==1){sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}' | grep -vE "rc[0-9]+$" | awk 'NR==1')
+		local _TMP_GITHUB_SOFT_NEWER_VERS=$(curl -s -A Mozilla "${_TMP_GITHUB_SOFT_NEWER_VERS_HTTPS_PATH}" | grep -o "<a href=\"/${_TMP_GITHUB_SOFT_NEWER_VERS_TAG_PATH}.*<\/a>" | awk '{sub("^ *","");sub(" *$","");sub("<a href=\".*/tag/v", "");sub("<a href=\".*/tag/", "");sub("\".*", "");print}' | grep -vE "\-rc[0-9]+$" | awk 'NR==1')
 
 		if [ -n "${_TMP_GITHUB_SOFT_NEWER_VERS}" ]; then
-			echo_style_text "Checking 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>), get released 'newer version': ([${_TMP_GITHUB_SOFT_NEWER_VERS}])"
+			echo_style_text "Checking 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>), found released 'newer version': ([${_TMP_GITHUB_SOFT_NEWER_VERS}])"
 
-			bind_if_input "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>) version, if u want to [change]"
+			bind_if_input "_TMP_GITHUB_SOFT_NEWER_VERS" "Please sure 'github repos soft'(<${_TMP_GITHUB_SOFT_NEWER_VERS_PATH}>) version, if u want to [change]" "" "_TMP_GITHUB_SOFT_NEWER_VERS_VAR_YET_VAL"
 
 			eval ${1}='${_TMP_GITHUB_SOFT_NEWER_VERS}'
 		else
@@ -4102,7 +4113,7 @@ function set_github_soft_releases_newer_version()
 		fi
 	}
 
-	discern_exchange_var_action "${1}" "_set_newer_by_url_list_link_date" "${@}"
+	discern_exchange_var_action "${1}" "_set_github_soft_releases_newer_version" "${@}"
 	return $?
 }
 
@@ -4576,14 +4587,14 @@ function dirs_trail_clear()
 			script_check_action "_TMP_DIRS_TRAIL_CLEAR_SPECIAL_FUNC" "${_TMP_DIRS_TRAIL_CLEAR_NAME}"
 			echo_style_text "The 'soft special func' of <${_TMP_DIRS_TRAIL_CLEAR_NAME}> was executed"
 		fi
-
+		
 		script_check_action "${3}" "${1}"
 
-		items_split_action "${_TMP_DIRS_TRAIL_CLEAR_TRUTHFUL_DIR_ARR[*]}" "_dirs_trail_clear_exec_backup"
+		items_split_action "_TMP_DIRS_TRAIL_CLEAR_TRUTHFUL_DIR_ARR" "_dirs_trail_clear_exec_backup"
 	else
 		script_check_action "${3}" "${1}"
-
-		items_split_action "${_TMP_DIRS_TRAIL_CLEAR_TRUTHFUL_DIR_ARR[*]}" "${_TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT}"
+		
+		items_split_action "_TMP_DIRS_TRAIL_CLEAR_TRUTHFUL_DIR_ARR" "${_TMP_DIRS_TRAIL_CLEAR_FORCE_SCRIPT}"
 	fi
 
 	echo_style_text "The 'dirs' of soft(<${_TMP_DIRS_TRAIL_CLEAR_NAME}>) was trailed"
@@ -4928,7 +4939,7 @@ function soft_path_restore_confirm_action()
 	# 参数1：检测到的备份文件的路径，例如：/tmp/backup/opt/docker/1666083394
 	function _soft_path_restore_confirm_action_newer_exec()
 	{
-		path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_cover_exec" "_soft_path_restore_confirm_action_force_exec"
+		# path_exists_confirm_action "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_PRINTF_COVER_ECHO}" "_soft_path_restore_confirm_action_cover_exec" "_soft_path_restore_confirm_action_force_exec"
 		
 		script_check_action "_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_N_SCRIPTS" "${_TMP_SOFT_PATH_RESTORE_CONFIRM_ACTION_SOFT_PATH}" "${1}"
 	}
@@ -5019,7 +5030,7 @@ function fetch_docker_hub_release_vers()
 
 	function _fetch_docker_hub_release_vers_by_pw()
 	{
-		su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && python py/pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}"
+		su_bash_env_conda_channel_exec "cd ${PLAYWRIGHT_SCRIPTS_DIR} && (python py/pw_async_fetch_docker_hub_vers.py ${_TMP_FETCH_DOCKER_HUB_RELEASE_VERS_REPO}) | grep -vE '\-rc[0-9]+.*$'"
 	}
 	
 	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
@@ -5101,7 +5112,7 @@ function docker_image_param_check_action()
 			
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
-			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID=$(docker ps -a --no-trunc | awk "{if(\$2==\"${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}\"){print \$1}}")
+			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS=$(docker ps -a --no-trunc | awk "{if(\$2==\"${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}\"){print \$1}}")
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=""
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=""
 
@@ -5113,7 +5124,7 @@ function docker_image_param_check_action()
 
 				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT="$(docker container inspect ${2} | jq '.[0]')"
 			}
-			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}" "_docker_image_param_check_action_bind_ctn_data"
+			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS}" "_docker_image_param_check_action_bind_ctn_data"
 
 			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD"
 			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" ]; then
@@ -5152,7 +5163,7 @@ function docker_image_param_check_action()
 			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=$([[ "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" != "null" ]] && echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" || echo)
 			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=$([[ "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}" != "null" ]] && echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}" || echo)
 
-			script_check_action "${2}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}"
+			script_check_action "${2}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS}"
 			return $?
 		fi
 	fi
@@ -5290,6 +5301,29 @@ function docker_container_hostconfig_binds_echo()
     return $?
 }
 
+# Docker容器检测输出（返回JQ容器列表）
+# 参数1：容器ID，用于检测
+# 示例：
+#      local _CHECK_ITEM="ctnid1111111"
+#      docker_container_param_check_jq_item_echo "_CHECK_ITEM"
+#      docker_container_param_check_jq_item_echo "ctnid1111111"
+function docker_container_param_check_jq_item_echo()
+{
+	local _TMP_DOCKER_CTN_PARAM_CHECK_JQ_ITEM_ECHO_IMG_ID="${1}"
+	local _TMP_DOCKER_CTN_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{}"
+
+	function _docker_container_param_check_jq_item_echo_jq_item_bind()
+	{
+		_TMP_DOCKER_CTN_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"ImageID\": \"${1}\", \"ContainerID\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
+	}
+
+	docker_container_param_check_action "${1}" '_docker_container_param_check_jq_item_echo_jq_item_bind'
+
+	echo "${_TMP_DOCKER_CTN_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM}"
+	
+	return $?
+}
+
 # Docker镜像检测输出（返回JQ镜像列表）
 # 参数1：需要绑定的变量名/值
 # 参数2：镜像名称(模糊正则查询)，用于检测
@@ -5303,7 +5337,7 @@ function docker_images_param_check_jq_arr_echo()
 
 	function _docker_images_param_check_jq_arr_echo_jq_arr_bind()
 	{
-		change_json_node_arr "_TMP_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR" "." "" "{ \"ImageID\": \"${1}\", \"ContainerID\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
+		change_json_node_arr "_TMP_DOCKER_CHECK_EXISTS_JQ_ARR_BIND_JQ_ARR" "." "" "{ \"ImageID\": \"${1}\", \"ContainerIDS\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
 	}
 
 	docker_images_param_check_action "${1}" '_docker_images_param_check_jq_arr_echo_jq_arr_bind'
@@ -5344,7 +5378,7 @@ function docker_image_param_check_jq_item_echo()
 
 	function _docker_image_param_check_jq_item_echo_jq_item_bind()
 	{
-		_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"ImageID\": \"${1}\", \"ContainerID\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
+		_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"ImageID\": \"${1}\", \"ContainerIDS\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
 	}
 
 	docker_image_param_check_action "${1}" '_docker_image_param_check_jq_item_echo_jq_item_bind'
@@ -5382,7 +5416,17 @@ function docker_change_container_inspect_wrap()
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS=""
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STATUS=$(echo_service_node_content "docker" "Active")
 	if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STATUS}" != "inactive" ]; then
-		_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS=$(docker ps | grep -v "^CONTAINER ID" | cut -d' ' -f1)
+		local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID_ARR=()
+		function docker_change_container_inspect_wrap_record_ids()
+		{
+			if [ "$(echo "${1}" | jq ".State.Status" | xargs echo)" == "running" ]; then
+				local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID=$(echo "${1}" | jq ".Id" | xargs echo)
+				item_change_append_bind "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID_ARR" "^${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID:0:12}$" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID:0:12}"
+			fi
+		}
+		json_split_action "$(docker ps | awk 'NR>1{print $1}' | xargs docker inspect)" "docker_change_container_inspect_wrap_record_ids"
+		_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS=${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_ID_ARR[*]}
+
 		## 重新启动并构建新容器
 		echo "${TMP_SPLITER2}"
 		echo_style_text "Starting 'stop' all 'running containers'(<${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_STOP_IDS}>) & docker 'service', hold on please"
@@ -5414,6 +5458,28 @@ function docker_change_container_inspect_wrap()
 
     return $?
 }
+
+# 添加Docker私有仓库地址
+# 参数1：修改内容变量名或值
+# 参数2：匹配内容正则变量名或值，默认为修改内容
+# 示例：
+#       docker_change_insecure_registries "127.0.0.1:19001"
+function docker_change_insecure_registries()
+{
+	local _TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_ADDR=$(echo_discern_exchange_var_val "${1}")
+	local _TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_REGEX=$(echo_discern_exchange_var_val "${2}")
+	if [ -z "${_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_REGEX}" ]; then
+		_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_REGEX="^${_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_ADDR}$"
+	fi
+	
+	local _TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_CONF=$(cat /etc/docker/daemon.json)
+    change_json_node_arr "_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_CONF" '."insecure-registries"' "${_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_REGEX}" "\"${_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_ADDR}\""
+	change_json_node_item "_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_CONF" '."live-restore"' "true"
+	echo "${_TMP_DOCKER_CHANGE_INSECURE_REGISTRIES_CONF}" | jq > /etc/docker/daemon.json
+
+	return $?
+}
+
 
 # 修改DOCKER容器信息
 # 参数1：容器ID
@@ -5626,12 +5692,22 @@ function docker_change_container_volume_migrate()
 				# 转换为真实链接
 				bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH"
 							
-				echo_style_text "'|'Create 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}> ← [${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}])"
+				echo_style_text "'|'Create 'replace volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>)"
 				docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
-				echo_style_text "'|' Rsync 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}> → [${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}])"
-				
-				# 重新调整挂载盘路径
-				rsync -av ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}/ ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data
+
+				# 卷未指向正确路径
+				if [[ ! -a ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]]; then
+					echo_style_text "'|' Rsync 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}>:[${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}]) → (<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>)"
+
+					# 重新调整挂载卷路径
+					rsync -av ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_PATH}/ ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data
+				else
+					echo_style_text "'|' Change 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME}>) → (<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>:[${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}])"
+					# 迁移源目录到新目录下
+					rm -rf ${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data
+
+					path_not_exists_link "${DOCKER_DATA_DIR}/volumes/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}/_data" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}"
+				fi
 			else
 				echo_style_text "'|'Create 'newer volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}>)"
 				docker volume create ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_VOLUME_NAME}
@@ -5971,7 +6047,7 @@ function docker_choice_cust_vers_action()
 		if [[ -a ${MIGRATE_DIR} ]]; then
 			_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_STORE_TYPE=$(find ${MIGRATE_DIR} -name ${1}.* | grep "${_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_IMG_MARK_NAME}" | cut -d'.' -f1 | uniq | grep -oP "(?<=^${MIGRATE_DIR}/)\w+(?=/${_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_IMG_MARK_NAME}/${1}$)")
 		fi
-
+		
 		script_check_action "_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_SCRIPTS" "${2}" "${1}" "${_TMP_DOCKER_CHOICE_CUST_VERS_ACTION_STORE_TYPE:-hub}"
 	}
 
@@ -6040,7 +6116,7 @@ function docker_image_args_combine_bind()
 	# 卸载无用的变量
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VAR_VAL//-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_PORT_PAIR}/}
-	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--name=\w+$"
+	# item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--name=\w+$"
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--hostname=\w+$"
 	item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL" "^--mac-address=\w+$"
 	# 记录特定变量
@@ -6060,7 +6136,7 @@ function docker_image_args_combine_bind()
 		# 卸载无用的变量
 		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR=$(echo "${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
 		local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_VAR_VAL//-p ${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_PORT_PAIR}/}
-		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--name=\w+$"
+		# item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--name=\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--hostname=\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--mac-address=\w+$"
 		item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_COVER_CLEAN_VAL" "^--runtime=runc\w+$"
@@ -6228,6 +6304,150 @@ function docker_compose_formal_print_node_volumes()
 	return $?
 }
 
+# 登录仓库
+# 参数1：仓库地址
+# 参数2：仓库账号，为空则先找寻配置文件，找不到则提示输入
+# 参数3：仓库密码，为空则先找寻配置文件，找不到则提示输入
+# 参数4：登录成功后执行函数
+#       参数1：仓库地址
+#       参数2：仓库账号
+#       参数3：仓库密码
+# 示例：
+#       function func_print()
+# 		{
+# 			echo "${1}"
+# 			echo "${2}"
+# 			echo "${3}"
+# 			echo
+# 		}
+#      docker_login_insecure_registries_action "http://127.0.0.1:10080" "" "" "func_print"
+#      docker_login_insecure_registries_action "http://127.0.0.1:10080" "admin" "" "func_print"
+#      docker_login_insecure_registries_action "http://127.0.0.1:10080" "admin" "Aa123321" "func_print"
+function docker_login_insecure_registries_action()
+{
+	local _TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL=$(echo_discern_exchange_var_val "${1}")
+
+	if [ -z "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}" ]; then
+		_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL="$(cat /etc/docker/daemon.json | jq '."insecure-registries"[]' | awk "NR==1" | xargs echo)"
+	fi
+	local _TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD=$(echo_discern_exchange_var_val "${3}")
+
+	bind_empty_if_input "_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL" "Please sure your 'insecure registry url' from [${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}]" "" "admin"
+
+	if [ -n "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}" ]; then
+		local _TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH=$(su - docker -c "pwd")/.harbor
+		if [ -f ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH} ]; then
+			local _TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PAIR=$(cat ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH} | grep -oP "(?<=^${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@).+" | awk 'NR==1')
+			if [ -n "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PAIR}" ]; then
+				_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER="${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER:-$(echo "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PAIR}" | cut -d'@' -f1)}"
+				# 重新找寻账号，重新检索（同地址可能存在不同的账密）
+				_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD="${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD:-$(cat ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH} | grep -oP "(?<=^${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@).+" | awk 'NR==1')}"
+			fi	
+		fi
+
+		bind_empty_if_input "_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER" "Please sure your 'insecure registry user' from [${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}]" "" "admin"
+		bind_empty_if_input "_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD" "Please sure your 'insecure registry password' from <${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}>@[${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}]" "Y" "_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD"
+
+		# 登录
+		docker login ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL} -u ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER} -p ${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD} >& /dev/null
+		if [ $? -ne 0 ]; then
+			echo_style_text "'Input' <insecure registry>(${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD}) auth error"
+			return	
+		fi
+
+		# 始终保存配置
+		file_content_not_exists_echo "^${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD}"
+
+		# 成功后执行
+		script_check_action "${4}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD}"
+		return $?
+	fi
+
+	return $?
+}
+
+# 提交 Docker容器为 备份镜像至仓库
+# 参数1：容器ID，例 e75f9b427730
+# 参数2：快照存储的时间戳，例 1670329246
+# 参数3：仓库地址，例 http://127.0.0.1:10080
+# 参数4：仓库账号，有则写，例 admin
+# 参数5：仓库密码，有则写，例 Harbor123
+# 示例：
+#       docker_snap_commit "fe04328164ee" "1681290197" "" "admin" "Aa123123"
+function docker_snap_commit()
+{
+	local _TMP_DOCKER_SNAP_COMMIT_TIMESTAMP=$(echo_discern_exchange_var_val "${2}")
+	local _TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY=$(echo_discern_exchange_var_val "${3}")
+	local _TMP_DOCKER_SNAP_COMMIT_HB_USER=$(echo_discern_exchange_var_val "${4}")
+	local _TMP_DOCKER_SNAP_COMMIT_HB_PASSWD=$(echo_discern_exchange_var_val "${5}")
+
+	# 参数1：镜像ID，例 imgid111111
+	# 参数2：容器ID，例 ctnid111111
+	# 参数3：镜像名称，例 browserless/chrome
+	# 参数4：镜像版本，例 imgver111111_v1670329246
+	# 参数5：启动命令，例 /bin/sh
+	# 参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
+	function _docker_snap_commit()
+	{
+		# 统计镜像数，根据不同情况下的提交，做不同的镜像标记
+		## 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
+		## 还原标记则为SR(Snap restore c/i/d)			
+		local _TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT=$(docker images | awk "NR>1{if(\$1~\"${3}\"){print \$2}}" | grep -oP "(?<=^${4}_v[0-9]{10})SC(?=[0-9]+$)" | wc -l)
+		# imgver111111_v1675749340
+		local _TMP_DOCKER_SNAP_COMMIT_SNAP_VER="${4}_v${_TMP_DOCKER_SNAP_COMMIT_TIMESTAMP}"
+		# imgver111111_v1675749340SC0
+		local _TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_COMMIT_SNAP_VER}SC${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
+		# browserless_chrome:imgver111111_v1675749340SC0
+		local _TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME="${3}:${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}"
+		# 提交状态
+		local _TMP_DOCKER_SNAP_COMMIT_STATUS=""
+		# 判断是否有配置私有镜像库
+		_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY=${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY:-$(cat /etc/docker/daemon.json | jq '."insecure-registries"[]' | awk "NR==1" | xargs echo)}
+		if [ -n "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}" ]; then
+			local _TMP_DOCKER_SNAP_COMMIT_IMG_PRJ="${3%/*}"
+
+			# habor的项目不进行仓库备份
+			if [ "${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}" != "goharbor" ]; then
+				local _TMP_DOCKER_SNAP_COMMIT_IMG_PRJ_EXISTS=$(curl -s -H "Content-Type: application/json" "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/projects" | jq --arg NAME "${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}" '.[] | select(.name == $NAME)')
+
+				# 判断仓库是否存在，不存在则创建
+				if [ -z "${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ_EXISTS}" ]; then
+					echo_style_text "Cannot found project on [${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}]/<${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}>, start create it"
+
+					function _docker_snap_commit_create_project()
+					{
+						curl -u "${2}:${3}" -X POST -H "Content-Type: application/json" "${1}/api/projects" -d'{"project_name": "'${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}'","metadata": {"public": "true"}}'
+						_TMP_DOCKER_SNAP_COMMIT_STATUS="$?"
+						echo_style_text "Project [${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}]/<${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}> created(${_TMP_DOCKER_SNAP_COMMIT_STATUS})"
+					}
+
+					docker_login_insecure_registries_action "_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY" "" "" "_docker_snap_commit_create_project"
+				fi
+				
+				local _TMP_DOCKER_SNAP_COMMIT_PRJ_TAG="${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY#*//}/${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}"
+				echo_style_text "Starting push image(<${3}>:[${4}]) to project([${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}]/<${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}>), taged '${_TMP_DOCKER_SNAP_COMMIT_PRJ_TAG}'"
+				docker tag ${3}:${4} ${_TMP_DOCKER_SNAP_COMMIT_PRJ_TAG}
+				docker push ${_TMP_DOCKER_SNAP_COMMIT_PRJ_TAG}
+				docker rmi ${_TMP_DOCKER_SNAP_COMMIT_PRJ_TAG}
+			fi
+		fi
+
+		# 为空说明可能未提交成功，则进行再次备份
+		if [ -z "${_TMP_DOCKER_SNAP_COMMIT_STATUS}" ]; then
+			echo_style_text "View the 'container commit' <${3}>([${4}] → [${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}])↓:"
+			docker commit -a "unity-special_backup ${3}:${4}" -m "backup version ${4} to ${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}" ${2} ${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}
+
+			echo "${TMP_SPLITER2}"
+			echo_style_text "Commit History <${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}>↓:"
+			docker history ${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}
+		fi
+	}
+
+	docker_container_param_check_action "${1}" "_docker_snap_commit"
+	return $?
+}
+
 # 创建 docker 快照
 # 参数1：容器ID，例 e75f9b427730
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
@@ -6336,29 +6556,37 @@ function docker_snap_create_action()
 
 func_backup_current_image_init_script()
 {
-	## 2022-12-14  03 -> 1670958000
-	local _LAST_DATE_HOUR_PAIR=$(cat /var/log/apt/history.log | tail -n1 | cut -d ':' -f2 | sed 's/^\s//')
-	## 2022-12-14  02
-	local _LAST_DATE_HOUR_PRE_PAIR=$(date -d "1970-01-01 UTC $(($(date +%s -d "${_LAST_DATE_HOUR_PAIR}")-$((1*60*60)))) seconds" "+%F %H")
-	local _LAST_DATE_HOUR_PRE_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f1)
-	local _LAST_DATE_HOUR_PRE_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f2)
+	# 兼容ubuntu
+	if [[ -a /var/log/apt/history.log ]]; then
+		## 2022-12-14  03 -> 1670958000
+		local _LAST_DATE_HOUR_PAIR=$(cat /var/log/apt/history.log | tail -n1 | cut -d ':' -f2 | sed 's/^\s//')
+		## 2022-12-14  02
+		local _LAST_DATE_HOUR_PRE_PAIR=$(date -d "1970-01-01 UTC $(($(date +%s -d "${_LAST_DATE_HOUR_PAIR}")-$((1*60*60)))) seconds" "+%F %H")
+		local _LAST_DATE_HOUR_PRE_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f1)
+		local _LAST_DATE_HOUR_PRE_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PRE_PAIR} | cut -d' ' -f2)
 
-	## 查找最后记录上1小时是否存在记录，若存在，则起始行标注为上一行
-	local _LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PRE_PAIR_DAY}  ${_LAST_DATE_HOUR_PRE_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
-	if [ -z "${_LAST_DATE_HOUR_START_LINE}" ]; then
-		local _LAST_DATE_HOUR_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f1)
-		local _LAST_DATE_HOUR_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f2)
+		## 查找最后记录上1小时是否存在记录，若存在，则起始行标注为上一行
+		local _LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PRE_PAIR_DAY}  ${_LAST_DATE_HOUR_PRE_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
+		if [ -z "${_LAST_DATE_HOUR_START_LINE}" ]; then
+			local _LAST_DATE_HOUR_PAIR_DAY=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f1)
+			local _LAST_DATE_HOUR_PAIR_HOUR=$(echo ${_LAST_DATE_HOUR_PAIR} | cut -d' ' -f2)
+			
+			_LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PAIR_DAY}  ${_LAST_DATE_HOUR_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
+		fi
 		
-		_LAST_DATE_HOUR_START_LINE=$(cat /var/log/apt/history.log | grep -oPn "^Start-Date: ${_LAST_DATE_HOUR_PAIR_DAY}  ${_LAST_DATE_HOUR_PAIR_HOUR}.+" | awk 'NR==1' | cut -d':' -f1)
+		### 导出命令临时文件
+		tail -n +${_LAST_DATE_HOUR_START_LINE} /var/log/apt/history.log > history_tmp.log
+		#### 该处为隔行提取Commandline，误删保留
+		#### cat history_tmp.log | grep -oPn '^Start-Date: .+' | cut -d':' -f1 | sed 's/^/1+&/g' | bc | xargs -I {} sed -n '{}p;' /var/log/apt/history.log | cut -d':' -f2 | sed 's/^\s//'
+		#### 获取关键字所在行，再根据行号进行命令提取
+		cat history_tmp.log | grep -oPn '^Commandline: .+' | cut -d':' -f1 | xargs -I {} sed -n '{}p;' history_tmp.log | cut -d':' -f2 | sed 's/^\s//'
+		rm -rf history_tmp.log
 	fi
-	
-	### 导出命令临时文件
-	tail -n +${_LAST_DATE_HOUR_START_LINE} /var/log/apt/history.log > history_tmp.log
-	#### 该处为隔行提取Commandline，误删保留
-	#### cat history_tmp.log | grep -oPn '^Start-Date: .+' | cut -d':' -f1 | sed 's/^/1+&/g' | bc | xargs -I {} sed -n '{}p;' /var/log/apt/history.log | cut -d':' -f2 | sed 's/^\s//'
-	#### 获取关键字所在行，再根据行号进行命令提取
-	cat history_tmp.log | grep -oPn '^Commandline: .+' | cut -d':' -f1 | xargs -I {} sed -n '{}p;' history_tmp.log | cut -d':' -f2 | sed 's/^\s//'
-	rm -rf history_tmp.log
+
+	# 兼容centos
+	if [[ -a /var/log/yum.log ]]; then
+		cat /var/log/yum.log | awk '{print $5}' | uniq | xargs -I {} echo 'yum -y install {}'
+	fi
 }
 
 func_backup_current_image_init_script
@@ -6389,45 +6617,53 @@ EOF
 	# 备份脚本模板
 	local _TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${3} && echo ${_TMP_DOCKER_SNAP_CREATE_PS_ID} >> ${BACKUP_DIR}%s/${3}/.snaphis.log && echo_style_text \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${3}>\") || echo_style_text 'Backup dir <%s> not found'"
 	
-	# 创建挂载盘备份
-	echo "${TMP_SPLITER2}"
-	echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
+	# 预先取得runlike
 	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}")
 
-	function _docker_snap_create_action_volume_path_restore()
-	{
-		# 还原挂载的路径
-		local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
-		# 转换为挂载的真实路径
-		bind_symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
-
-		# 备份挂载盘路径
-		echo "${TMP_SPLITER2}"
-		echo_style_text "Starting 'backup' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> 'volume dir'(<${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}>)↓:"
-		local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}"
-		exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT"
-		path_exists_action "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Volume dir <${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}> not found"
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}
-
-		# 修改RUN脚本路径指向为真实路径
-		_TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" | sed "s@${1}:@${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:@g")
-
-		# 修改json文件的路径为得到对应挂载在容器的路径
-		echo_style_text "Starting 'change ref volume dirs file' <${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(hostconfig/config.v2).json>↓:"
-		local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_CTN_DIR=$(cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds[]" | grep -oP "(?<=^\"${1}:).+(?=\"$)")
-		if [ -n "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_CTN_DIR}" ]; then
-			echo "${TMP_SPLITER2}"
-			docker_change_container_inspect_mount "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_CTN_DIR}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json"
-			echo_style_text "'hostconfig' → Binds↓:"
-			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds[]"
-
-			echo "${TMP_SPLITER3}"
-			echo_style_text "'config.v2' → MountPoints↓:"
-			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json | jq ".MountPoints"
-		fi
-	}
+	# 创建挂载盘备份
 	local _TMP_DOCKER_SNAP_CREATE_VOLUMES=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | jq --arg TYPE 'volume' '.[0].Mounts[] | select(.Type == $TYPE) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
-	items_split_action "_TMP_DOCKER_SNAP_CREATE_VOLUMES" "_docker_snap_create_action_volume_path_restore"
+	if [ -n "${_TMP_DOCKER_SNAP_CREATE_VOLUMES}" ]; then
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
+
+		function _docker_snap_create_action_volume_path_restore()
+		{
+			# 还原挂载的路径
+			local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
+			# 转换为挂载的真实路径
+			bind_symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
+
+			# 备份挂载盘路径
+			echo "${TMP_SPLITER2}"
+			echo_style_text "Starting 'backup' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> 'volume dir'(<${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}>)↓:"
+			local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}"
+			exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT"
+			path_exists_action "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Volume dir <${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}> not found"
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}
+
+			# 修改RUN脚本路径指向为真实路径
+			# _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" | sed "s@${1}:@${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:@g")
+			_TMP_DOCKER_SNAP_CREATE_BOOT_RUN=${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN//${1}:/${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:}
+
+			# 修改json文件的路径为得到对应挂载在容器的路径
+			echo_style_text "Starting 'change ref volume dirs file' <${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(hostconfig/config.v2).json>↓:"
+			local _TMP_DOCKER_SNAP_CREATE_HOST_BINDS=$(cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds")
+			if [ $(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq "length") -gt 0 ]; then
+				local _TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR=$(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq ".[]" | grep -oP "(?<=^\"${1}:).+(?=\"$)")
+				if [ -n "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" ]; then
+					echo "${TMP_SPLITER2}"
+					docker_change_container_inspect_mount "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json"
+					echo_style_text "'hostconfig' → Binds↓:"
+					cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds[]"
+
+					echo "${TMP_SPLITER3}"
+					echo_style_text "'config.v2' → MountPoints↓:"
+					cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json | jq ".MountPoints"
+				fi
+			fi
+		}
+		items_split_action "_TMP_DOCKER_SNAP_CREATE_VOLUMES" "_docker_snap_create_action_volume_path_restore"
+	fi
     
     echo "${TMP_SPLITER2}"
     echo_style_text "Starting make 'image boot run' script↓:"
@@ -6496,20 +6732,7 @@ EOF
 	
 	# 将容器打包成镜像
 	echo "${TMP_SPLITER2}"
-	## 统计镜像数，根据不同情况下的提交，做不同的镜像标记
-	### 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
-	### 还原标记则为SR(Snap restore c/i/d)			
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT=$(docker images | awk "NR>1{if(\$1~\"${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}\"){print \$2}}" | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}_v[0-9]{10})SC(?=[0-9]+$)" | wc -l)
-	# imgver111111_v1675749340SC0
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}SC${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_COUNT}"
-	# browserless_chrome:imgver111111_v1675749340SC0
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME="${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}"
-	echo_style_text "View the 'container commit' <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>([${_TMP_DOCKER_SNAP_CREATE_IMG_VER}] → [${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}])↓:"
-	docker commit -a "unity-special_backup ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" -m "backup version ${_TMP_DOCKER_SNAP_CREATE_IMG_VER} to ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_VER}" ${_TMP_DOCKER_SNAP_CREATE_PS_ID} ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}
-
-	echo "${TMP_SPLITER2}"
-	echo_style_text "Commit History <${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}>↓:"
-	docker history ${_TMP_DOCKER_SNAP_CREATE_SNAP_COMMIT_NAME}
+	docker_snap_commit "_TMP_DOCKER_SNAP_CREATE_PS_ID" "${3}"
 
 	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
 	local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
@@ -6751,7 +6974,7 @@ function docker_snap_restore_action()
 	fi
 	
 	# 卸载无用的变量
-	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--name=\w+$"
+	# item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--name=\w+$"
 	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--hostname=\w+$"
 	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--mac-address=[\w|:]+$"
 	item_change_remove_bind "_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS" "^--runtime=\w+$"
@@ -6867,6 +7090,212 @@ function docker_snap_restore_action()
     return $?
 }
 
+# docker容器启动等待
+# 参数1：等待端口
+# 参数2：等待输出
+function docker_container_boot_wait()
+{
+	local _TMP_DOCKER_CTN_BOOT_WAIT_PS_PORT="${1}"
+	
+	# 指定端口，则等待
+	if [ -n "${_TMP_DOCKER_CTN_BOOT_WAIT_PS_PORT}" ]; then
+		# 等待执行完毕 产生端口
+		exec_sleep_until_not_empty "${2}" "lsof -i:${_TMP_DOCKER_CTN_BOOT_WAIT_PS_PORT}" 180 3
+		if [ -z "$(lsof -i:${_TMP_DOCKER_CTN_BOOT_WAIT_PS_PORT})" ]; then
+			echo_style_text "Boot failure, please check"
+			return 0
+		fi
+	fi
+	
+    return $?
+}
+
+# Docker容器信息打印
+# 参数1：容器ID或名称值或变量名，用于检测
+# 参数2：授权及备份前运行脚本
+#	    参数1：启动后的进程ID
+#       参数2：最终启动端口
+#       参数3：最终启动版本
+#	    参数4：最终启动命令
+#	    参数5：最终启动参数
+function docker_container_print() 
+{
+    local _TMP_DOCKER_CTN_PRINT_ID_OR_NAME=$(echo_discern_exchange_var_val "${1}")
+    local _TMP_DOCKER_CTN_PRINT_CHANGE_SCRIPT=$(echo_discern_exchange_var_val "${2}")
+
+    function _docker_container_print()
+    {
+        local _TMP_DOCKER_CTN_PRINT_IMG_ID=${1}
+        local _TMP_DOCKER_CTN_PRINT_CTN_ID=${2}
+        local _TMP_DOCKER_CTN_PRINT_IMG_NAME=${3}
+        local _TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME="${3/\//_}"
+        local _TMP_DOCKER_CTN_PRINT_VER=${4}
+        local _TMP_DOCKER_CTN_PRINT_CMD=${5}
+        local _TMP_DOCKER_CTN_PRINT_ARGS=${6}
+
+        # -P :是容器内部端口随机映射到主机的端口。
+        # -p : 是容器内部端口绑定到指定的主机端口。
+        local _TMP_DOCKER_CTN_PRINT_CTN_PORT_PAIR=$(echo "${_TMP_DOCKER_CTN_PRINT_ARGS}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
+        local _TMP_DOCKER_CTN_PRINT_CTN_OPN_PORT=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_PORT_PAIR}" | cut -d':' -f1)
+        local _TMP_DOCKER_CTN_PRINT_CTN_INN_PORT=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_PORT_PAIR}" | cut -d':' -f2)
+        
+        echo_style_text "View the 'container user'↓:"
+        # docker exec -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "whoami"
+        docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "whoami" "t"
+
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'container time'↓:"
+        # docker exec -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "date"
+        docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "date" "t"
+
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'container occupancy rate'↓:"
+        
+		# 有些容器不支持xargs故分拆
+        docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cd /;ls | grep -v 'proc' | xargs du -sh" "t"
+		if [ $? -ne 0 ]; then
+			echo_style_text "Cannot support command 'xargs', try another choice"
+			local _TMP_DOCKER_CTN_PRINT_CTN_BASE_DIRS=($(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cd /;ls" "t"))
+			items_split_action "_TMP_DOCKER_CTN_PRINT_CTN_BASE_DIRS" "docker_bash_channel_exec '${_TMP_DOCKER_CTN_PRINT_CTN_ID}' 'du -sh /%s' 't'"
+		fi
+
+        # 展开Dockerfile，用于后续提取信息
+        local _TMP_DOCKER_CTN_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_CTN_PRINT_CTN_ID})
+        local _TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP '(?<=^").*(?="$)')
+
+        local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
+        if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}" ]; then
+            if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "echo 1")" == "1" ]; then
+                # local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile")
+                local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile" "t")
+                if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE}" ]; then
+                    _TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
+                else
+                    # local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
+                    local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" "t" | tr -d "\r")
+                    local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_CHOWNS=()
+                    function _docker_image_boot_print_chown_workspace()
+                    {
+                        local _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_DIR=$(echo ${1} | cut -d' ' -f2)
+                        if [ "${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_DIR}" != ".." ]; then
+
+                            local _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT=""
+                            if [ "${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
+                                local _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
+                                _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}"
+                            else
+                                _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
+                            fi
+                        
+                            _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_CHOWNS[${#_TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_CHOWNS[@]}]="${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT}"
+                        fi
+                    }
+
+                    echo "${_TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS}" | eval "script_channel_action '_docker_image_boot_print_chown_workspace'"
+                    _TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_CHOWNS}"
+                fi
+            fi
+        fi
+        
+        script_check_action "${_TMP_DOCKER_CTN_PRINT_CHANGE_SCRIPT}" "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "${_TMP_DOCKER_CTN_PRINT_CTN_OPN_PORT}" "${_TMP_DOCKER_CTN_PRINT_VER}" "${_TMP_DOCKER_CTN_PRINT_CMD}" "${_TMP_DOCKER_CTN_PRINT_ARGS}" "${_TMP_DOCKER_CTN_PRINT_MARK_VER}"
+
+        # 重新加载容器inspect
+        _TMP_DOCKER_CTN_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_CTN_PRINT_CTN_ID})
+        
+        # 修改授权
+        if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" ]; then
+            echo_style_text "View the 'dockerfile chowns'↓:"
+            echo "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT}"
+
+            function _docker_image_boot_print_chown_mounts()
+            {
+                # docker exec -u root -i ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "${1}"
+                docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "${1}"
+            }
+
+            echo "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" | eval "script_channel_action '_docker_image_boot_print_chown_mounts'"
+            
+            # 重启容器
+            echo "${TMP_SPLITER2}"
+            echo_style_text "View the 'restart'↓:"
+            docker container restart ${_TMP_DOCKER_CTN_PRINT_CTN_ID}
+            
+            # 二次等待
+            docker_container_boot_wait "${_TMP_DOCKER_CTN_PRINT_CTN_OPN_PORT}" "Rebooting the image <${1}:[${_TMP_DOCKER_CTN_PRINT_VER}]>([${_TMP_DOCKER_CTN_PRINT_CTN_ID}])' over chown mounts, wait for a moment"
+        fi
+        
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View clear list 'unuse symlink'↓:"
+        # 清空无效软连接
+        function _docker_image_boot_print_clear_unuse_link()
+        {
+            if [[ ! -a ${1} ]]; then
+                echo_style_text "rm -rf ${1}"
+                rm -rf ${1}
+            fi
+        }
+
+        [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+        [[ -a ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'boot info'↓:"
+        local _TMP_DOCKER_CTN_PRINT_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PRINT_CTN_ID}")
+        echo "${_TMP_DOCKER_CTN_PRINT_RUNLIKE}"
+            
+        function _docker_image_boot_print_ls_mounts()
+        {
+            echo "${TMP_SPLITER2}"
+            echo_style_text "View the 'mount dir(${1})'↓:"
+            # docker exec -u root -i ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "ls -lia ${1}"
+            docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "ls -lia ${1}"
+        }
+        
+        local _TMP_DOCKER_CTN_PRINT_MOUNT_ARR=($(echo "${_TMP_DOCKER_CTN_PRINT_RUNLIKE}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | grep -v '^/var/run/docker.sock$' | sort | tr -d '\r'))
+        items_split_action "${_TMP_DOCKER_CTN_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
+        
+        # 查看日志（config/image）
+        if [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]]; then
+            echo "${TMP_SPLITER2}"
+            echo_style_text "View the 'container inspect'↓:"
+            echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+            cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+        fi
+
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'container logs'↓:"
+        docker logs ${_TMP_DOCKER_CTN_PRINT_CTN_ID}
+
+        # 区分是否是初始化产生的提取类型容器
+        local _TMP_DOCKER_CTN_PRINT_PS=$(docker ps -a --no-trunc | grep "^${_TMP_DOCKER_CTN_PRINT_CTN_ID}")
+        if [ -n "${_TMP_DOCKER_CTN_PRINT_PS}" ]; then
+            # 最后更新一次容器内包
+            echo "${TMP_SPLITER2}"
+            echo_style_text "View the 'container update'↓:"
+            # docker exec -u root -w /tmp -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "apt-get update"
+			local _TMP_DOCKER_CTN_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cat /etc/issue" "t")
+			if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
+				docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apt-get update" "t"
+			else
+				if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
+					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "tdnf -y update" "t"
+					echo_style_text "'Photon' system, do nothing"
+				else
+					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "yum -y update" "t"
+				fi
+			fi
+            
+            # 备份当前容器，仅在第一次 	
+            local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
+            path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_DOCKER_CTN_PRINT_CTN_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
+        fi
+    }
+
+    docker_container_param_check_action "_TMP_DOCKER_CTN_PRINT_ID_OR_NAME" "_docker_container_print"
+	return $?
+}
+
 # Docker启动执行脚本
 # 参数1：镜像名称，例 browserless/chrome
 # 参数2：启动版本，例 imgver111111_v1670329246
@@ -6895,24 +7324,6 @@ function docker_image_boot_print()
     local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_INN_PORT=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_PORT_PAIR}" | cut -d':' -f2)
     
 	local _TMP_DOCKER_IMG_BOOT_PRINT_BEFORE_BOOT_SCRIPTS=${5}
-
-	# 启动等待
-	# 参数1：等待端口
-	# 参数2：等待输出
-	function _docker_image_boot_print_wait()
-	{
-		local _TMP_DOCKER_IMG_BOOT_PRINT_WAIT_PS_PORT="${1}"
-		
-		# 指定端口，则等待
-		if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_WAIT_PS_PORT}" ]; then
-			# 等待执行完毕 产生端口
-			exec_sleep_until_not_empty "${2}" "lsof -i:${_TMP_DOCKER_IMG_BOOT_PRINT_WAIT_PS_PORT}" 180 3
-			if [ -z "$(lsof -i:${_TMP_DOCKER_IMG_BOOT_PRINT_WAIT_PS_PORT})" ]; then
-				echo_style_text "Boot failure, please check"
-				return 0
-			fi
-		fi
-	}
 	
 	local _TMP_DOCKER_IMG_BOOT_PRINT_PS=$(docker ps -a --no-trunc | awk -F' ' "{if(\$2~\"${1}:\"){print}}")
 	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" ]; then
@@ -6973,15 +7384,20 @@ function docker_image_boot_print()
 		echo "${TMP_SPLITER2}"
 		echo_style_text "Cannot found 'created container' from 'image'(<${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]), start to [build] it"
 		
+		# 检测端口是否有占用
 		bind_exchange_port "_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT"
-		_TMP_DOCKER_IMG_BOOT_PRINT_ARGS=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}" | sed "s@${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_PORT_PAIR}@${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}:${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INN_PORT}@g")
+		# _TMP_DOCKER_IMG_BOOT_PRINT_ARGS=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}" | sed "s@${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_PORT_PAIR}@${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}:${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INN_PORT}@g")
+		_TMP_DOCKER_IMG_BOOT_PRINT_ARGS=${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS//${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_PORT_PAIR}/${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}:${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INN_PORT}}
 		
 		trim_str "_TMP_DOCKER_IMG_BOOT_PRINT_ARGS"
         # docker run -d -p ${TMP_DOCKER_SETUP_TEST_PS_PORT}:5000 training/webapp python app.py
-		echo_style_text "Booting <${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}] by args(${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}) && cmd(${_TMP_DOCKER_IMG_BOOT_PRINT_CMD:-"None"})"
+		echo_style_text "Booting <${1}>:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}] by args && cmd↓:"
+		echo "Args: ${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}"
+		echo "Cmd: ${_TMP_DOCKER_IMG_BOOT_PRINT_CMD:-"None"}"
 
 		# 挂载盘的情况下，此步会生成一个overlay
-        _TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID=$(docker run -d ${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS} ${1}:${_TMP_DOCKER_IMG_BOOT_PRINT_VER} ${_TMP_DOCKER_IMG_BOOT_PRINT_CMD})
+		# !!! 此处如不使用eval执行，当--label='x'存在时，会被重写成--label=''x''
+        _TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID=$(eval "docker run -d ${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS} ${1}:${_TMP_DOCKER_IMG_BOOT_PRINT_VER} ${_TMP_DOCKER_IMG_BOOT_PRINT_CMD}")
 
 		if [ -z "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" ]; then
 			echo "${TMP_SPLITER2}"
@@ -6993,14 +7409,25 @@ function docker_image_boot_print()
 
 		if [ -a "${_TMP_DOCKER_IMG_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
-			_docker_image_boot_print_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
+			docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
 
 			echo "${TMP_SPLITER2}"
 			echo_style_text "View the 'update dependency exec'↓:"
 			docker cp ${_TMP_DOCKER_IMG_BOOT_PRINT_NONE_PATH}.init.depend.sh ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}:/tmp
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
-			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
+			local _TMP_DOCKER_IMG_BOOT_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "cat /etc/issue" "t")
+			if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
+				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
+			else
+				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
+					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
+					echo_style_text "'Photon' system, do nothing"
+				else
+					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "yum -y update" "t"
+				fi
+			fi
 			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh" "t"
 			
 			# 停止，后续再启动，预防依赖生效问题
@@ -7018,7 +7445,7 @@ function docker_image_boot_print()
         _TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT=$(docker port ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} | cut -d':' -f2 | awk 'NR==1')
     fi
 
-	_docker_image_boot_print_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
+	docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
 	
 	# 启动状态异常则不往下走
 	# "State": {
@@ -7043,141 +7470,7 @@ function docker_image_boot_print()
 	fi
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'container user'↓:"
-    # docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "whoami"
-	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "whoami" "t"
-
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'container time'↓:"
-    # docker exec -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "date"
-	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "date" "t"
-
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'container occupancy rate'↓:"
-    # docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls / | grep -v 'proc' | xargs -I {} du -sh /{}"
-	docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls / | grep -v 'proc' | xargs -I {} du -sh /{}" "t"
-
-	# 展开Dockerfile，用于后续提取信息
-	local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID})
-	local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP '(?<=^").*(?="$)')
-
-	local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
-	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}" ]; then
-		if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "echo 1")" == "1" ]; then
-			# local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile")
-			local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "test -f ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}/Dockerfile" "t")
-			if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" ]; then
-				_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
-			else
-				# local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
-				local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls -la /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" "t" | tr -d "\r")
-				local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS=()
-				function _docker_image_boot_print_chown_workspace()
-				{
-					local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR=$(echo ${1} | cut -d' ' -f2)
-					if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" != ".." ]; then
-
-						local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT=""
-						if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
-							local _TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
-							_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKINGDIR}"
-						else
-							_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
-						fi
-					
-						_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[${#_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS[@]}]="${_TMP_DOCKER_IMG_BOOT_PRINT_CHOWN_WORKSPACE_SCRIPT}"
-					fi
-				}
-
-				echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_PERS}" | eval "script_channel_action '_docker_image_boot_print_chown_workspace'"
-				_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT="${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_WORKSPACE_CHOWNS}"
-			fi
-		fi
-	fi
-	
-    script_check_action "${6}" "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "${_TMP_DOCKER_IMG_BOOT_PRINT_VER}" "${_TMP_DOCKER_IMG_BOOT_PRINT_CMD}" "${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}" "${_TMP_DOCKER_IMG_BOOT_PRINT_MARK_VER}"
-
-	# 重新加载容器inspect
-	_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID})
-	
-	# 修改授权
-	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" ]; then
-		echo_style_text "View the 'dockerfile chowns'↓:"
-		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}"
-
-		function _docker_image_boot_print_chown_mounts()
-		{
-			# docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "${1}"
-			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "${1}"
-		}
-
-		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_DCFILE_CHOWN_SCRIPT}" | eval "script_channel_action '_docker_image_boot_print_chown_mounts'"
-		
-		# 重启容器
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'restart'↓:"
-		docker container restart ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}
-		
-		# 二次等待
-		_docker_image_boot_print_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Rebooting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' over chown mounts, wait for a moment"
-	fi
-	
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View clear list 'unuse symlink'↓:"
-	# 清空无效软连接
-	function _docker_image_boot_print_clear_unuse_link()
-	{
-		if [[ ! -a ${1} ]]; then
-			echo_style_text "rm -rf ${1}"
-			rm -rf ${1}
-		fi
-	}
-
-	[[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
-	[[ -a ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
-
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'boot info'↓:"
-    local _TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}")
-	echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}"
-		
-	function _docker_image_boot_print_ls_mounts()
-	{
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'mount dir(${1})'↓:"
-		# docker exec -u root -i ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "ls -lia ${1}"
-		docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "ls -lia ${1}"
-	}
-	
-	local _TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR=($(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_RUNLIKE}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f2 | grep -v '^/etc/localtime$' | grep -v '^/var/run/docker.sock$' | sort | tr -d '\r'))
-	items_split_action "${_TMP_DOCKER_IMG_BOOT_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
-	
-    # 查看日志（config/image）
-	if [ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME} ]; then
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'container inspect'↓:"
-		echo "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}.ctn.inspect.json
-		cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}.ctn.inspect.json
-	fi
-
-    echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'container logs'↓:"
-    docker logs ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}
-
-	# 区分是否是初始化产生的提取类型容器
-	_TMP_DOCKER_IMG_BOOT_PRINT_PS=$(docker ps -a --no-trunc | grep "^${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}")
-	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" ]; then
-		# 最后更新一次容器内包
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'container update'↓:"
-		# docker exec -u root -w /tmp -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
-		docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
-		
-		# 备份当前容器，仅在第一次 	
-		local TMP_DOCKER_SETUP_CTN_CLEAN_DIR="${MIGRATE_DIR}/clean"
-		path_not_exists_action "${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}/${_TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME}" "echo '${TMP_SPLITER2}' && docker_snap_create_action '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}' '${TMP_DOCKER_SETUP_CTN_CLEAN_DIR}' '${LOCAL_TIMESTAMP}'"
-	fi
-
+	docker_container_print "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "${6}"
 	return $?
 }
 
@@ -7368,9 +7661,9 @@ function soft_setup_wget()
 #       参数2：软件安装路径
 #       参数3：软件解压路径
 #       参数4：附加参数等
-# 参数5-N：附加参数
+# 参数5-N：附加参数(5:版本号)
 # 示例：
-#      soft_setup_docker_wget "browserless/chrome" "0.8.0" "exec_step_gum"
+#      soft_setup_docker_wget "goharbor/harbor" "https://github.com/goharbor/harbor/releases/download/v1.10.17/harbor-offline-installer-v1.10.17.tgz" "exec_step_harbor"
 function soft_setup_docker_wget() 
 {
 	local _TMP_SOFT_SETUP_DOCKER_WGET_NAME=${1}
@@ -7379,6 +7672,10 @@ function soft_setup_docker_wget()
 	typeset -l _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME
 	local _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_DOCKER_WGET_NAME}
 	local _TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
+
+	if [ -n "${5}" ]; then
+		_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR=${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}/v${5}
+	fi
 
 	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
@@ -7849,14 +8146,16 @@ function soft_cmd_check_git_down_action()
 {
 	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_CMD="${1}"
 	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO="${2}"
-	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN="${4}"
 	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER="${4}"
-	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT="${4}"
 
+	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
+
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN="${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER}"
+	local _TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT="${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER}"
+	
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN" "${3}"
 	exec_text_printf "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT" "${5}"
 
-	set_github_soft_releases_newer_version "_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_VER" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_REPO}"
 	echo_style_text "Starting 'execute' <script>('${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}')"
 
 	while_wget "--content-disposition ${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_DOWN}" "${_TMP_SOFT_CMD_CHECK_GIT_DOWN_ACTION_SCRIPT}"
@@ -8199,7 +8498,7 @@ function soft_docker_check_upgrade_custom()
 					_soft_docker_check_upgrade_custom_install
 				}
 
-				# 原始未指定版本的情况下不提示，避免多次选择
+				# 原始未指定版本的情况下不提示，避免多次选择 ??? 判断错误，无法正常安装
 				if [ -z "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER}" ]; then
 					confirm_yn_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_YN_REINSTALL" "Special 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}]) was exists, got vers([${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_EXISTS_VERS:-none}]), please 'sure' u will [re${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_TYPE_DESC}] 'still or not'" "_soft_docker_check_upgrade_custom_reinstall" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_PRINT_SCRIPT} | grep '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}'"
 				else
@@ -8240,16 +8539,24 @@ function soft_docker_check_upgrade_custom()
 						{
 							# 提取参数信息
 							local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
+							# 如果存在实例，则直接从实例中获取启动参数
 							if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" != "{}" ]; then
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ImageID" | xargs echo)
-								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ContainerID" | xargs echo)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ContainerIDS" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Image" | xargs echo)
+								# 找到已启动的容器，重新定义参数
+								if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}" ]; then
+									echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>) booted 'container'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}>), param will be reget"
+									_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM=$(docker_container_param_check_jq_item_echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}")
+								fi
+
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Version" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Cmd" | xargs echo)
-								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Args" | xargs echo)
+								# 复杂参数，不使用grep匹配可能报错:xargs: 未匹配的 单 引用；默认情况下，引用是针对 xargs 的，除非您使用了 -0 选项
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARGS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Args" | grep -oP "(?<=^\").*(?=\"$)")
 							
 								# 重新定义版本号
-								if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" == "latest" ]; then
+								if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER}" == "latest" ]; then
 									_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER=${1}
 
 									echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>) ver marked 'latest', system remarked to 'image id'([${1}])"
@@ -8267,7 +8574,7 @@ function soft_docker_check_upgrade_custom()
 								# _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_VER="${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_VER}"
 
 								# 重新获取数字标记
-								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256=$(docker inspect ${1} | jq ".[0].RepoDigests[]" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256=$(docker inspect ${1} | jq ".[0].RepoDigests[]" | xargs echo | cut -d':' -f2)
 								# 版本未更新则不操作（???新增修改，看是否可以通过docker镜像内安装镜像来判断是否存在新版本）
 								item_exists_yn_action "^${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_PULL_SHA256}$" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS}" "_soft_docker_check_upgrade_custom_confrim_reinstall" "script_check_action '_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}' '${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}' \"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARG_CMD}\" \"${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_ARGS}\" '' 'hub'"
 							else
@@ -8396,7 +8703,7 @@ function soft_docker_check_choice_upgrade_action()
 				
 # 				if [ "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" != "{}" ]; then
 # 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageID")
-# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ContainerID")
+# 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_CTN_ID=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ContainerIDS")
 # 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".ImageName")
 # 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INCREASE_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Version")
 # 					local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_ARG_CMD=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_JQ_ITEM}" | jq ".Cmd")
@@ -8494,6 +8801,49 @@ function soft_docker_check_choice_upgrade_action()
 #     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
 function soft_docker_compose_check_upgrade_action() 
 {
-	soft_docker_check_upgrade_custom "${@}"
+	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${3}
+
+	# 安装操作(重命名container名称)
+	# 参数1：镜像名称
+	# 参数2：版本信息
+	function _soft_docker_compose_check_upgrade_action_compile()
+	{
+		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT}" ]; then
+			# 自定义安装
+			echo_style_wrap_text "Starting 'compile image'(<${1}>:[${2}]) from [${3}], hold on please"
+			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
+
+			# 执行安装
+			# 参数1：yaml节点
+			# 参数2：索引
+			# 参数3：key
+			function _soft_docker_compose_check_upgrade_action_compile_formal()
+			{
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" |  cut -d':' -f1)
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
+
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME=$(echo "${1}" | yq ".container_name")
+				if [ -z "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}" ]; then
+					_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME="${3}"
+				fi
+
+				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME="${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}_${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}"
+				echo_style_text "Starting formal 'service' <${3}>('${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}') container rename <${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}> → [${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME}]"
+				yq -i '.services.'${3}'.container_name = "'${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME}'"' docker-compose.yml
+			}
+
+			# 从docker-compose.yml中取已安装镜像信息
+			if [ -a docker-compose.yml ]; then
+				yaml_split_action "$(cat docker-compose.yml | yq '.services')" "_soft_docker_compose_check_upgrade_action_compile_formal"
+				return $?
+			fi
+
+			echo_style_wrap_text "Cannot found docker-compose.yml, please check"
+		fi
+	}
+
+	soft_docker_check_upgrade_custom "${1}" "${2}" "_soft_docker_compose_check_upgrade_action_compile" "${@:4}"
+	
 	return $?
 }

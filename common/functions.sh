@@ -102,7 +102,7 @@ function echo_title()
 		return $?
 	}
     
-	path_exists_yn_action "${SETUP_DIR}/.requriements_ivhed" "_TMP_ECHO_TITLE_GUM_FUNC" "_TMP_ECHO_TITLE_NORMAL_FUNC"	
+	path_exists_yn_action "${GUM_PATH}" "_TMP_ECHO_TITLE_GUM_FUNC" "_TMP_ECHO_TITLE_NORMAL_FUNC"	
 
     return $?
 }
@@ -137,10 +137,10 @@ function link_logs()
 function mkdirs()
 {
     # 检测到有未挂载磁盘，默认将挂载第一个磁盘为/mountdisk，并重置变量
-    if [ -n "${LSBLK_DISKS_UNMOUNT_STR}" ] && [ -z "${LSBLK_MOUNT_ROOT}" ]; then
-        echo_style_wrap_text "'Checked' some disk no mount。Please step by step to create & format"
-        resolve_unmount_disk "${MOUNT_ROOT}"
-    fi
+    # if [ -n "${LSBLK_DISKS_UNMOUNT_STR}" ] && [ -z "${LSBLK_MOUNT_ROOT}" ]; then
+    #     echo_style_wrap_text "'Checked' some disk no mount。Please step by step to create & format"
+    #     resolve_unmount_disk "${MOUNT_ROOT}"
+    # fi
 
     #path_not_exists_action "$DEFAULT_DIR" "mkdir -pv $SETUP_DIR && cp --parents -av ~/.* . && sed -i \"s@$CURRENT_USER:/.*:/bin/bash@$CURRENT_USER:$DEFAULT_DIR:/bin/bash@g\" /etc/passwd"
     path_not_exists_create "${RPMS_DIR}"

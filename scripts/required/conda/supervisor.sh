@@ -7,6 +7,10 @@
 # 相关参考：
 #		  
 #------------------------------------------------
+# 安装时版本：4.2.5
+#------------------------------------------------
+# Debug：
+#------------------------------------------------
 # 安装标题：Supervisor
 # 软件名称：supervisor
 # 软件端口：$soft_port
@@ -188,7 +192,7 @@ condrestart)
     RETVAL=$?
     ;;
 status)
-	[ -a $(cat ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf | grep -oP "(?<=^serverurl=unix://)[^;]+") ] && \$SUPERVISORCTL \$OPTIONS status
+	[[ -a \$(cat ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf | grep -oP "(?<=^serverurl=unix://)[^;]+") ]] && \$SUPERVISORCTL \$OPTIONS status
 	running
 	RETVAL=$?
     ;;
@@ -374,7 +378,7 @@ EOF
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
     echo_style_text "View echo the 'web service init script'↓:"
-    #echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SUP_SETUP_HTTP_PORT} "${LOCAL_HOST}"
+    echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SUP_SETUP_HTTP_PORT} "${LOCAL_HOST}"
 
     # 结束
     exec_sleep 10 "Boot <supervisor> over, please checking the setup log, this will stay 10 secs to exit"
