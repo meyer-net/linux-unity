@@ -205,7 +205,11 @@ function boot_check_dc_browserless_chrome() {
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
         echo
 
+        # 授权iptables端口访问
         echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
+
+        # 生成web授权访问脚本
+        echo_web_service_init_scripts "browserless_chrome${LOCAL_ID}" "browserless_chrome${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_BLC_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
 }
 
@@ -235,12 +239,6 @@ function setup_ext_dc_browserless_chrome() {
 function reconf_dc_browserless_chrome()
 {
     echo_style_wrap_text "Starting 'reconf', hold on please"
-
-    # 授权iptables端口访问
-    # echo_soft_port ${2}
-
-    # 生成web授权访问脚本
-    #echo_web_service_init_scripts "browserless_chrome${LOCAL_ID}" "browserless_chrome${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_BLC_SETUP_OPN_PORT} "${LOCAL_HOST}"
 
 	return $?
 }
@@ -330,7 +328,7 @@ function boot_build_dc_browserless_chrome() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_BLC_SETUP_IMG_NAME}>:[${TMP_DC_BLC_SETUP_IMG_VER}], hold on please"
     
     # 标准启动参数
-    local TMP_DC_BLC_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime"
+    local TMP_DC_BLC_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro"
     # local TMP_DC_BLC_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_BLC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_BLC_SETUP_OPN_PORT}:${TMP_DC_BLC_SETUP_INN_PORT}"
     local TMP_DC_BLC_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"

@@ -5062,7 +5062,7 @@ function fetch_docker_hub_release_ver_digests()
 #       参数3：镜像名称，例 browserless/chrome
 #       参数4：镜像版本，例 imgver111111_v1670329246
 #       参数5：启动命令，例 /bin/sh
-#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
+#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime:ro
 # 示例：
 #     docker_container_param_check_action "ctnid111111" "func_a"
 function docker_container_param_check_action() 
@@ -5073,7 +5073,9 @@ function docker_container_param_check_action()
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
+		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
+		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}"
 		
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
 
@@ -5096,7 +5098,7 @@ function docker_container_param_check_action()
 #       参数3：镜像名称，例 browserless/chrome
 #       参数4：镜像版本，例 imgver111111_v1670329246
 #       参数5：启动命令，例 /bin/sh
-#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
+#       参数6：启动参数，例 --volume /etc/localtime:/etc/localtime:ro
 # 示例：
 #     docker_image_param_check_action "imgid111111" "func_a"
 function docker_image_param_check_action() 
@@ -5105,14 +5107,16 @@ function docker_image_param_check_action()
 	if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID}" ] && [ -n "${2}" ]; then
 		local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT="$(docker inspect ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ID} 2>/dev/null | jq '.[0]')"
 		if [ -n "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" ]; then
-			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.Config.Image' | grep -oP '(?<=^\").*(?=\"$)')
+			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.RepoTags' | grep -oP "(?<=^  \").*(?=\",*$)")
 			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}" ]; then
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.RepoTags' | grep -oP "(?<=^  \").*(?=\",*$)")
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_INSPECT}" | jq '.Config.Image' | xargs echo)
 			fi
 			
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
-			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS=$(docker ps -a --no-trunc | awk "{if(\$2==\"${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}\"){print \$1}}")
+			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}")
+
+			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS=$(echo_docker_container_grep "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}" | awk '{print $1}')
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=""
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS=""
 
@@ -5177,7 +5181,7 @@ function docker_image_param_check_action()
 #       参数1：镜像名称，例 browserless/chrome
 #       参数2：镜像版本，例 imgver111111_v1670329246
 #       参数3：启动命令，例 /bin/sh
-#       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#       参数4：启动参数，例 --volume /etc/localtime:/etc/localtime:ro
 # 示例：
 #     docker_images_param_check_action "browserless/" "func_a"
 function docker_images_param_check_action() 
@@ -5380,7 +5384,7 @@ function docker_image_param_check_jq_item_echo()
 	{
 		_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM="{ \"ImageID\": \"${1}\", \"ContainerIDS\": \"${2}\", \"Image\": \"${3}\", \"Version\": \"${4}\", \"Cmd\": \"${5}\", \"Args\": \"${6}\" }"
 	}
-
+	
 	docker_image_param_check_action "${1}" '_docker_image_param_check_jq_item_echo_jq_item_bind'
 
 	echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_JQ_ITEM_ECHO_JQ_ITEM}"
@@ -6022,6 +6026,65 @@ function echo_docker_images_store()
 	return $?
 }
 
+# 输出Docker镜像名称
+# 参数1：原镜像名称，用于检测，例 browserless/chrome
+# 示例：
+#       echo_docker_image_formal_name "browserless/chrome"
+#       echo_docker_image_formal_name "mysql"
+#       echo_docker_image_formal_name "library/mysql"
+function echo_docker_image_formal_name()
+{
+	# 取左边
+	# local _TMP_ECHO_DOCKER_IMG_FORMAL_NAME_REPO="${1%/*}"
+	if [ "${1//\//}" == "${1}" ]; then
+		echo "library/${1}"
+		return $?
+	fi
+
+	echo "${1}"
+	return $?
+}
+
+# 输出Docker镜像查询结果
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 示例：
+#       echo_docker_image_grep "browserless/chrome"
+#       echo_docker_image_grep "mysql"
+#       echo_docker_image_grep "library/mysql"
+function echo_docker_image_grep()
+{
+	# 取左边
+	local _TMP_ECHO_DOCKER_IMG_GREP_REPO="${1%/*}"
+	if [[ "${_TMP_ECHO_DOCKER_IMG_GREP_REPO}" == "library" || "${_TMP_ECHO_DOCKER_IMG_GREP_REPO}" == "${1}" ]]; then
+		# 取右边
+		docker images | awk "NR>1{if(\$1~\"${1#*/}\"){print}}"
+	else
+		docker images | awk "NR>1{if(\$1~\"${1}\"){print}}"
+	fi
+
+	return $?
+}
+
+# 输出Docker容器查询结果
+# 参数1：镜像名称，用于检测，例 browserless/chrome
+# 示例：
+#       echo_docker_container_grep "browserless/chrome"
+#       echo_docker_container_grep "mysql"
+#       echo_docker_container_grep "library/mysql"
+function echo_docker_container_grep()
+{
+	# 取左边
+	local _TMP_ECHO_DOCKER_CTN_GREP_REPO="${1%/*}"
+	if [[ "${_TMP_ECHO_DOCKER_CTN_GREP_REPO}" == "library" || "${_TMP_ECHO_DOCKER_CTN_GREP_REPO}" == "${1}" ]]; then
+		# 取右边
+		docker ps -a --no-trunc | awk "NR>1{if(\$2~\"${1#*/}\"){print}}"
+	else
+		docker ps -a --no-trunc | awk "NR>1{if(\$2~\"${1}\"){print}}"
+	fi
+
+	return $?
+}
+
 # Docker镜像选中版本再执行
 # 参数1：镜像名称，用于检测，例 browserless/chrome
 # 参数2：选择所弹出的提示文本
@@ -6085,7 +6148,7 @@ function docker_images_choice_vers_action()
 #       _COVER_ARR[5]="--env=MAX_CONCURRENT_SESSIONS=10"
 #       _COVER_ARR[6]="--env=WORKSPACE_DELETE_EXPIRED=true"
 #       _COVER_ARR[7]="--env=WORKSPACE_EXPIRE_DAYS=7"
-#       _COVER_ARR[8]="--volume=/etc/localtime:/etc/localtime"
+#       _COVER_ARR[8]="--volume=/etc/localtime:/etc/localtime:ro"
 #       _COVER_ARR[9]="--workdir=/usr/src/app"
 #       _COVER_ARR[10]="--restart=always"
 #       _COVER_ARR[11]="--runtime=runc"
@@ -6448,8 +6511,10 @@ function docker_snap_commit()
 	return $?
 }
 
+
+
 # 创建 docker 快照
-# 参数1：容器ID，例 e75f9b427730
+# 参数1：容器ID或名称，例 e75f9b427730
 # 参数2：快照存放路径，例 /mountdisk/repo/migrate/snapshot
 # 参数3：快照存储的时间戳，例 1670329246
 # 参数4：创建完执行
@@ -6462,96 +6527,107 @@ function docker_snap_commit()
 function docker_snap_create_action()
 {
 	# 完整的PSID
-	local _TMP_DOCKER_SNAP_CREATE_PS_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
-	# 完整的容器inspect
-	local _TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-	# 完整的IMGID
-	local _TMP_DOCKER_SNAP_CREATE_IMG_ID=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
-	# 完整的镜像inspect
-	local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_ID})
-	# browserless/chrome:imgver111111
-	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} -f {{".Config.Image"}})
-	# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
-	local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
-	# browserless/chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
-	# browserless_chrome
-	local _TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
-	# imgver111111，匹配IMG_FULL_NAME=browserless/chrome:imgver111111的情况
-	local _TMP_DOCKER_SNAP_CREATE_IMG_SOURCE_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
-	# imgver111111，匹配IMG_FULL_NAME=imgver111111_v1677823121SRC的情况
-	local _TMP_DOCKER_SNAP_CREATE_IMG_SNAP_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:).+(?=_v[0-9]{10}S\w+$)")
-	# imgver111111
-	local _TMP_DOCKER_SNAP_CREATE_IMG_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_SNAP_VER:-${_TMP_DOCKER_SNAP_CREATE_IMG_SOURCE_VER}}"
-	# imgver111111_v1670329246/1-puppeteer-13.1.3_v1670329246
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_VER}_v${3}"
-	# browserless_chrome/imgver111111_v1670329246
-	local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}
-	# /mountdisk/repo/migrate/snapshot/browserless_chrome/imgver111111_v1670329246
-	local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${2}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
-			
-	echo_style_text "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_PS_ID}]) to version <${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
-	
-	# 强制检测如果容器非运行状态，则手动启动容器再继续
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=""
-	function _docker_snap_create_action_status_check() {
-		_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State.Status" | grep -oP "(?<=^\").*(?=\"$)")
-		if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
-			echo "${TMP_SPLITER2}"
-			echo_style_text "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') is not running, please check by follow state info↓:"
-			echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State"
+	local _TMP_DOCKER_SNAP_CREATE_SNAP_DIR=${2}
+	local _TMP_DOCKER_SNAP_CREATE_TIMESTAMP=${3}
+	local _TMP_DOCKER_SNAP_CREATE_SCRIPT=${4}
 
-			echo "${TMP_SPLITER3}"
-			echo_style_text "Running 'containers'↓:"
-			docker ps -a | grep "^${1}" | cut -d' ' -f1
+	function _docker_snap_create_action()
+	{
+		# 完整的PSID
+		local _TMP_DOCKER_SNAP_CREATE_CTN_ID=${2}
+		# 完整的容器inspect
+		local _TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_CTN_ID})
+		# 完整的IMGID
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_ID=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Image' | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
+		local _TMP_DOCKER_SNAP_CREATE_IMG_ID=${1}
+		# 完整的镜像inspect
+		local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_ID})
+		# browserless/chrome:imgver111111
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} -f {{".Config.Image"}})
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
+		local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME="${3}:${4}"
+		# browserless/chrome
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f1)
+		local _TMP_DOCKER_SNAP_CREATE_IMG_NAME=${3}
+		# browserless_chrome
+		local _TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME=${_TMP_DOCKER_SNAP_CREATE_IMG_NAME/\//_}
+		# imgver111111，匹配IMG_FULL_NAME=browserless/chrome:imgver111111的情况
+		# local _TMP_DOCKER_SNAP_CREATE_IMG_SOURCE_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | cut -d':' -f2)
+		local _TMP_DOCKER_SNAP_CREATE_IMG_SOURCE_VER=${4}
+		# imgver111111，匹配IMG_FULL_NAME=imgver111111_v1677823121SRC的情况
+		local _TMP_DOCKER_SNAP_CREATE_IMG_SNAP_VER=$(echo "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" | grep -oP "(?<=^${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}:).+(?=_v[0-9]{10}S\w+$)")
+		# imgver111111
+		local _TMP_DOCKER_SNAP_CREATE_IMG_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_SNAP_VER:-${_TMP_DOCKER_SNAP_CREATE_IMG_SOURCE_VER}}"
+		# imgver111111_v1670329246/1-puppeteer-13.1.3_v1670329246
+		local _TMP_DOCKER_SNAP_CREATE_SNAP_VER="${_TMP_DOCKER_SNAP_CREATE_IMG_VER}_v${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP}"
+		# browserless_chrome/imgver111111_v1670329246
+		local _TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH=${_TMP_DOCKER_SNAP_CREATE_IMG_MARK_NAME}/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}
+		# /mountdisk/repo/migrate/snapshot/browserless_chrome/imgver111111_v1670329246
+		local _TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH=${_TMP_DOCKER_SNAP_CREATE_SNAP_DIR}/${_TMP_DOCKER_SNAP_CREATE_FILE_REL_PATH}
+				
+		echo_style_text "([docker_snap_create_action]) Starting make snapshot <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_CTN_ID}]) to version <${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}> stored at '${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(ctn.gz/img.tar)'"
+		
+		# 强制检测如果容器非运行状态，则手动启动容器再继续
+		local _TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=""
+		function _docker_snap_create_action_status_check() {
+			_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State.Status" | grep -oP "(?<=^\").*(?=\"$)")
+			if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" != "running" ]; then
+				echo "${TMP_SPLITER2}"
+				echo_style_text "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_CTN_ID}') is not running, please check by follow state info↓:"
+				echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq ".[0].State"
 
-			echo "${TMP_SPLITER3}"
-			echo_style_text "Please <boot the container> then 'press any keys' to go on..."
-			read -e __TMP_DOCKER_SNAP_CREATE
+				echo "${TMP_SPLITER3}"
+				echo_style_text "Running 'containers'↓:"
+				docker ps -a | grep "^${_TMP_DOCKER_SNAP_CREATE_CTN_ID:0:12}" | cut -d' ' -f1
 
-			# 重新加载状态
-			_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-			if [ -z "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" ]; then
-				echo_style_text "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_PS_ID}') not exists, snap create abord"
-				return 0
+				echo "${TMP_SPLITER3}"
+				echo_style_text "Please <boot the container> then 'press any keys' to go on..."
+				read -e __TMP_DOCKER_SNAP_CREATE
+
+				# 重新加载状态
+				_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_CTN_ID})
+				if [ -z "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" ]; then
+					echo_style_text "Checked the container of <${_TMP_DOCKER_SNAP_CREATE_IMG_NAME}>:[${_TMP_DOCKER_SNAP_CREATE_IMG_VER}]('${_TMP_DOCKER_SNAP_CREATE_CTN_ID}') not exists, snap create abord"
+					return 0
+				fi
+
+				# 非启动状态，一直循环下去
+				_docker_snap_create_action_status_check
 			fi
+		}
 
-			# 非启动状态，一直循环下去
-			_docker_snap_create_action_status_check
-		fi
-	}
+		_docker_snap_create_action_status_check
 
-	_docker_snap_create_action_status_check
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting 'init' snap create dir↓:"	
+		mkdir -pv $(dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH})
 
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting 'init' snap create dir↓:"	
-	mkdir -pv $(dirname ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH})
+		# 备份容器信息
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting 'export&package' <container> snap↓:"	
+		echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
+		docker container export ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
+		## 打开后不是标准json格式，先格式化！
+		### :%!python -m json.tool
+		local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
+		cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_CTN_ID}/config.v2.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json
+		cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_CTN_ID}/hostconfig.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json
 
-	# 备份容器信息
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting 'export&package' <container> snap↓:"	
-	echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.ctn.json
-	docker container export ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | gzip > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.ctn.gz
-	## 打开后不是标准json格式，先格式化！
-	### :%!python -m json.tool
-	local _TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR=$(docker info | grep "Docker Root Dir" | cut -d':' -f2 | tr -d ' ')
-	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/config.v2.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json
-	cp ${_TMP_DOCKER_SNAP_CREATE_SETUP_DATA_DIR}/containers/${_TMP_DOCKER_SNAP_CREATE_PS_ID}/hostconfig.json ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json
+		# 备份镜像信息
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting 'export&package' <image> snap↓:"	
+		echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
+		docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
 
-	# 备份镜像信息
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting 'export&package' <image> snap↓:"	
-	echo "${_TMP_DOCKER_SNAP_CREATE_IMG_INSPECT}" | jq > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.inspect.img.json
-	docker save ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.img.tar
-
-	# 初始化依赖分析(取最后一天时间为起始)
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting gen 'update container & install dependency' script"
-	## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
-	# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh <<EOF
-	cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh << 'EOF'
+		# 初始化依赖分析(取最后一天时间为起始)
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting gen 'update container & install dependency' script"
+		## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
+		# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh <<EOF
+		cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh << 'EOF'
 #!/bin/sh
 
 func_backup_current_image_init_script()
@@ -6592,189 +6668,193 @@ func_backup_current_image_init_script()
 func_backup_current_image_init_script
 EOF
 
-	# 更新并安装容器依赖（应用到bc命令时需要，参考上述脚本。注意安装bc操作可能会覆盖了初始化段落）
-	# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "apt-get update && apt-get -y -qq install bc"
+		# 更新并安装容器依赖（应用到bc命令时需要，参考上述脚本。注意安装bc操作可能会覆盖了初始化段落）
+		# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "apt-get update && apt-get -y -qq install bc"
 
-	# 拷贝提取脚本至容器
-	# 运行时才能拷贝并提取依赖文件
-	if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
-		# 拷贝依赖提取脚本至容器
-		docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:/tmp
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
-		rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
-		
-		# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
-		echo "#!/bin/sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-		# docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-		docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-		grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-		echo "[-]"
-		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
-		rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-	fi
-
-	# 备份脚本模板
-	local _TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${3} && echo ${_TMP_DOCKER_SNAP_CREATE_PS_ID} >> ${BACKUP_DIR}%s/${3}/.snaphis.log && echo_style_text \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${3}>\") || echo_style_text 'Backup dir <%s> not found'"
-	
-	# 预先取得runlike
-	local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_PS_ID}")
-
-	# 创建挂载盘备份
-	local _TMP_DOCKER_SNAP_CREATE_VOLUMES=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_PS_ID} | jq --arg TYPE 'volume' '.[0].Mounts[] | select(.Type == $TYPE) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
-	if [ -n "${_TMP_DOCKER_SNAP_CREATE_VOLUMES}" ]; then
-		echo "${TMP_SPLITER2}"
-		echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
-
-		function _docker_snap_create_action_volume_path_restore()
-		{
-			# 还原挂载的路径
-			local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
-			# 转换为挂载的真实路径
-			bind_symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
-
-			# 备份挂载盘路径
-			echo "${TMP_SPLITER2}"
-			echo_style_text "Starting 'backup' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> 'volume dir'(<${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}>)↓:"
-			local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}"
-			exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT"
-			path_exists_action "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Volume dir <${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}> not found"
-			ls -lia ${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}
-
-			# 修改RUN脚本路径指向为真实路径
-			# _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" | sed "s@${1}:@${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:@g")
-			_TMP_DOCKER_SNAP_CREATE_BOOT_RUN=${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN//${1}:/${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:}
-
-			# 修改json文件的路径为得到对应挂载在容器的路径
-			echo_style_text "Starting 'change ref volume dirs file' <${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(hostconfig/config.v2).json>↓:"
-			local _TMP_DOCKER_SNAP_CREATE_HOST_BINDS=$(cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds")
-			if [ $(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq "length") -gt 0 ]; then
-				local _TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR=$(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq ".[]" | grep -oP "(?<=^\"${1}:).+(?=\"$)")
-				if [ -n "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" ]; then
-					echo "${TMP_SPLITER2}"
-					docker_change_container_inspect_mount "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json"
-					echo_style_text "'hostconfig' → Binds↓:"
-					cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds[]"
-
-					echo "${TMP_SPLITER3}"
-					echo_style_text "'config.v2' → MountPoints↓:"
-					cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json | jq ".MountPoints"
-				fi
-			fi
-		}
-		items_split_action "_TMP_DOCKER_SNAP_CREATE_VOLUMES" "_docker_snap_create_action_volume_path_restore"
-	fi
-    
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting make 'image boot run' script↓:"
-	echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
-	ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
-	echo "[-]"
-	cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
-	
-	# 创建文件备份
-	# echo "${TMP_SPLITER2}"
-	# echo_style_text "Starting 'backup dirs' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-	# local _TMP_DOCKER_SNAP_CREATE_DIR_ARR=()
-	# docker_soft_dirs_bind "_TMP_DOCKER_SNAP_CREATE_DIR_ARR" "${1}"
-	# bind_dirs_convert_truthful_action "_TMP_DOCKER_SNAP_CREATE_DIR_ARR"
-	
-	# function _docker_snap_create_action_exec_backup()
-	# {
-	# 	local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${1}"
-	# 	exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "${_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT}"
-
-	# 	path_exists_action "${1}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Dir of <${1}> not found"
-	# }
-	# items_split_action "_TMP_DOCKER_SNAP_CREATE_DIR_ARR" "_docker_snap_create_action_exec_backup"
-	
-    echo "${TMP_SPLITER2}"
-    echo_style_text "Starting pull 'dockerfile builder'↓:"
-	# 判断是否存在dockerfile操作工具
-	# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
-	# 【1】从一个docker镜像生成Dockerfile内容
-	# 【2】搜索添加的文件名以查找潜在的秘密文件
-	# 【3】提取Docker ADD/COPY指令添加的文件
-	# 【4】展示暴露的端口、环境变量信息等等。
-	local _TMP_DOCKER_SNAP_ALISA_BASE="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock"
-	if [ -z "$(docker images | awk 'NR>1{if($1=="alpine/dfimage"){print}}')" ]; then
-		docker pull alpine/dfimage
-
-		# dfimage -sV=1.36 nginx:latest
-		echo "alias dfimage='${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage'" >> /etc/bashrc
-		echo
-	fi
-
-	if [ -z "$(docker images | awk 'NR>1{if($1=="cucker/image2df"){print}}')" ]; then
-		docker pull cucker/image2df
-
-		echo "alias image2df='${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df'" >> /etc/bashrc
-		echo
-	fi
-
-	# 如果想要更加详细的内容，比如每一层的信息，以及每一层对应的文件增减情况，那么dive工具可以帮助我们更好的分析镜像。
-	# dive用于探索docker镜像、layer内容和发现缩小docker/OCI镜像大小的方法的工具。
-	# 左边是镜像和layer的信息，右边是当前选中镜像layer对应的文件磁盘文件信息，右边是会根据左边的选择变动的，比如我在某一层进行了文件的复制新增或者删除，右边会以不同的颜色进行展示的。
-	if [ -z "$(docker images | awk 'NR>1{if($1=="wagoodman/dive"){print}}')" ]; then
-		docker pull wagoodman/dive
-		
-		alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
-		# dive nginx:latest
-		echo "alias dive='${_TMP_DOCKER_SNAP_ALISA_BASE} wagoodman/dive'" >> /etc/bashrc
-		echo
-	fi
-
-	source /etc/bashrc
-	
-	echo "${TMP_SPLITER2}"
-	echo_style_text "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-	docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}
-	
-	# 将容器打包成镜像
-	echo "${TMP_SPLITER2}"
-	docker_snap_commit "_TMP_DOCKER_SNAP_CREATE_PS_ID" "${3}"
-
-	# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
-	local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_PS_ID})
-	if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
-		local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
-		# if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_PS_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
-		if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" == "1" ]; then
-			echo "${TMP_SPLITER2}"
-			echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}])↓:"
-			docker cp -a ${_TMP_DOCKER_SNAP_CREATE_PS_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
-			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+		# 拷贝提取脚本至容器
+		# 运行时才能拷贝并提取依赖文件
+		if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
+			# 拷贝依赖提取脚本至容器
+			docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:/tmp
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+			rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+			
+			# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
+			echo "#!/bin/sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+			# docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+			docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+			grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 			echo "[-]"
-			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile		
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+			rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 		fi
+
+		# 备份脚本模板
+		local _TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT="[[ -a '%s' ]] && (mkdir -pv ${BACKUP_DIR}%s && cp -Rp %s ${BACKUP_DIR}%s/${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP} && echo ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} >> ${BACKUP_DIR}%s/${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP}/.snaphis.log && echo_style_text \"Dir of '%s' [backuped] to <${BACKUP_DIR}%s/${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP}>\") || echo_style_text 'Backup dir <%s> not found'"
+		
+		# 预先取得runlike
+		local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}")
+
+		# 创建挂载盘备份
+		local _TMP_DOCKER_SNAP_CREATE_VOLUMES=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} | jq --arg TYPE 'volume' '.[0].Mounts[] | select(.Type == $TYPE) | .Name' | grep -oP "(?<=^\").*(?=\"$)")
+		if [ -n "${_TMP_DOCKER_SNAP_CREATE_VOLUMES}" ]; then
+			echo "${TMP_SPLITER2}"
+			echo_style_text "Starting 'backup&change' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> about 'volume dirs'↓:"
+
+			function _docker_snap_create_action_volume_path_restore()
+			{
+				# 还原挂载的路径
+				local _TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT=$(docker volume inspect ${1} | jq ".[0].Mountpoint" | grep -oP "(?<=^\").*(?=\"[,]*$)")
+				# 转换为挂载的真实路径
+				bind_symlink_link_path "_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT"
+
+				# 备份挂载盘路径
+				echo "${TMP_SPLITER2}"
+				echo_style_text "Starting 'backup' image <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}> 'volume dir'(<${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}>)↓:"
+				local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}"
+				exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT"
+				path_exists_action "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Volume dir <${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}> not found"
+				ls -lia ${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}
+
+				# 修改RUN脚本路径指向为真实路径
+				# _TMP_DOCKER_SNAP_CREATE_BOOT_RUN=$(echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" | sed "s@${1}:@${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:@g")
+				_TMP_DOCKER_SNAP_CREATE_BOOT_RUN=${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN//${1}:/${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}:}
+
+				# 修改json文件的路径为得到对应挂载在容器的路径
+				echo_style_text "Starting 'change ref volume dirs file' <${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.(hostconfig/config.v2).json>↓:"
+				local _TMP_DOCKER_SNAP_CREATE_HOST_BINDS=$(cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds")
+				if [ $(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq "length") -gt 0 ]; then
+					local _TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR=$(echo "${_TMP_DOCKER_SNAP_CREATE_HOST_BINDS}" | jq ".[]" | grep -oP "(?<=^\"${1}:).+(?=\"$)")
+					if [ -n "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" ]; then
+						echo "${TMP_SPLITER2}"
+						docker_change_container_inspect_mount "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN_MOUNT_POINT}" "${_TMP_DOCKER_SNAP_CREATE_BOOT_HOST_BIND_CTN_DIR}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json"
+						echo_style_text "'hostconfig' → Binds↓:"
+						cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.hostconfig.json | jq ".Binds[]"
+
+						echo "${TMP_SPLITER3}"
+						echo_style_text "'config.v2' → MountPoints↓:"
+						cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.config.v2.json | jq ".MountPoints"
+					fi
+				fi
+			}
+			items_split_action "_TMP_DOCKER_SNAP_CREATE_VOLUMES" "_docker_snap_create_action_volume_path_restore"
+		fi
+		
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting make 'image boot run' script↓:"
+		echo "${_TMP_DOCKER_SNAP_CREATE_BOOT_RUN}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
+		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
+		echo "[-]"
+		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.run
+		
+		# 创建文件备份
+		# echo "${TMP_SPLITER2}"
+		# echo_style_text "Starting 'backup dirs' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+		# local _TMP_DOCKER_SNAP_CREATE_DIR_ARR=()
+		# docker_soft_dirs_bind "_TMP_DOCKER_SNAP_CREATE_DIR_ARR" "${2}"
+		# bind_dirs_convert_truthful_action "_TMP_DOCKER_SNAP_CREATE_DIR_ARR"
+		
+		# function _docker_snap_create_action_exec_backup()
+		# {
+		# 	local _TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT="${1}"
+		# 	exec_text_printf "_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT" "${_TMP_DOCKER_SNAP_CREATE_BACKUP_SCRIPT_FORMAT}"
+
+		# 	path_exists_action "${1}" "${_TMP_DOCKER_SNAP_CREATE_PRINTF_BACKUP_SCRIPT}" "Dir of <${1}> not found"
+		# }
+		# items_split_action "_TMP_DOCKER_SNAP_CREATE_DIR_ARR" "_docker_snap_create_action_exec_backup"
+		
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Starting pull 'dockerfile builder'↓:"
+		# 判断是否存在dockerfile操作工具
+		# alpine/dfimage是一个镜像，是由Whaler 工具构建而来的。主要功能有：
+		# 【1】从一个docker镜像生成Dockerfile内容
+		# 【2】搜索添加的文件名以查找潜在的秘密文件
+		# 【3】提取Docker ADD/COPY指令添加的文件
+		# 【4】展示暴露的端口、环境变量信息等等。
+		local _TMP_DOCKER_SNAP_CREATE_ALISA_BASE="docker run --rm -v /var/run/docker.sock:/var/run/docker.sock"
+		if [ -z "$(docker images | awk 'NR>1{if($1=="alpine/dfimage"){print}}')" ]; then
+			docker pull alpine/dfimage
+
+			# dfimage -sV=1.36 nginx:latest
+			echo "alias dfimage='${_TMP_DOCKER_SNAP_CREATE_ALISA_BASE} alpine/dfimage'" >> /etc/bashrc
+			echo
+		fi
+
+		if [ -z "$(docker images | awk 'NR>1{if($1=="cucker/image2df"){print}}')" ]; then
+			docker pull cucker/image2df
+
+			echo "alias image2df='${_TMP_DOCKER_SNAP_CREATE_ALISA_BASE} cucker/image2df'" >> /etc/bashrc
+			echo
+		fi
+
+		# 如果想要更加详细的内容，比如每一层的信息，以及每一层对应的文件增减情况，那么dive工具可以帮助我们更好的分析镜像。
+		# dive用于探索docker镜像、layer内容和发现缩小docker/OCI镜像大小的方法的工具。
+		# 左边是镜像和layer的信息，右边是当前选中镜像layer对应的文件磁盘文件信息，右边是会根据左边的选择变动的，比如我在某一层进行了文件的复制新增或者删除，右边会以不同的颜色进行展示的。
+		if [ -z "$(docker images | awk 'NR>1{if($1=="wagoodman/dive"){print}}')" ]; then
+			docker pull wagoodman/dive
+			
+			alias dive="docker run -ti --rm  -v /var/run/docker.sock:/var/run/docker.sock wagoodman/dive"
+			# dive nginx:latest
+			echo "alias dive='${_TMP_DOCKER_SNAP_CREATE_ALISA_BASE} wagoodman/dive'" >> /etc/bashrc
+			echo
+		fi
+
+		source /etc/bashrc
+		
+		echo "${TMP_SPLITER2}"
+		echo_style_text "Source History <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+		docker history ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}
+		
+		# 将容器打包成镜像
+		echo "${TMP_SPLITER2}"
+		docker_snap_commit "_TMP_DOCKER_SNAP_CREATE_CTN_ID" "${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP}"
+
+		# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
+		local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_CTN_ID})
+		if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
+			local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
+			# if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
+			if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" == "1" ]; then
+				echo "${TMP_SPLITER2}"
+				echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}])↓:"
+				docker cp -a ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+				ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
+				echo "[-]"
+				cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile		
+			fi
+		fi
+
+		# Dockerfile不存在时才输出
+		if [[ ! -a ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile ]]; then
+			echo "${TMP_SPLITER2}"
+			echo_style_text "View the 'build yaml from dfimage' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+			## dfimage 部分
+			${_TMP_DOCKER_SNAP_CREATE_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+			echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+			echo "[-]"
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+			echo "[-]"
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
+			
+			## imagedf 部分
+			echo "${TMP_SPLITER2}"
+			echo_style_text "View the 'build yaml from image2df' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
+			${_TMP_DOCKER_SNAP_CREATE_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+			echo "[-]"
+			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
+		fi
+		
+		# 创建完执行
+		script_check_action "${_TMP_DOCKER_SNAP_CREATE_SCRIPT}" "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}"
+		return $?
 	fi
 
-	# Dockerfile不存在时才输出
-	if [[ ! -a ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile ]]; then
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'build yaml from dfimage' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-		## dfimage 部分
-		${_TMP_DOCKER_SNAP_ALISA_BASE} alpine/dfimage ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-		echo "FROM ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md | grep -n "Dockerfile:" | cut -d':' -f1 | xargs -I {} echo "{}+1" | bc | xargs -I {} tail -n +{} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-		echo "[-]"
-		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.md
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-		echo "[-]"
-		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.dfimage.yml
-		
-		## imagedf 部分
-		echo "${TMP_SPLITER2}"
-		echo_style_text "View the 'build yaml from image2df' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>↓:"
-		${_TMP_DOCKER_SNAP_ALISA_BASE} cucker/image2df ${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME} | sed "s/# buildkit//g" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
-		ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
-		echo "[-]"
-		cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.image2df.yml
-	fi
-	
-	# 创建完执行
-	script_check_action "${4}" "${_TMP_DOCKER_SNAP_CREATE_PS_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}"
+	docker_container_param_check_action "${1}" "_docker_snap_create_action"
 	return $?
 }
 
@@ -6991,7 +7071,7 @@ function docker_snap_restore_action()
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_VER=$(echo "${2}" | grep -oP "[^_]+(?=_v[0-9]{10})")
 	# /bin/sh
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_CMD=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=${1}:${_TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_VER:-${2}} ).+")
-	# --volume /etc/localtime:/etc/localtime
+	# --volume /etc/localtime:/etc/localtime:ro
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_BOOT_ARGS=$(echo "${_TMP_DOCKER_SNAP_RESTORE_ACTION_RUN_CMD}" | grep -oP "(?<=^docker run ).+(?=${1}:.+)")
 	local _TMP_DOCKER_SNAP_RESTORE_ACTION_REPO_TAGS=$(cat ${_TMP_DOCKER_SNAP_RESTORE_ACTION_NONE_PATH}.inspect.img.json | jq ".[0].RepoTags" | grep -oP "(?<=^  \").*(?=\",*$)")
     
@@ -7311,12 +7391,13 @@ function docker_container_print()
 #	    参数5：最终启动参数
 function docker_image_boot_print() 
 {
+	local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_REP_NAME="${1#*/}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_MARK_NAME="${1/\//_}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_VER="${2}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_CMD="${3}"
     local _TMP_DOCKER_IMG_BOOT_PRINT_ARGS="${4}"
-	local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_GREP=$(docker images | awk "NR>1{if(\$1~\"${1}\"){print}}")
-		
+	local _TMP_DOCKER_IMG_BOOT_PRINT_IMG_GREP=$(echo_docker_image_grep "${1}")
+	
 	# -P :是容器内部端口随机映射到主机的端口。
 	# -p : 是容器内部端口绑定到指定的主机端口。
     local _TMP_DOCKER_IMG_BOOT_PRINT_CTN_PORT_PAIR=$(echo "${_TMP_DOCKER_IMG_BOOT_PRINT_ARGS}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
@@ -7372,7 +7453,7 @@ function docker_image_boot_print()
 			echo_style_text "None boot cmd assign of 'image'(<${1}>), this will set it to ('${_TMP_DOCKER_IMG_BOOT_PRINT_CMD}')"
 		fi
 	fi
-	
+
     # 启动前执行
     script_check_action "${_TMP_DOCKER_IMG_BOOT_PRINT_BEFORE_BOOT_SCRIPTS}" "${@}"
 

@@ -10,6 +10,11 @@
 # 安装版本：
 #------------------------------------------------
 # Debug：
+# docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker stop
+# docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker rm
+# docker images | awk '{if($1~"$image_name"){print $3}}' | xargs docker rmi
+# rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/etc/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/etc/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
+# docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # 安装标题：$title_name
 # 软件名称：$image_name
@@ -114,7 +119,7 @@ function formal_dc_$setup_name() {
     #     echo "${TMP_SPLITER2}"
     #     echo_style_text "View the 'etc copy'↓:"
 
-    #     # 拷贝日志目录
+    #     # 拷贝配置目录
     #     ## /mountdisk/etc/docker_apps/$setup_name/imgver111111/app
     #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK} ${1}/app >& /dev/null
     #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
@@ -354,10 +359,10 @@ function boot_build_dc_$setup_name() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}], hold on please"
     
     ## 标准启动参数
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime --volume=/var/run/docker.sock:/var/run/docker.sock"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=PREBOOT_CHROME=true --env=CONNECTION_TIMEOUT=-1 --env=MAX_CONCURRENT_SESSIONS=10 --env=WORKSPACE_DELETE_EXPIRED=true --env=WORKSPACE_EXPIRE_DAYS=7"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS=""
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定

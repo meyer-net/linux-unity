@@ -325,7 +325,7 @@ function test_docker()
     # 参数1：镜像名称，例 browserless/chrome
     # 参数2：镜像版本，例 latest
     # 参数3：启动命令，例 /bin/sh
-    # 参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+    # 参数4：启动参数，例 --volume /etc/localtime:/etc/localtime:ro
     # 参数5：快照类型(还原时有效)，例 image/container/dockerfile
     # 参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
     function _docker_snap_restore_build()
