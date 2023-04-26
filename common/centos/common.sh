@@ -818,6 +818,32 @@ function rand_passwd() {
 	return $?
 }
 
+# URL编码
+# 参数1：需要编码的字符串
+function echo_url_encode() {
+	local _TMP_URL_ENCODE_STR="${#1}"
+	local _TMP_URL_ENCODE_INDEX=0
+	while :
+	do
+		[ ${_TMP_URL_ENCODE_STR} -gt ${_TMP_URL_ENCODE_INDEX} ] && {
+			local _TMP_URL_ENCODE_CHR="${1:${_TMP_URL_ENCODE_INDEX}:1}"
+			case ${_TMP_URL_ENCODE_CHR} in [a-zA-Z0-9.~_-]) 
+				printf "${_TMP_URL_ENCODE_CHR}" ;;
+			*) 
+				printf '%%%02X' "'${_TMP_URL_ENCODE_CHR}" ;; 
+			esac
+		} || break
+		let _TMP_URL_ENCODE_INDEX++
+	done
+}
+
+# URL解码
+# 参数2：需要解码的字符串
+function echo_url_decode(){
+	local _TMP_URL_DECODE_STR="${1//+/ }"
+	echo -e "${_TMP_URL_DECODE_STR//%/\\x}"
+}
+
 # 修改JSON参数单项并输出
 # 参数1：JSON内容变量名
 # 参数2：修改的参数节点，例 .Config.WorkingDir
@@ -5073,11 +5099,11 @@ function docker_container_param_check_action()
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
-		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME")
+		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
 		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}"
 		
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
+		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME//library\//}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
 
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
 		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
@@ -5115,6 +5141,7 @@ function docker_image_param_check_action()
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
 			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}")
+			_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_VER}"
 
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS=$(echo_docker_container_grep "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_FULL_NAME}" | awk '{print $1}')
 			local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD=""
@@ -5131,10 +5158,25 @@ function docker_image_param_check_action()
 			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS}" "_docker_image_param_check_action_bind_ctn_data"
 
 			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD"
-			if [ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" ]; then
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Path' | grep -oP '(?<=^\").*(?=\"$)')
-				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Args' | grep -oP "(?<=^  \").*(?=\",*$)"))
-				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
+			# 从Path中取
+			if [[ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" || "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" = "null" ]]; then
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH=$(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Path' | xargs echo)
+				if [ "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH}" != "null" ]; then
+					local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Args' | grep -oP "(?<=^  \").*(?=\",*$)"))
+					_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_PATH} ${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
+				fi
+			fi
+			
+			# 从.Config.Cmd中取
+			if [[ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" || "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" = "null" ]]; then
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.Config.Cmd' | grep -oP "(?<=^  \").*(?=\",*$)"))
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
+			fi
+			
+			# 从.ContainerConfig.Cmd中取
+			if [[ -z "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" || "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD}" = "null" ]]; then
+				local _TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR=($(echo "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT}" | jq '.ContainerConfig.Cmd'))
+				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD="${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD_ARR[*]}"
 			fi
 
 			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_ARGS"
@@ -6453,6 +6495,10 @@ function docker_snap_commit()
 	# 参数6：启动参数，例 --volume /etc/localtime:/etc/localtime
 	function _docker_snap_commit()
 	{
+		# browserless/chrome
+		local _TMP_DOCKER_SNAP_COMMIT_IMG_NAME="${3}"
+		# imgver111111_v1670329246
+		local _TMP_DOCKER_SNAP_COMMIT_IMG_VER="${4}"
 		# 统计镜像数，根据不同情况下的提交，做不同的镜像标记
 		## 根据提交的情况下则做标记：SCx(snap commit 第x次)，有容器必定存在镜像
 		## 还原标记则为SR(Snap restore c/i/d)			
@@ -6461,8 +6507,9 @@ function docker_snap_commit()
 		local _TMP_DOCKER_SNAP_COMMIT_SNAP_VER="${4}_v${_TMP_DOCKER_SNAP_COMMIT_TIMESTAMP}"
 		# imgver111111_v1675749340SC0
 		local _TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_COMMIT_SNAP_VER}SC${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
-		# browserless_chrome:imgver111111_v1675749340SC0
+		# browserless/chrome:imgver111111_v1675749340SC0
 		local _TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME="${3}:${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}"
+		
 		# 提交状态
 		local _TMP_DOCKER_SNAP_COMMIT_STATUS=""
 		# 判断是否有配置私有镜像库
@@ -6480,13 +6527,20 @@ function docker_snap_commit()
 
 					function _docker_snap_commit_create_project()
 					{
-						curl -u "${2}:${3}" -X POST -H "Content-Type: application/json" "${1}/api/projects" -d'{"project_name": "'${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}'","metadata": {"public": "true"}}'
+						local _TMP_DOCKER_SNAP_COMMIT_HB_CURR_USER=$(echo_url_encode "${2}")
+						local _TMP_DOCKER_SNAP_COMMIT_HB_CURR_PASSWD=$(echo_url_encode "${3}")
+						curl -u "${_TMP_DOCKER_SNAP_COMMIT_HB_CURR_USER}:${_TMP_DOCKER_SNAP_COMMIT_HB_CURR_PASSWD}" -X POST -H "Content-Type: application/json" "${1}/api/projects" -d'{"project_name": "'${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}'","metadata": {"public": "true"}}'
 						_TMP_DOCKER_SNAP_COMMIT_STATUS="$?"
 						echo_style_text "Project [${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}]/<${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}> created(${_TMP_DOCKER_SNAP_COMMIT_STATUS})"
 					}
 
-					docker_login_insecure_registries_action "_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY" "" "" "_docker_snap_commit_create_project"
+					docker_login_insecure_registries_action "_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY" "${_TMP_DOCKER_SNAP_COMMIT_HB_USER}" "${_TMP_DOCKER_SNAP_COMMIT_HB_PASSWD}" "_docker_snap_commit_create_project"
 				fi
+				
+				# 重新计算提交信息
+				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT=$(curl -s -H "Content-Type: application/json" "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/repositories/${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}/tags" | jq ".[].name" | grep -oP "(?<=^\"${_TMP_DOCKER_SNAP_COMMIT_IMG_VER}_v[0-9]{10})SC(?=[0-9]+\"$)" | wc -l)
+				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_COMMIT_SNAP_VER}SC${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
+				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME="${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}:${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}"
 				
 				local _TMP_DOCKER_SNAP_COMMIT_PRJ_TAG="${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY#*//}/${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}"
 				echo_style_text "Starting push image(<${3}>:[${4}]) to project([${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}]/<${_TMP_DOCKER_SNAP_COMMIT_IMG_PRJ}>), taged '${_TMP_DOCKER_SNAP_COMMIT_PRJ_TAG}'"
@@ -6542,6 +6596,7 @@ function docker_snap_create_action()
 		local _TMP_DOCKER_SNAP_CREATE_IMG_ID=${1}
 		# 完整的镜像inspect
 		local _TMP_DOCKER_SNAP_CREATE_IMG_INSPECT=$(docker inspect ${_TMP_DOCKER_SNAP_CREATE_IMG_ID})
+
 		# browserless/chrome:imgver111111
 		# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(docker container inspect ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} -f {{".Config.Image"}})
 		# local _TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_SNAP_CREATE_CTN_INSPECT}" | jq '.[0].Config.Image' | grep -oP "(?<=^\").*(?=\"$)")
@@ -6852,7 +6907,7 @@ EOF
 		# 创建完执行
 		script_check_action "${_TMP_DOCKER_SNAP_CREATE_SCRIPT}" "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}" "${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}" "${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}"
 		return $?
-	fi
+	}
 
 	docker_container_param_check_action "${1}" "_docker_snap_create_action"
 	return $?
