@@ -137,6 +137,7 @@ PY_PKGS_SETUP_DIR=${SETUP_DIR}/python_packages
 PY3_PKGS_SETUP_DIR=${SETUP_DIR}/python3_packages
 SUPERVISOR_ATT_DIR=${CONDA_APP_ATT_DIR}/supervisor
 SUPERVISOR_LOGS_DIR=${CONDA_APP_LOGS_DIR}/supervisor
+SUPERVISOR_DATA_DIR=${CONDA_APP_DATA_DIR}/supervisor
 DOCKER_NETWORK="cuckoo-network"
 
 #---------- DIR ---------- }

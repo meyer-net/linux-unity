@@ -583,7 +583,7 @@ function bind_discern_exchange_var_pair() {
 			local _TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE="$(declare -p ${2} 2>/dev/null)"
 			if [[ "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare -a" ]]; then
 				_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}[@]"'}')
-			elif [[ "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare --" ]]; then
+			elif [[ "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare --" || "${_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_DECLARE}" =~ "declare -l" ]]; then
 				_TMP_BIND_DISCERN_EXCHANGE_VAR_PAIR_VAR_VAL=$(eval echo '${'"${2}"'}')
 			else
 				# 判断是否是数组定义，非0则被定义了别的变量或（不是有效标识符/不是数组变量）
@@ -2675,127 +2675,123 @@ function bind_empty_if_input()
 # 参数4：自定义的Spliter
 function bind_if_choice()
 {
-	function _bind_if_choice()
-	{
-		local _TMP_BIND_IF_CHOICE_ECHO=${2}
-		local _TMP_BIND_IF_CHOICE_CHOICE=${3}
-		
-		bind_style_text "_TMP_BIND_IF_CHOICE_ECHO"
+	local _TMP_BIND_IF_CHOICE_ECHO=${2}
+	local _TMP_BIND_IF_CHOICE_CHOICE=${3}
+	
+	bind_style_text "_TMP_BIND_IF_CHOICE_ECHO"
 
-		local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
-		set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
-		local _TMP_CHOICE_SPLITER_LEN=${#_TMP_CHOICE_SPLITER}
-		
-		local _TMP_BIND_IF_CHOICE_ARR=(${_TMP_BIND_IF_CHOICE_CHOICE//,/ })
-		local _TMP_BIND_IF_CHOICE_ARR_LEN=${#_TMP_BIND_IF_CHOICE_ARR[@]}
-		
-		# 编号前坠
-		local _TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
+	local _TMP_CHOICE_SPLITER=$([ -n "${TMP_SPLITER}" ] && echo "${TMP_SPLITER}" || echo "------------------------------------------------------")
+	set_if_empty "_TMP_CHOICE_SPLITER" "${4}"
+	local _TMP_CHOICE_SPLITER_LEN=${#_TMP_CHOICE_SPLITER}
+	
+	local _TMP_BIND_IF_CHOICE_ARR=(${_TMP_BIND_IF_CHOICE_CHOICE//,/ })
+	local _TMP_BIND_IF_CHOICE_ARR_LEN=${#_TMP_BIND_IF_CHOICE_ARR[@]}
+	
+	# 编号前坠
+	local _TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
 
-		# X退出字符前缀
-		local _TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
+	# X退出字符前缀
+	local _TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN="X"
+	
+	if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -gt 10 ]; then
+		_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=$(eval printf %.s'' {1..$((${#_TMP_BIND_IF_CHOICE_ARR_LEN}-1))})
+		_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN=$(eval printf %.s'X' {1..${#_TMP_BIND_IF_CHOICE_ARR_LEN}})
+	fi
+
+	function _TMP_BIND_IF_CHOICE_NORMAL_FUNC() {
+		echo ${_TMP_CHOICE_SPLITER}
+
+		for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
+		do
+			local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
+			if [ $(($I%2)) -eq 0 ]; then
+				_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
+			fi
+
+			local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
+			local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
+			if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+				echo ${_TMP_CHOICE_SPLITER}
+				_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
+			else
+				if [ ${I} -ge 9 ]; then
+					_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
+				fi
+			fi
+			
+			fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
+			
+			echo "${_TMP_BIND_IF_CHOICE_ITEM}"
+		done
 		
-		if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -gt 10 ]; then
-			_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=$(eval printf %.s'' {1..$((${#_TMP_BIND_IF_CHOICE_ARR_LEN}-1))})
-			_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN=$(eval printf %.s'X' {1..${#_TMP_BIND_IF_CHOICE_ARR_LEN}})
+		echo ${_TMP_CHOICE_SPLITER}
+
+		if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
+			echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'above keys', then <enter> it"
+		fi
+		
+		if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -le 10 ]; then
+			read -n 1 KEY
+		else
+			read KEY
 		fi
 
-		function _TMP_BIND_IF_CHOICE_NORMAL_FUNC() {
-			echo ${_TMP_CHOICE_SPLITER}
+		_TMP_BIND_IF_CHOICE_NEW_VAL=${_TMP_BIND_IF_CHOICE_ARR[$((KEY-1))]}
 
-			for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
-			do
-				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${red}"
-				if [ $(($I%2)) -eq 0 ]; then
-					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR="${green}"
-				fi
+		echo
 
-				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=$((I+1))
-				local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
-				if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
-					echo ${_TMP_CHOICE_SPLITER}
-					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
-				else
-					if [ ${I} -ge 9 ]; then
-						_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
-					fi
-				fi
-				
-				fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((${_TMP_CHOICE_SPLITER_LEN}-${#_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}-10)) "|     [${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR}%${reset}|"
-				
-				echo "${_TMP_BIND_IF_CHOICE_ITEM}"
-			done
-			
-			echo ${_TMP_CHOICE_SPLITER}
-
-			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
-				echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'above keys', then <enter> it"
+		return $?
+	}
+	
+	function _TMP_BIND_IF_CHOICE_GUM_FUNC() {		
+		for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
+		do
+			local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
+			if [ $(($I%2)) -eq 0 ]; then
+				_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
 			fi
-			
-			if [ ${_TMP_BIND_IF_CHOICE_ARR_LEN} -le 10 ]; then
-				read -n 1 KEY
+
+			local _TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
+						
+			local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
+			if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
+				_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
 			else
-				read KEY
+				if [ ${I} -ge 9 ]; then
+					_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
+				fi
 			fi
 
-			_TMP_BIND_IF_CHOICE_NEW_VAL=${_TMP_BIND_IF_CHOICE_ARR[$((KEY-1))]}
+			fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
+			_TMP_BIND_IF_CHOICE_ARR[$I]="\"${_TMP_BIND_IF_CHOICE_ITEM}\""
+		done
 
+		local _TMP_BIND_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_BIND_IF_CHOICE_ARR[*]}")
+		if [ -z "${_TMP_BIND_IF_CHOICE_ARR_STR}" ]; then
 			echo
+			echo_style_text "'No choice' set, please check your 'str arr'"
 
-			return $?
-		}
+			return 0
+		fi
+
+		local _TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_BIND_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f2"
+		if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
+			echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'follow keys', then <enter> it"
+		fi
 		
-		function _TMP_BIND_IF_CHOICE_GUM_FUNC() {		
-			for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
-			do
-				local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
-				if [ $(($I%2)) -eq 0 ]; then
-					_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
-				fi
+		_TMP_BIND_IF_CHOICE_NEW_VAL=$(eval ${_TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT})
 
-				local _TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
-							
-				local _TMP_BIND_IF_CHOICE_ITEM=${_TMP_BIND_IF_CHOICE_ARR[$I]}
-				if [ $(echo "${_TMP_BIND_IF_CHOICE_ITEM}" | tr 'A-Z' 'a-z') == "exit" ]; then
-					_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=${_TMP_BIND_IF_CHOICE_TMP_SQ_EXIT_SIGN}
-				else
-					if [ ${I} -ge 9 ]; then
-						_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX=""
-					fi
-				fi
-
-				fill_right "_TMP_BIND_IF_CHOICE_ITEM" "" $((_TMP_CHOICE_SPLITER_LEN-11)) "[${_TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN}]${_TMP_BIND_IF_CHOICE_TMP_SQ_PREFIX}$(gum style --foreground ${_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR} \"%\")"
-				_TMP_BIND_IF_CHOICE_ARR[$I]="\"${_TMP_BIND_IF_CHOICE_ITEM}\""
-			done
-
-			local _TMP_BIND_IF_CHOICE_ARR_STR=$(IFS=' '; echo "${_TMP_BIND_IF_CHOICE_ARR[*]}")
-			if [ -z "${_TMP_BIND_IF_CHOICE_ARR_STR}" ]; then
-				echo
-				echo_style_text "'No choice' set, please check your 'str arr'"
-
-				return 0
-			fi
-			local _TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT="gum choose --cursor='|>' --selected-prefix '[✓] ' ${_TMP_BIND_IF_CHOICE_ARR_STR} | tr -d '' | cut -d ']' -f 2"
-			
-			if [ -n "${_TMP_BIND_IF_CHOICE_ECHO}" ]; then
-				echo_style_text "${_TMP_BIND_IF_CHOICE_ECHO}, by 'follow keys', then <enter> it"
-			fi
-			
-			_TMP_BIND_IF_CHOICE_NEW_VAL=$(eval ${_TMP_BIND_IF_CHOICE_GUM_CHOICE_SCRIPT})
-
-			return $?
-		}
-
-		local _TMP_BIND_IF_CHOICE_NEW_VAL=""
-		
-		path_exists_yn_action "${GUM_PATH}" "_TMP_BIND_IF_CHOICE_GUM_FUNC" "_TMP_BIND_IF_CHOICE_NORMAL_FUNC"	
-		
-		echo "Choice of '${_TMP_BIND_IF_CHOICE_NEW_VAL//√/}' checked"
-
-		eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
+		return $?
 	}
 
-	discern_exchange_var_action "${1}" "_bind_if_choice" "${@}"
+	local _TMP_BIND_IF_CHOICE_NEW_VAL=""
+	
+	path_exists_yn_action "${GUM_PATH}" "_TMP_BIND_IF_CHOICE_GUM_FUNC" "_TMP_BIND_IF_CHOICE_NORMAL_FUNC"	
+	
+	echo "Choice of '${_TMP_BIND_IF_CHOICE_NEW_VAL//√/}' checked"
+
+	eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
+	
 	return $?
 }
 
@@ -3151,6 +3147,42 @@ function docker_bash_channel_exec()
 	else
 		echo_style_text "'|👉' Docker channel script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
 	fi
+
+	return $?
+}
+
+
+# 通过指定用户，通过管道输出内容
+# 参数1：容器ID
+# 参数2：输出内容
+# 参数3：输出容器路径
+# 参数4：执行脚本
+# 参数5：管道参数
+# 参数6：执行用户，默认$(whoami)
+# 参数7：工作目录
+# 示例：
+#       docker_bash_channel_echo_exec "" "whoami" 
+#       docker_bash_channel_echo_exec "" "whoami" "t"
+#       docker_bash_channel_echo_exec "" "whoami" "" "root"
+function docker_bash_channel_echo_exec()
+{
+	local _TMP_DOCKER_BASH_CHANNEL_ECHO_PATH="/tmp/docker_apps/${1}${3}.${LOCAL_TIMESTAMP}.echo.sh"
+	local _TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT="${4}"
+	path_not_exists_create "$(dirname ${_TMP_DOCKER_BASH_CHANNEL_ECHO_PATH})"
+	cat > ${_TMP_DOCKER_BASH_CHANNEL_ECHO_PATH} << EOF
+	${2}
+EOF
+	docker cp -a ${_TMP_DOCKER_BASH_CHANNEL_ECHO_PATH} ${1}:${3} >& /dev/null
+
+	if [ "${4}" == "." ]; then
+		_TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT="sh ${3}"
+	fi
+
+	if [ -n "${_TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT}" ]; then
+		docker_bash_channel_exec "${1}" "${_TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT}" "${@:5}"
+	fi
+
+	# rm -rf ${_TMP_DOCKER_BASH_CHANNEL_ECHO_PATH}
 
 	return $?
 }
@@ -3791,6 +3823,94 @@ function echo_etc_sec_limits()
 {
 	file_content_not_exists_echo "${2:-^${1}$}" "/etc/security/limits.conf" "${1}"
 
+	return $?
+}
+
+# 如果内容不存在则插入
+# 参数1：内容正则
+# 参数2：内容路径
+# 参数3：指定段落，例 mysqld
+# 参数4：段落匹配正则（oP），例 (?<=\[)\w+(?=\])
+# 参数5：执行脚本
+# 示例：
+#       file_content_part_not_exists_action "max_connections=1024" "/mountdisk/etc/docker_apps/library_mysql/5.7.42/app/my.cnf" "mysqld" "(?<=\[)\w+(?=\])" "echo '%s'"
+function file_content_part_not_exists_action() 
+{
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_MATCH_PATH=${2}
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_MATCH_PART=${3}
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_PART_REGEX=${4}
+
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_START_LINE=
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_END_LINE=$(cat ${2} | grep -n "" | awk -F':' 'END{print $1}')
+	
+	if [ -n "${4}" ]; then
+		# _TMP_FILE_CONTENT_PART_NOT_EXISTS_ECHO=$(cat ${2} | grep -naE "${3}")
+		
+		# 4:mysqld
+		# 66:client
+		local _TMP_FILE_CONTENT_PART_NOT_EXISTS_PART_TAGS=$(cat ${2} | grep -oPn "${4}")
+		
+		local _TMP_FILE_CONTENT_PART_NOT_EXISTS_FOUND_PART=
+		# 匹配指定段落的结束行号
+		function file_content_part_not_exists_action_match_ends()
+		{
+			# 4
+			local _TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_LINE=$(echo "${1}" | awk -F':' '{print $1}')
+			# mysqld
+			local _TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_TAG=$(echo "${1}" | grep -oP "(?<=${_TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_LINE}:).+")
+			
+			if [ -n "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_START_LINE}" ]; then
+				_TMP_FILE_CONTENT_PART_NOT_EXISTS_END_LINE=$(echo "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_LINE}-1" | bc)
+				break
+			fi
+
+			if [ "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_MATCH_PART}" == "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_TAG}" ]; then
+				_TMP_FILE_CONTENT_PART_NOT_EXISTS_START_LINE=${_TMP_FILE_CONTENT_PART_NOT_EXISTS_CURR_LINE}
+			fi
+		}
+
+		items_split_action "_TMP_FILE_CONTENT_PART_NOT_EXISTS_PART_TAGS" "file_content_part_not_exists_action_match_ends"
+	fi
+
+    cat ${2} | sed -n "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_START_LINE},${_TMP_FILE_CONTENT_PART_NOT_EXISTS_END_LINE}p" | egrep "${1}" >& /dev/null
+	if [ $? -ne 0 ]; then
+		script_check_action "${5}" "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_START_LINE}" "${_TMP_FILE_CONTENT_PART_NOT_EXISTS_END_LINE}"
+	fi
+
+	return $?
+}
+
+# 如果内容不存在则输出信息
+# 参数1：内容正则
+# 参数2：内容路径
+# 参数3：指定段落，例 mysqld
+# 参数4：段落匹配正则（oP），例 (?<=\[)\w+(?=\])
+# 参数5：输出内容
+# 示例：
+#       file_content_part_not_exists_echo "^max_connections=1024" "/mountdisk/etc/docker_apps/library_mysql/5.7.42/app/my.cnf" "mysqld" "(?<=\[)\w+(?=\])" "test_echo"
+function file_content_part_not_exists_echo() 
+{
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_ECHO_PATH="${2}"
+	local _TMP_FILE_CONTENT_PART_NOT_EXISTS_ECHO_TXT="${5}"
+	function file_content_part_not_exists_echo_curx()
+	{
+		sed -i "$((${1}+1))i ${_TMP_FILE_CONTENT_PART_NOT_EXISTS_ECHO_TXT}" ${_TMP_FILE_CONTENT_PART_NOT_EXISTS_ECHO_PATH}
+	}
+
+	file_content_part_not_exists_action "${1}" "${2}" "${3}" "${4}" "file_content_part_not_exists_echo_curx"
+	return $?
+}
+
+# 如果内容不存在则输出信息
+# 参数1：内容正则
+# 参数2：内容路径
+# 参数3：指定段落，例 mysqld
+# 参数4：输出内容
+# 示例：
+#       file_content_part_not_exists_mquote_echo "^max_connections=1024" "/mountdisk/etc/docker_apps/library_mysql/5.7.42/app/my.cnf" "mysqld"  "test_echo"
+function file_content_part_not_exists_mquote_echo() 
+{
+	file_content_part_not_exists_echo "${1}" "${2}" "${3}" "(?<=\[)\w+(?=\])" "${4}"
 	return $?
 }
 
@@ -5060,6 +5180,7 @@ function fetch_docker_hub_release_vers()
 	}
 	
 	path_exists_yn_action "${PLAYWRIGHT_SCRIPTS_DIR}/py/pw_async_fetch_docker_hub_vers.py" "_fetch_docker_hub_release_vers_by_pw" "not implement"
+	return $?
 }
 
 # 获取docker-hub仓库发布版本的数字标记
@@ -6464,6 +6585,9 @@ function docker_login_insecure_registries_action()
 		# 始终保存配置
 		file_content_not_exists_echo "^${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_ACCOUNT_PATH}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}@${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD}"
 
+		# 添加配置
+		docker_change_insecure_registries "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}"
+
 		# 成功后执行
 		script_check_action "${4}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_URL}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_USER}" "${_TMP_DOCKER_LOGIN_INSECURE_REGISTRY_HB_PASSWD}"
 		return $?
@@ -6538,8 +6662,10 @@ function docker_snap_commit()
 				fi
 				
 				# 重新计算提交信息
-				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT=$(curl -s -H "Content-Type: application/json" "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/repositories/${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}/tags" | jq ".[].name" | grep -oP "(?<=^\"${_TMP_DOCKER_SNAP_COMMIT_IMG_VER}_v[0-9]{10})SC(?=[0-9]+\"$)" | wc -l)
-				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_COMMIT_SNAP_VER}SC${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
+				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT=$(curl -s -H "Content-Type: application/json" "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/repositories/${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}/tags" | jq ".[].name" | grep -oP "(?<=^\"${_TMP_DOCKER_SNAP_COMMIT_IMG_VER}_v[0-9]{10})SC${LOCAL_ID}(?=[0-9]+\"$)" | wc -l)
+				echo "curl -s -H \"Content-Type: application/json\" \"${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/repositories/${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}/tags\" | jq \".[].name\" | grep -oP \"(?<=^\\\"${_TMP_DOCKER_SNAP_COMMIT_IMG_VER}_v[0-9]{10})SC${LOCAL_ID}(?=[0-9]+\\\"$)\" | wc -l"
+				echo "${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
+				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER="${_TMP_DOCKER_SNAP_COMMIT_SNAP_VER}SC${LOCAL_ID}${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_COUNT}"
 				_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME="${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}:${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_VER}"
 				
 				local _TMP_DOCKER_SNAP_COMMIT_PRJ_TAG="${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY#*//}/${_TMP_DOCKER_SNAP_COMMIT_SNAP_COMMIT_NAME}"
@@ -6688,7 +6814,7 @@ function docker_snap_create_action()
 func_backup_current_image_init_script()
 {
 	# 兼容ubuntu
-	if [[ -a /var/log/apt/history.log ]]; then
+	if [ -f /var/log/apt/history.log ]; then
 		## 2022-12-14  03 -> 1670958000
 		local _LAST_DATE_HOUR_PAIR=$(cat /var/log/apt/history.log | tail -n1 | cut -d ':' -f2 | sed 's/^\s//')
 		## 2022-12-14  02
@@ -6715,7 +6841,7 @@ func_backup_current_image_init_script()
 	fi
 
 	# 兼容centos
-	if [[ -a /var/log/yum.log ]]; then
+	if [ -f /var/log/yum.log ]; then
 		cat /var/log/yum.log | awk '{print $5}' | uniq | xargs -I {} echo 'yum -y install {}'
 	fi
 }

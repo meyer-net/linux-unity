@@ -147,7 +147,7 @@ function formal_dc_browserless_chrome() {
     # ${TMP_DC_BLC_SETUP_CTN_TMP}:/tmp"
     #
     # ${TMP_DC_BLC_SETUP_WORK_DIR}:/usr/src/app"
-    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app:/var/logs/${TMP_DC_BLC_SETUP_APP_MARK}"
+    # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_BLC_SETUP_APP_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}/app:/usr/src/app/${TMP_DC_BLC_SETUP_LOGS_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK}"
     # ${TMP_DC_BLC_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK}"

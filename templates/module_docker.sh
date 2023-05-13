@@ -85,7 +85,7 @@ function formal_dc_$setup_name() {
     #     # 拷贝日志目录
     #     ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
     #     # mkdir -pv ${1}/app
-    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
     #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app >& /dev/null
     #
     #     # 查看列表
@@ -170,7 +170,7 @@ function formal_dc_$setup_name() {
     # ${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}:/tmp"
     #
     # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/logs/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
@@ -180,8 +180,9 @@ function formal_dc_$setup_name() {
     echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
-    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
-    # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    # if [ $(echo "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
+    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    # fi
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
     # alias whaler="docker run -t --rm -v /var/run/docker.sock:/var/run/docker.sock:ro pegleg/whaler"
@@ -294,6 +295,9 @@ function exec_step_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_VER="${3}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_CMD="${4}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS="${5}"
+    
+    # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
+    local TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" '$soft_name -V | grep -oP "(?<=Distrib ).+(?=,)"')
 
     ## 统一编排到的路径
     local TMP_DC_$soft_upper_short_name_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
@@ -357,12 +361,15 @@ function boot_build_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_IMG_STORE="${6}"
 
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}], hold on please"
+
+    # 设置密码
+    local TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'mysql' 'db' "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}")" "Please sure your 'mysql' <database password>" "y")
     
     ## 标准启动参数
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS=""
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定

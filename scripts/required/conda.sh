@@ -89,7 +89,7 @@ function setup_miniconda()
 
 # 2-x1 修改下载文件
 function change_down_miniconda()
-{    
+{
     # 二进制分界线（文件由脚本及二进制混合而成）
     local TMP_MCD_SETUP_SH_FILE_LINES=$(head -n 8 ${TMP_MCD_SETUP_DOWN_SH_FILE_NAME} | grep -aoE "^# LINES:.*" | cut -d' ' -f3)
     ## 不打行号的情况下，代码找
