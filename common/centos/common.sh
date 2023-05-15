@@ -129,7 +129,7 @@ function echo_startup_supervisor_config()
 	
 	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR=${SUPERVISOR_ATT_DIR}/boots
 	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH=${_TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_FILENAME}
-    local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${LOGS_DIR}/supervisor
+    local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${SUPERVISOR_LOGS_DIR}/supervisor
 	
 	path_not_exists_create $(dirname ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH})
 	path_not_exists_create "${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}"
@@ -5214,27 +5214,33 @@ function fetch_docker_hub_release_ver_digests()
 #     docker_container_param_check_action "ctnid111111" "func_a"
 function docker_container_param_check_action() 
 {
-	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME=$(echo_discern_exchange_var_val "${1}")
-	if [ -n "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}" ]; then
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"||\$NF==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"){print}}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
-		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
-		_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}"
-		
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME//library\//}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
-
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
-		local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=docker run ).+(?=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME})")
-
-		script_check_action "${2}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS}"
-		return $?
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME=$(echo_discern_exchange_var_val "${1}")	
+	if [ -z "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}" ]; then
+		echo_style_text "None container id or name define"
+		return
 	fi
+
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"||\$NF==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"){print}}")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
+	if [ -z "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" ]; then
+		echo_style_text "None container found <${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}>"
+		return
+	fi
+
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
+	_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
+	_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}"
 	
-    return $?
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID=$(docker images | awk "NR>1{if(\$1==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME//library\//}\" && \$2==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}\"){print \$3}}")
+
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} ).+")
+	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=docker run ).+(?=${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME})")
+
+	script_check_action "${2}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_CMD}" "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ARGS}"
+	return $?
 }
 
 # Docker镜像检测输出（返回镜像列表）
@@ -5276,7 +5282,7 @@ function docker_image_param_check_action()
 
 				_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CALC_INSPECT="$(docker container inspect ${2} | jq '.[0]')"
 			}
-			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS}" "_docker_image_param_check_action_bind_ctn_data"
+			docker_container_param_check_action "${_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_CTN_IDS}" "_docker_image_param_check_action_bind_ctn_data" >> /dev/null
 
 			trim_str "_TMP_DOCKER_IMAGE_PARAM_CHECK_ACTION_IMG_CMD"
 			# 从Path中取
@@ -8792,6 +8798,7 @@ function soft_docker_check_upgrade_custom()
 
 						# 执行安装脚本后的镜像
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
+
 						# 差异镜像ID集合
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_IDS=($(diff -e <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS}") <(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_AFTER_IMG_IDS}") | awk 'NR>1{if(line!=""){print line}{line=$0}}'))
 
@@ -8801,11 +8808,13 @@ function soft_docker_check_upgrade_custom()
 						{
 							# 提取参数信息
 							local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM=$(docker_image_param_check_jq_item_echo "${1}")
+
 							# 如果存在实例，则直接从实例中获取启动参数
 							if [ "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" != "{}" ]; then
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ImageID" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ContainerIDS" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Image" | xargs echo)
+								
 								# 找到已启动的容器，重新定义参数
 								if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}" ]; then
 									echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>) booted 'container'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}>), param will be reget"

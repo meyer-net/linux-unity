@@ -62,7 +62,8 @@ function formal_dc_library_mysql() {
     cd ${TMP_DC_MSQ_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'formal dirs', hold on please"
-
+echo "检查 /var/log"
+read -e TTTT
     # 开始标准化
     ## 还原 & 创建 & 迁移
     ### 日志
@@ -74,15 +75,15 @@ function formal_dc_library_mysql() {
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/library_mysql/5.7.42/app
         # $(expr "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" -eq 1)
+        path_not_exists_create "${1}/app"
         if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-            path_not_exists_create "${1}/app"
             docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/log ${1}/app >& /dev/null
         else
-            docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/log/${TMP_DC_MSQ_SETUP_APP_MARK} ${1}/app >& /dev/null
+            docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/log/${TMP_DC_MSQ_SETUP_APP_MARK}d.log ${1}/app/${TMP_DC_MSQ_SETUP_APP_MARK}d.log >& /dev/null
         fi
     
         # 查看列表
-        ls -lia ${1}
+        ls -lia ${1}/app
     }
     soft_path_restore_confirm_create "${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}" "_formal_dc_library_mysql_cp_logs"
 
@@ -111,16 +112,13 @@ function formal_dc_library_mysql() {
         echo_style_text "View the 'etc copy'↓:"
 
         # 拷贝配置目录
-        ## /mountdisk/etc/docker_apps/library_mysql/5.7.42/app
-        # docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:$work_dir/${TMP_DC_MSQ_SETUP_ETC_MARK} ${1}/app >& /dev/null
+        ## ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/mysql -> /mountdisk/etc/docker_apps/library_mysql/5.7.42/app
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/${TMP_DC_MSQ_SETUP_APP_MARK} ${1}/app >& /dev/null
-        ## 版本 <=5.7
-        if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-            path_not_exists_create "${1}/app"
-            docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/my.cnf ${1}/app/my.cnf >& /dev/null
-        fi
+        
+        path_not_exists_create "${1}/app"
+        docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/my.cnf ${1}/app/my.cnf >& /dev/null
 
-        ls -lia ${1}
+        ls -lia ${1}/app
     
     #     # 移除本地配置目录(挂载)
     #     rm -rf ${TMP_DC_MSQ_SETUP_WORK_DIR}/${TMP_DC_MSQ_SETUP_ETC_MARK}
@@ -174,7 +172,7 @@ function formal_dc_library_mysql() {
     if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
         docker_change_container_volume_migrate "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}/app:/var/log ${TMP_DC_MSQ_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MSQ_SETUP_APP_MARK} ${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf:/etc/my.cnf" "" $([[ -z "${TMP_DC_MSQ_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     else
-        docker_change_container_volume_migrate "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_MSQ_SETUP_APP_MARK} ${TMP_DC_MSQ_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MSQ_SETUP_APP_MARK} ${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_MSQ_SETUP_APP_MARK}" "" $([[ -z "${TMP_DC_MSQ_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+        docker_change_container_volume_migrate "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}/app/${TMP_DC_MSQ_SETUP_APP_MARK}d.log:/var/log/${TMP_DC_MSQ_SETUP_APP_MARK}d.log ${TMP_DC_MSQ_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MSQ_SETUP_APP_MARK} ${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf:/etc/my.cnf ${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/conf.d:/etc/${TMP_DC_MSQ_SETUP_APP_MARK}/conf.d" "" $([[ -z "${TMP_DC_MSQ_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
 
     return $?
@@ -216,11 +214,11 @@ EOF
 
     # 配置服务
     ## 版本 <=5.7
-    if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-        conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf"
-    else
-        conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
-    fi
+    conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf"
+    # if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
+    # else
+    #     conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
+    # fi
     
     return $?
 }
@@ -309,7 +307,12 @@ function exec_step_dc_library_mysql() {
     local TMP_DC_MSQ_SETUP_CTN_ARGS="${5}"
     
     # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
+    ## mysql  Ver 14.14 Distrib 5.7.42, for Linux (x86_64) using  EditLine wrapper
     local TMP_DC_MSQ_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'mysql -V | grep -oP "(?<=Distrib ).+(?=,)"')
+    if [ -z "${TMP_DC_MSQ_SETUP_SOFT_VER}" ]; then
+        ## mysql  Ver 8.0.33 for Linux on x86_64 (MySQL Community Server - GPL)
+        TMP_DC_MSQ_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'mysql -V | grep -oP "(?<=Ver ).+(?= for)"')
+    fi
 
     ## 统一编排到的路径
     local TMP_DC_MSQ_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_MSQ_SETUP_IMG_MARK_NAME}/${TMP_DC_MSQ_SETUP_CTN_VER}
