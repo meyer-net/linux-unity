@@ -63,12 +63,14 @@ function conf_dc_mysql_etc_master()
     local TMP_DC_MSQ_CONF_DB_MASTER_SLAVE=$(console_input "${LOCAL_HOST%.*}." "'MySQL': Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' <mysql slave address>")
 	
     local TMP_DC_MSQ_CONF_SET_MASTER_SQL=$(cat <<EOF
+# GRANT FILE ON *.* TO 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
+# GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT} -e"
-GRANT FILE ON *.* TO 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
-GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' identified by '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
+CREATE USER 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
+GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 show variables like '%server_id%';
-select user,host,authentication_string from mysql.user;
+select host,user,authentication_string from mysql.user;
 show master status;
 exit" 2>/dev/null
     echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Master set success"
@@ -77,6 +79,10 @@ EOF
 )
 
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "${TMP_DC_MSQ_CONF_SET_MASTER_SQL}" "/tmp/set_db_master.sh" "."
+    
+    # 结束
+    exec_sleep 10 "Conf <library/mysql> master over, please checking the setup log, this will stay 10 secs to exit"
+
 	return $?
 }
 
@@ -123,7 +129,7 @@ function conf_dc_mysql_etc_slave()
     TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(console_input "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD" "Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' master@<${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}>:[${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}] account <password> for 'slave'" "y" "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD")
 
     # 获取主库状态
-    local TMP_DC_MSQ_CONF_DB_MASTER_STATUS=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "echo 'show master status\G;' | mysql -h${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST} -uslave -p${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD} -P${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT} 2>/dev/null")
+    local TMP_DC_MSQ_CONF_DB_MASTER_STATUS=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "echo 'show master status\G;' | mysql -h${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST} -uslave -p${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD} -P${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}")
     local TMP_DC_MSQ_CONF_DB_MASTER_FILE=$(echo "${TMP_DC_MSQ_CONF_DB_MASTER_STATUS}" | awk -F':' '{if($1~"File"){print $2}}' | xargs echo)
     local TMP_DC_MSQ_CONF_DB_MASTER_POS=$(echo "${TMP_DC_MSQ_CONF_DB_MASTER_STATUS}" | awk -F':' '{if($1~"Position"){print $2}}' | xargs echo)
 
@@ -131,7 +137,7 @@ function conf_dc_mysql_etc_slave()
         echo_style_text "Cannot found master@<${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}>:[${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}] status"
         return
     fi
-        	
+
 	# 在主服务器新建一个用户赋予“REPLICATION SLAVE”的权限。
     local TMP_DC_MSQ_CONF_SET_SLAVE_SQL=$(cat <<EOF
 # change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}', master_auto_position=1;
@@ -141,14 +147,15 @@ stop slave;
 reset slave;
 set @@GLOBAL.GTID_MODE = OFF;
 FLUSH PRIVILEGES;
-change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
+CHANGE MASTER TO master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 start slave;
 show slave status\G;
 FLUSH PRIVILEGES;
 show variables like '%server_id%';
-select user,host,authentication_string from mysql.user;
+select host,user,authentication_string from mysql.user;
 exit" 2>/dev/null
 echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Slave set success"
+echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Current password changed(${green}${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}${reset})"
 echo "${TMP_SPLITER2}"
 echo "If u got problems, pls via 'https://yq.aliyun.com/articles/27792' to look some questions"
 echo "${TMP_SPLITER2}"
@@ -160,8 +167,13 @@ EOF
 echo 'start slave' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
 echo 'show slave status\G;' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
 EOF
+    
 	# 添加系统启动命令
     echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "bash ${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}_${TMP_DC_MSQ_CONF_CTN_IMG_VER}_${TMP_DC_MSQ_CONF_CTN_ID}.sh" "" 999 "" "docker" "false" "0"
+    
+    # 结束
+    exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay 10 secs to exit"
+
 	return $?
 }
 
@@ -200,13 +212,7 @@ function _conf_dc_mysql_etc_bind()
         # 配置文件路径    
         case "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}" in
         "library/mysql")
-            if [ $(echo "${TMP_DC_MSQ_CONF_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-                # TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(echo "${TMP_DC_MSQ_CONF_CTN_RUNLIKE}" | grep -oP '(?<=--volume=)\S+(?=:/etc/my.cnf)' | cut -d':' -f1)
-                TMP_DC_MSQ_CONF_LNK_ETC_PATH="${TMP_DC_MSQ_CONF_SETUP_DIR}/etc/app/my.cnf"
-            else
-                # TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(echo "${TMP_DC_MSQ_CONF_CTN_RUNLIKE}" | grep -oP '(?<=--volume=)\S+(?=:/etc/my.cnf.d/server.cnf)' | cut -d':' -f1)
-                TMP_DC_MSQ_CONF_LNK_ETC_PATH="${TMP_DC_MSQ_CONF_SETUP_DIR}/etc/my.cnf.d/server.cnf"
-            fi
+            TMP_DC_MSQ_CONF_LNK_ETC_PATH="${TMP_DC_MSQ_CONF_SETUP_DIR}/etc/app/my.cnf"
             ;;
         "library/mariadb")
             # TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(echo "${TMP_DC_MSQ_CONF_CTN_RUNLIKE}" | grep -oP '(?<=--volume=)\S+(?=:/etc/my.cnf)' | cut -d':' -f1)

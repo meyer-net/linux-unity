@@ -168,6 +168,9 @@ function boot_check_dc_portainer() {
         # 生成web授权访问脚本
         echo_web_service_init_scripts "portainer${LOCAL_ID}" "portainer${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PTN_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
+    
+    # 结束
+    exec_sleep 10 "Install <portainer/portainer> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################
@@ -311,7 +314,7 @@ function boot_build_dc_portainer() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_PTN_SETUP_IMG_NAME}" "${TMP_DC_PTN_SETUP_IMG_VER}" "${TMP_DC_PTN_SETUP_CTN_ARG_CMD}" "${TMP_DC_PTN_SETUP_PRE_ARGS}" "" "exec_step_portainer"
-
+    
     return $?
 }
 

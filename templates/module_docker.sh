@@ -243,6 +243,9 @@ function boot_check_dc_$setup_name() {
     echo_style_text "View echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "systemctl start ${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME} start"
+    
+    # 结束
+    exec_sleep 10 "Install <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################
@@ -391,7 +394,7 @@ function boot_build_dc_$setup_name() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARG_CMD}" "${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS}" "" "exec_step_dc_$setup_name"
-
+    
     return $?
 }
 

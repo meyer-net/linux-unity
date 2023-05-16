@@ -59,11 +59,10 @@ function setup_dc_library_mysql() {
 
 # 3-规格化软件目录格式
 function formal_dc_library_mysql() {
-    cd ${TMP_DC_MSQ_SETUP_DIR}
+    cd ${TMPD_C_MSQ_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'formal dirs', hold on please"
-echo "检查 /var/log"
-read -e TTTT
+
     # 开始标准化
     ## 还原 & 创建 & 迁移
     ### 日志
@@ -195,10 +194,8 @@ function conf_dc_library_mysql() {
     TMP_DC_MSQ_SETUP_DB_PASSWD=$(console_input "TMP_DC_MSQ_SETUP_DB_PASSWD" "Please sure your 'mysql' <database password> for [remote login]" "y" "TMP_DC_MSQ_SETUP_DB_PASSWD")
 
     ## OR user='${SYS_NAME}'
-    local TMP_DC_MSQ_SETUP_INIT_SQL=$(cat <<EOF
-mysql -uroot -p${TMP_DC_MSQ_SETUP_TEMPORARY_PWD} -P${TMP_DC_MSQ_SETUP_INN_PORT} -e"
-SET password FOR 'root'@'localhost'=PASSWORD('${TMP_DC_MSQ_SETUP_TEMPORARY_PWD}');
-GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${TMP_DC_MSQ_SETUP_DB_PASSWD}' WITH GRANT OPTION;
+    local TMP_DC_MSQ_SETUP_INIT_SCRIPT=""
+    local TMP_DC_MSQ_SETUP_INIT_SCRIPT_END=$(cat <<EOF
 USE mysql;
 DELETE FROM user WHERE user='' OR authentication_string='';
 SET GLOBAL MAX_CONNECT_ERRORS=1024;
@@ -209,13 +206,34 @@ exit" --connect-expired-password 2>/dev/null
 echo "MySql: Password(${green}${TMP_DC_MSQ_SETUP_DB_PASSWD}${reset}) except localhost set success"
 EOF
 )
+    ## 小于8的版本，PASSWORD函数被取消
+    if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} < 8" | bc) == 1 ]; then
+        TMP_DC_MSQ_SETUP_INIT_SCRIPT=$(cat <<EOF
+mysql -uroot -p${TMP_DC_MSQ_SETUP_TEMPORARY_PWD} -P${TMP_DC_MSQ_SETUP_INN_PORT} -e"
+SET password FOR 'root'@'localhost'=PASSWORD('${TMP_DC_MSQ_SETUP_TEMPORARY_PWD}');
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${TMP_DC_MSQ_SETUP_DB_PASSWD}' WITH GRANT OPTION;
 
-    docker_bash_channel_echo_exec "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_INIT_SQL}" "/tmp/change_passwd.sh" "."
+${TMP_DC_MSQ_SETUP_INIT_SCRIPT_END}
+EOF
+)
+    else
+        TMP_DC_MSQ_SETUP_INIT_SCRIPT=$(cat <<EOF
+mysql -uroot -p${TMP_DC_MSQ_SETUP_TEMPORARY_PWD} -P${TMP_DC_MSQ_SETUP_INN_PORT} -e"
+ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '${TMP_DC_MSQ_SETUP_TEMPORARY_PWD}';
+CREATE USER 'root'@'%' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
+GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' WITH GRANT OPTION;
+
+${TMP_DC_MSQ_SETUP_INIT_SCRIPT_END}
+EOF
+)
+    fi
+
+    docker_bash_channel_echo_exec "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_INIT_SCRIPT}" "/tmp/change_passwd.sh" "."
 
     # 配置服务
     ## 版本 <=5.7
-    conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf"
-    # if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
+    conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf" "${TMP_DC_MSQ_SETUP_SOFT_VER}"
+    
     # else
     #     conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
     # fi
@@ -253,6 +271,9 @@ function boot_check_dc_library_mysql() {
         # 授权iptables端口访问
         echo_soft_port "TMP_DC_MSQ_SETUP_OPN_PORT"
     fi
+    
+    # 结束
+    exec_sleep 10 "Install <library/mysql> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################

@@ -477,6 +477,9 @@ function build_compose_dc_goharbor_harbor() {
     echo "${TMP_SPLITER2}"
     echo_style_text "View echo the 'supervisor startup conf'↓:"
     echo_startup_supervisor_config "${TMP_DC_CPL_HB_SETUP_MARK_NAME}" "${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR}" "docker-compose up -d" "" 999 "" "docker" "false" "0"
+    
+    # 结束
+    exec_sleep 10 "Install <goharbor/harbor> over, please checking the setup log, this will stay 10 secs to exit"
 
     return $?
 }

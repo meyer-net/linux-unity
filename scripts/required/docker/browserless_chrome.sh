@@ -211,6 +211,9 @@ function boot_check_dc_browserless_chrome() {
         # 生成web授权访问脚本
         echo_web_service_init_scripts "browserless_chrome${LOCAL_ID}" "browserless_chrome${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_BLC_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
+    
+    # 结束
+    exec_sleep 10 "Install <browserless/chrome> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################
@@ -353,7 +356,7 @@ function boot_build_dc_browserless_chrome() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_BLC_SETUP_IMG_NAME}" "${TMP_DC_BLC_SETUP_IMG_VER}" "${TMP_DC_BLC_SETUP_CTN_ARG_CMD}" "${TMP_DC_BLC_SETUP_PRE_ARGS}" "" "exec_step_browserless_chrome"
-
+    
     return $?
 }
 

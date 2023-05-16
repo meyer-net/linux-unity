@@ -129,7 +129,7 @@ function echo_startup_supervisor_config()
 	
 	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR=${SUPERVISOR_ATT_DIR}/boots
 	local _TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH=${_TMP_ECHO_STARTUP_SUP_CONF_CONF_DIR}/${_TMP_ECHO_STARTUP_SUP_CONF_FILENAME}
-    local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${SUPERVISOR_LOGS_DIR}/supervisor
+    local _TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR=${SUPERVISOR_LOGS_DIR}
 	
 	path_not_exists_create $(dirname ${_TMP_ECHO_STARTUP_SUP_CONF_CONF_CURRENT_OUTPUT_PATH})
 	path_not_exists_create "${_TMP_ECHO_STARTUP_SUP_CONF_LNK_LOGS_DIR}"
@@ -8814,7 +8814,7 @@ function soft_docker_check_upgrade_custom()
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_ID=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ImageID" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".ContainerIDS" | xargs echo)
 								local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_JQ_ITEM}" | jq ".Image" | xargs echo)
-								
+
 								# 找到已启动的容器，重新定义参数
 								if [ -n "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}" ]; then
 									echo_style_text "Checked 'image'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_NAME}>) booted 'container'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_CTN_IDS}>), param will be reget"

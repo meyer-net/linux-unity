@@ -6,11 +6,16 @@ function conf_dc_mysql_etc()
 
     file_content_part_not_exists_mquote_echo "^max_heap_table_size.*" ${1} "mysqld" "max_heap_table_size = 64M"
     file_content_part_not_exists_mquote_echo "^tmp_table_size.*" ${1} "mysqld" "tmp_table_size = 64M"
-
-    file_content_part_not_exists_mquote_echo "^query_cache_size.*" ${1} "mysqld" "query_cache_size = 256M"
-    file_content_part_not_exists_mquote_echo "^query_cache_min_res_unit.*" ${1} "mysqld" "query_cache_min_res_unit = 4K"
-    file_content_part_not_exists_mquote_echo "^query_cache_limit.*" ${1} "mysqld" "query_cache_limit = 512K"
-    file_content_part_not_exists_mquote_echo "^query_cache_type.*" ${1} "mysqld" "query_cache_type = 1"
+    
+    # mysql 8的版本不识别
+    if [ $(echo "${2%.*} < 8" | bc) == 1 ]; then
+        file_content_part_not_exists_mquote_echo "^query_cache_size.*" ${1} "mysqld" "query_cache_size = 256M"
+        file_content_part_not_exists_mquote_echo "^query_cache_min_res_unit.*" ${1} "mysqld" "query_cache_min_res_unit = 4K"
+        file_content_part_not_exists_mquote_echo "^query_cache_limit.*" ${1} "mysqld" "query_cache_limit = 512K"
+        file_content_part_not_exists_mquote_echo "^query_cache_type.*" ${1} "mysqld" "query_cache_type = 1"
+    else
+        file_content_part_not_exists_mquote_echo "^default_authentication_plugin.*" ${1} "mysqld" "default_authentication_plugin = mysql_native_password"
+    fi
 
     file_content_part_not_exists_mquote_echo "^thread_cache_size.*" ${1} "mysqld" "thread_cache_size = 512"
     file_content_part_not_exists_mquote_echo "^max_connect_errors.*" ${1} "mysqld" "max_connect_errors = 256"
