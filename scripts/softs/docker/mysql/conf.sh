@@ -167,9 +167,9 @@ EOF
 echo 'start slave' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
 echo 'show slave status\G;' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
 EOF
-    
-	# 添加系统启动命令
-    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "bash ${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}_${TMP_DC_MSQ_CONF_CTN_IMG_VER}_${TMP_DC_MSQ_CONF_CTN_ID}.sh" "" 999 "" "docker" "false" "0"
+
+	# 添加系统启动命令(不sleep可能会遇到服务还没起来的情况)
+    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c 'sleep 30 && echo \"start slave; show slave status\\\G;\" | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}'" "" 999 "" "docker" "false" "0"
     
     # 结束
     exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay 10 secs to exit"

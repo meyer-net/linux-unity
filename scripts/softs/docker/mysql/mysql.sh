@@ -206,7 +206,7 @@ exit" --connect-expired-password 2>/dev/null
 echo "MySql: Password(${green}${TMP_DC_MSQ_SETUP_DB_PASSWD}${reset}) except localhost set success"
 EOF
 )
-    ## 小于8的版本，PASSWORD函数被取消
+    ## 大于等于8的版本，PASSWORD函数被取消
     if [ $(echo "${TMP_DC_MSQ_SETUP_SOFT_VER%.*} < 8" | bc) == 1 ]; then
         TMP_DC_MSQ_SETUP_INIT_SCRIPT=$(cat <<EOF
 mysql -uroot -p${TMP_DC_MSQ_SETUP_TEMPORARY_PWD} -P${TMP_DC_MSQ_SETUP_INN_PORT} -e"
@@ -232,10 +232,10 @@ EOF
 
     # 配置服务
     ## 版本 <=5.7
-    conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf" "${TMP_DC_MSQ_SETUP_SOFT_VER}"
+    conf_dc_mysql_etc "mysql" "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf" "${TMP_DC_MSQ_SETUP_SOFT_VER}"
     
     # else
-    #     conf_dc_mysql_etc "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
+    #     conf_dc_mysql_etc "mysql" "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
     # fi
     
     return $?
@@ -271,7 +271,7 @@ function boot_check_dc_library_mysql() {
         # 授权iptables端口访问
         echo_soft_port "TMP_DC_MSQ_SETUP_OPN_PORT"
     fi
-    
+
     # 结束
     exec_sleep 10 "Install <library/mysql> over, please checking the setup log, this will stay 10 secs to exit"
 }
