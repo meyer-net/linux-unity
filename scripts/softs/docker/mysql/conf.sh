@@ -164,8 +164,7 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "${TMP_DC_MSQ_CONF_SET_SLAVE_SQL}" "/tmp/set_db_slave.sh" "."
 
     cat >${SUPERVISOR_DATA_DIR}/${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}_${TMP_DC_MSQ_CONF_CTN_IMG_VER}_${TMP_DC_MSQ_CONF_CTN_ID}.sh<<EOF
-echo 'start slave' | mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}"
-echo 'show slave status\G;' | mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}"
+echo 'start slave; show slave status\G;' | mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}"
 EOF
 
 	# 添加系统启动命令(不sleep可能会遇到服务还没起来的情况)
