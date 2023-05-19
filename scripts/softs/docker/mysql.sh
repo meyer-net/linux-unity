@@ -17,7 +17,7 @@ function conf_dc_mysql_etc()
         file_content_part_not_exists_mquote_echo "^query_cache_limit.*" ${2} "mysqld" "query_cache_limit = 512K"
         file_content_part_not_exists_mquote_echo "^query_cache_type.*" ${2} "mysqld" "query_cache_type = 1"
     else
-        if [ "${2}" == "mysql" && ($(echo "${3%.*} >= 8" | bc) == 1) ]; then
+        if [[ "${2}" == "mysql" && ($(echo "${3%.*} >= 8" | bc) == 1) ]]; then
             file_content_part_not_exists_mquote_echo "^default_authentication_plugin.*" ${2} "mysqld" "default_authentication_plugin = mysql_native_password"
         fi
     fi
@@ -39,6 +39,46 @@ function conf_dc_mysql_etc()
 
 	file_content_part_not_exists_mquote_echo "^# Defind" ${2} "mysqld" "# Defind basic set by meyer.cheng, at ${LOCAL_TIME}"
 
+	return $?
+}
+
+# 获取主配置文件路径
+# 参数1：容器ID或名称
+function docker_container_mysql_etc_mysqld_node_file_path_echo()
+{
+    function _docker_container_mysql_etc_mysqld_node_file_path_echo_judge() {
+        local TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO=${DOCKER_APP_SETUP_DIR}/${3/\//_}/${4}/etc
+        bind_symlink_link_path "TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO"
+
+        # 配置文件路径    
+        case "${3}" in
+        "library/mysql")
+            echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/etc/app/my.cnf"
+            ;;
+        "library/mariadb")
+            if [ -n "$(docker_bash_channel_exec "${2}" "ls /etc | grep 'my.cnf'")" ]; then
+                echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf"
+            else
+                if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf ]; then
+                    echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf"
+                else
+                    if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf ]; then
+                        echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf"
+                    else
+                        if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf ]; then
+                            echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf"
+                        fi
+                    fi
+                fi
+            fi
+            ;;
+        *)
+            # echo "OTHER"
+            ;;
+        esac
+    }
+
+    docker_container_param_check_action "${1}" "_docker_container_mysql_etc_mysqld_node_file_path_echo_judge"
 	return $?
 }
 

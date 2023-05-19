@@ -5219,7 +5219,7 @@ function docker_container_param_check_action()
 		echo_style_text "None container id or name define"
 		return
 	fi
-
+	
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"||\$NF==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"){print}}")
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
 	if [ -z "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" ]; then
@@ -5230,6 +5230,7 @@ function docker_container_param_check_action()
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$2}")
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f1)
 	_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME=$(echo_docker_image_formal_name "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}")
+
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER=$(echo ${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME} | cut -d':' -f2)
 	_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_FULL_NAME="${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_NAME}:${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_IMG_VER}"
 	

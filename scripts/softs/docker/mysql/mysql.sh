@@ -186,7 +186,7 @@ function conf_dc_library_mysql() {
     echo_style_wrap_text "Starting 'configuration', hold on please"
 
     # 开始配置
-    local TMP_DC_MSQ_SETUP_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MSQ_SETUP_CTN_ID}-json.log | grep -oP "(?<=GENERATED ROOT PASSWORD: )[^\\\]+" | awk 'END{print}')
+    local TMP_DC_MSQ_SETUP_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MSQ_SETUP_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
     echo_style_text "'MySql': System temporary password is <${TMP_DC_MSQ_SETUP_TEMPORARY_PWD}>, Please [remember it] for local login"
 
     # 设置密码
@@ -231,12 +231,8 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_SETUP_CTN_ID}" "${TMP_DC_MSQ_SETUP_INIT_SCRIPT}" "/tmp/change_passwd.sh" "."
 
     # 配置服务
-    ## 版本 <=5.7
-    conf_dc_mysql_etc "mysql" "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf" "${TMP_DC_MSQ_SETUP_SOFT_VER}"
-    
-    # else
-    #     conf_dc_mysql_etc "mysql" "${TMP_DC_MSQ_SETUP_LNK_ETC_DIR}/app/my.cnf.d/server.cnf"
-    # fi
+    local TMP_DC_MSQ_SETUP_LNK_ETC_MYSQLD_NODE_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MSQ_SETUP_CTN_ID}")
+    conf_dc_mysql_etc "mysql" "${TMP_DC_MSQ_SETUP_LNK_ETC_MYSQLD_NODE_PATH}" "${TMP_DC_MSQ_SETUP_SOFT_VER}"
     
     return $?
 }

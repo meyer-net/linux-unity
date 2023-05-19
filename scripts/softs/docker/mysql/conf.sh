@@ -65,14 +65,14 @@ function conf_dc_mysql_etc_master()
     local TMP_DC_MSQ_CONF_SET_MASTER_SQL=$(cat <<EOF
 # GRANT FILE ON *.* TO 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 # GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
-mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT} -e"
+mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}" -e"
 CREATE USER 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
 show variables like '%server_id%';
 select host,user,authentication_string from mysql.user;
 show master status;
-exit" 2>/dev/null
+exit"
     echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Master set success"
     echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Password(${green}${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}${reset}) for ${red}slave${reset} set success"
 EOF
@@ -142,10 +142,10 @@ function conf_dc_mysql_etc_slave()
     local TMP_DC_MSQ_CONF_SET_SLAVE_SQL=$(cat <<EOF
 # change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}', master_auto_position=1;
 # change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}', master_log_file='${TMP_DC_MSQ_CONF_DB_MASTER_FILE}', master_log_pos=${TMP_DC_MSQ_CONF_DB_MASTER_POS};
-mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT} -e"
+# set @@GLOBAL.GTID_MODE = OFF;
+mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}" -e"
 stop slave;
 reset slave;
-set @@GLOBAL.GTID_MODE = OFF;
 FLUSH PRIVILEGES;
 CHANGE MASTER TO master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 start slave;
@@ -153,9 +153,9 @@ show slave status\G;
 FLUSH PRIVILEGES;
 show variables like '%server_id%';
 select host,user,authentication_string from mysql.user;
-exit" 2>/dev/null
+exit"
 echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Slave set success"
-echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Current password changed(${green}${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}${reset})"
+echo "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}: Current master changed(${green}slave${reset}@${red}${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}:${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}${reset})"
 echo "${TMP_SPLITER2}"
 echo "If u got problems, pls via 'https://yq.aliyun.com/articles/27792' to look some questions"
 echo "${TMP_SPLITER2}"
@@ -164,12 +164,12 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "${TMP_DC_MSQ_CONF_SET_SLAVE_SQL}" "/tmp/set_db_slave.sh" "."
 
     cat >${SUPERVISOR_DATA_DIR}/${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}_${TMP_DC_MSQ_CONF_CTN_IMG_VER}_${TMP_DC_MSQ_CONF_CTN_ID}.sh<<EOF
-echo 'start slave' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
-echo 'show slave status\G;' | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}
+echo 'start slave' | mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}"
+echo 'show slave status\G;' | mysql -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}"
 EOF
 
 	# 添加系统启动命令(不sleep可能会遇到服务还没起来的情况)
-    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c 'sleep 30 && echo \"start slave; show slave status\\\G;\" | mysql -uroot -p${TMP_DC_MSQ_CONF_DB_PASSWD} -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}'" "" 999 "" "docker" "false" "0"
+    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c 'sleep 30 && echo \"start slave; show slave status\\\G;\" | mysql -uroot -p\"${TMP_DC_MSQ_CONF_DB_PASSWD}\" -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}'" "" 999 "" "docker" "false" "0"
     
     # 结束
     exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay 10 secs to exit"
@@ -204,24 +204,14 @@ function _conf_dc_mysql_etc_bind()
         TMP_DC_MSQ_CONF_SOFT_INN_PORT=$(echo "${TMP_DC_MSQ_CONF_SOFT_PORT_PAIR}" | cut -d':' -f2)
         TMP_DC_MSQ_CONF_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}/${TMP_DC_MSQ_CONF_CTN_IMG_VER}
 
-        TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/logs/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep -oP "(?<=GENERATED ROOT PASSWORD: )[^\\\]+" | awk 'END{print}')
+        # 临时密码
+        TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/logs/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
 
         # 软件内部标识版本
         TMP_DC_MSQ_CONF_SOFT_VER=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" 'mysql -V | grep -oP "(?<=Distrib ).+(?=,)"')
 
-        # 配置文件路径    
-        case "${TMP_DC_MSQ_CONF_CTN_IMG_NAME}" in
-        "library/mysql")
-            TMP_DC_MSQ_CONF_LNK_ETC_PATH="${TMP_DC_MSQ_CONF_SETUP_DIR}/etc/app/my.cnf"
-            ;;
-        "library/mariadb")
-            # TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(echo "${TMP_DC_MSQ_CONF_CTN_RUNLIKE}" | grep -oP '(?<=--volume=)\S+(?=:/etc/my.cnf)' | cut -d':' -f1)
-            TMP_DC_MSQ_CONF_LNK_ETC_PATH="${TMP_DC_MSQ_CONF_SETUP_DIR}/etc/my.cnf.d/server.cnf"
-            ;;
-        *)
-            # echo "OTHER"
-            ;;
-        esac
+        # 配置文件路径
+        TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MSQ_CONF_CTN_ID}")
     fi
 	return $?
 }
