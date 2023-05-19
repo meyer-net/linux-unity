@@ -186,7 +186,11 @@ function conf_dc_library_mariadb() {
 
     # 开始配置
     local TMP_DC_MDB_SETUP_TEMPORARY_PWD=$(cat ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MDB_SETUP_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
-    echo_style_text "'MySql': System temporary password is <${TMP_DC_MDB_SETUP_TEMPORARY_PWD}>, Please [remember it] for local login"
+    TMP_DC_MDB_SETUP_TEMPORARY_PWD="${TMP_DC_MDB_SETUP_TEMPORARY_PWD//\`/\\\`/}"
+    TMP_DC_MDB_SETUP_TEMPORARY_PWD="${TMP_DC_MDB_SETUP_TEMPORARY_PWD//\"/\\\"/}"
+    echo_style_text "'MySql': System temporary password is:"
+    echo "${TMP_DC_MDB_SETUP_TEMPORARY_PWD}"
+    echo_style_text "Please [remember it 👆] for local login"
 
     # 设置密码
     local TMP_DC_MDB_SETUP_DB_PASSWD=$(rand_passwd 'mysql' 'db' "${TMP_DC_MDB_SETUP_IMG_VER}")
@@ -210,7 +214,7 @@ EOF
     ## 大于11的版本，PASSWORD函数被取消
     # if [ $(echo "${TMP_DC_MDB_SETUP_SOFT_VER%.*} < 11" | bc) == 1 ]; then
         TMP_DC_MDB_SETUP_INIT_SCRIPT=$(cat <<EOF
-mysql -uroot -p"${TMP_DC_MDB_SETUP_TEMPORARY_PWD}" -P${TMP_DC_MDB_SETUP_INN_PORT} -e"
+${TMP_DC_MDB_SETUP_CMD_MARK} -uroot -p"${TMP_DC_MDB_SETUP_TEMPORARY_PWD}" -e"
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${TMP_DC_MDB_SETUP_DB_PASSWD}' WITH GRANT OPTION;
 
 ${TMP_DC_MDB_SETUP_INIT_SCRIPT_END}
@@ -313,9 +317,19 @@ function exec_step_dc_library_mariadb() {
     local TMP_DC_MDB_SETUP_CTN_CMD="${4}"
     local TMP_DC_MDB_SETUP_CTN_ARGS="${5}"
     
+    # 软件内部标识命令（大于等于11的版本被标记为mariadb）
+    local TMP_DC_MDB_SETUP_CMD_MARK="mysql"
+    if [ -z "$(docker_bash_channel_exec "${1}" 'which mysql')" ]; then
+        TMP_DC_MDB_SETUP_CMD_MARK="mariadb"
+    fi
+
     # 软件内部标识版本（$3已返回该版本号，仅测试选择10.4.29的场景）
     ## mysql  Ver 14.14 Distrib 10.4.29, for Linux (x86_64) using  EditLine wrapper
-    local TMP_DC_MDB_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'mysql -V | grep -oP "(?<=Distrib ).+(?=-MariaDB,)"')
+    local TMP_DC_MDB_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" "${TMP_DC_MDB_SETUP_CMD_MARK} -V | grep -oP '(?<=Distrib ).+(?=-MariaDB,)'")
+    if [ -z "${TMP_DC_MDB_SETUP_SOFT_VER}" ]; then
+        TMP_DC_MDB_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" "${TMP_DC_MDB_SETUP_CMD_MARK} -V | grep -oP '(?<=from ).+(?=-MariaDB,)'")
+    fi
+    
     ##
     local TMP_DC_MDB_SETUP_MYCNF_EXISTS="$(docker_bash_channel_exec "${TMP_DC_MDB_SETUP_CTN_ID}" "ls /etc | grep 'my.cnf'")"
 
