@@ -119,8 +119,6 @@ function formal_dc_library_mysql() {
 
         ls -lia ${1}/app
     
-    #     # 移除本地配置目录(挂载)
-    #     rm -rf ${TMP_DC_MSQ_SETUP_WORK_DIR}/${TMP_DC_MSQ_SETUP_ETC_MARK}
         #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/library_mysql/5.7.42/container
         soft_path_restore_confirm_swap "${TMP_DC_MSQ_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_MSQ_SETUP_CTN_DIR}"
     }

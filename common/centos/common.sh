@@ -818,6 +818,25 @@ function rand_passwd() {
 	return $?
 }
 
+# 生成密码
+# 参数1：软件名称
+# 参数2：软件类型
+# 参数3：安装节点或版本
+# 示例：
+#       rand_simple_passwd "docker"
+#       rand_simple_passwd "docker" "svr"
+function rand_simple_passwd() {
+	typeset -l _TMP_RAND_PASSWD_SOFT_NAME
+	local _TMP_RAND_PASSWD_SOFT_NAME="${1}"
+
+	typeset -u _TMP_RAND_PASSWD_SOFT_TYPE
+	local _TMP_RAND_PASSWD_SOFT_TYPE="${2}"
+
+	echo "${_TMP_RAND_PASSWD_SOFT_NAME}${_TMP_RAND_PASSWD_SOFT_TYPE}m${LOCAL_ID}${3:-0}"
+
+	return $?
+}
+
 # URL编码
 # 参数1：需要编码的字符串
 function echo_url_encode() {
@@ -3727,9 +3746,7 @@ EOF
 		exec_sleep 3 "Starting reboot firewall..."
 		systemctl restart iptables.service
 		exec_sleep 3 "Waitting firewall reboot..."
-		iptables-restore < /home/$(whoami)/iptables.rules
-
-		
+		iptables-restore < /home/$(whoami)/iptables.rules	
 	fi
 
 	# local TMP_FIREWALL_STATE=$(firewall-cmd --state)
@@ -3761,7 +3778,7 @@ function file_content_not_exists_action()
 # 参数3：输出内容
 function file_content_not_exists_echo() 
 {
-	file_content_not_exists_action "${1}" "${2}" "echo '${3:-${1}}' >> ${2}"
+	file_content_not_exists_action "${1}" "${2}" "echo \"${3:-${1}}\" >> ${2}"
 
 	return $?
 }
@@ -4827,7 +4844,7 @@ function soft_trail_clear()
 #     _TMP_DIR_STR="/etc/test" && docker_soft_dirs_bind "_TMP_DIR_STR" "e75f9b427730" && echo "${_TMP_DIR_STR}"
 function docker_soft_dirs_bind() 
 {
-	# 完整的PSID
+	# 完整的PSID docker ps -a -f name=xxx|id=xxx
 	local _TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID=$(docker ps -a --no-trunc | grep "^${2}" | cut -d' ' -f1)
 	if [ -z "${_TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID}" ]; then
 		echo_style_text "Cannot found <containers>([${2}])"
@@ -4915,7 +4932,7 @@ function docker_soft_dirs_bind()
 #     docker_soft_trail_clear "e75f9b427730" "N"
 function docker_soft_trail_clear() 
 {
-	# 完整的PSID
+	# 完整的PSID docker ps -a -f name=xxx|id=xxx
 	local _TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID=$(docker ps -a --no-trunc | grep "^${1}" | cut -d' ' -f1)
 	if [ -z "${_TMP_DOCKER_SOFT_TRAIL_CLEAR_CTN_ID}" ]; then
 		echo_style_text "Cannot found <containers>([${1}])"
@@ -5220,6 +5237,7 @@ function docker_container_param_check_action()
 		return
 	fi
 	
+	# docker ps -a -f name=xxx|id=xxx
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS=$(docker ps -a --no-trunc | awk "NR>1{if(\$1~\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"||\$NF==\"${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID_OR_NAME}\"){print}}")
 	local _TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID=$(echo "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_PS}" | awk "{print \$1}")
 	if [ -z "${_TMP_DOCKER_CTN_PARAM_CHECK_ACTION_CTN_ID}" ]; then
@@ -5801,7 +5819,7 @@ function docker_change_container_inspect_mount()
 function docker_change_container_volume_migrate()
 {	
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID="${1}"
-	# imgver111111
+	# imgver111111 docker ps -a -f name=xxx|id=xxx
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_IMG="$(docker ps -a --no-trunc | grep "^${1}" | awk -F' ' '{print $2}')"
 	
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS=$(echo "${2}" | sed 's@ @\n@g' | sort)
@@ -6355,6 +6373,7 @@ function docker_image_args_combine_bind()
 	# 记录特定变量
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL" "^--env=.+$"
+	# item_change_remove_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_ENV_VAL" "^--env=.*PASSWORD.+$"
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
 	item_change_select_bind "_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_VOLUME_VAL" "^--volume=.+$"
 	local _TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_LBL_VAL=${_TMP_DOCKER_IMAGE_ARGS_COMBINE_BIND_OUTPUT_CLEAN_VAL}
@@ -6767,6 +6786,7 @@ function docker_snap_create_action()
 
 				echo "${TMP_SPLITER3}"
 				echo_style_text "Running 'containers'↓:"
+				# docker ps -a -f name=xxx|id=xxx
 				docker ps -a | grep "^${_TMP_DOCKER_SNAP_CREATE_CTN_ID:0:12}" | cut -d' ' -f1
 
 				echo "${TMP_SPLITER3}"
@@ -7222,6 +7242,7 @@ function docker_snap_restore_action()
 			# 镜像存在，但未有容器
 			function _docker_snap_restore_action_change_ver_check()
 			{
+				# docker ps -a -f name=xxx|id=xxx
 				local _TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CTN="$(docker ps -a --no-trunc | awk -F' ' "{if(\$2==\"${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}:${1}\"){print}}")"
 				if [ -z "${_TMP_DOCKER_SNAP_RESTORE_ACTION_EXISTS_CTN}" ]; then
 					echo_style_text "Checked 'snapshot'([${_TMP_DOCKER_SNAP_RESTORE_ACTION_SNAP_TYPE}]) of <${_TMP_DOCKER_SNAP_RESTORE_ACTION_IMG_NAME}>:[${1}], but got none 'container', restore <stoped>, boot mark 'version changed' from [${_TMP_DOCKER_SNAP_RESTORE_ACTION_MARK_VER}] to <${1}>"
@@ -7534,7 +7555,7 @@ function docker_container_print()
         echo_style_text "View the 'container logs'↓:"
         docker logs ${_TMP_DOCKER_CTN_PRINT_CTN_ID}
 
-        # 区分是否是初始化产生的提取类型容器
+        # 区分是否是初始化产生的提取类型容器 docker ps -a -f name=xxx|id=xxx
         local _TMP_DOCKER_CTN_PRINT_PS=$(docker ps -a --no-trunc | grep "^${_TMP_DOCKER_CTN_PRINT_CTN_ID}")
         if [ -n "${_TMP_DOCKER_CTN_PRINT_PS}" ]; then
             # 最后更新一次容器内包
@@ -7542,7 +7563,7 @@ function docker_container_print()
             echo_style_text "View the 'container update'↓:"
             # docker exec -u root -w /tmp -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "apt-get update"
 			local _TMP_DOCKER_CTN_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cat /etc/issue" "t")
-			if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
+			if [[ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
 				docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apt-get update" "t"
 			else
 				if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
@@ -7594,6 +7615,7 @@ function docker_image_boot_print()
     
 	local _TMP_DOCKER_IMG_BOOT_PRINT_BEFORE_BOOT_SCRIPTS=${5}
 	
+	# docker ps -a -f name=xxx|id=xxx
 	local _TMP_DOCKER_IMG_BOOT_PRINT_PS=$(docker ps -a --no-trunc | awk -F' ' "{if(\$2~\"${1}:\"){print}}")
 	if [ -n "${_TMP_DOCKER_IMG_BOOT_PRINT_PS}" ]; then
 		echo "${TMP_SPLITER2}"
@@ -7686,7 +7708,7 @@ function docker_image_boot_print()
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
 			local _TMP_DOCKER_IMG_BOOT_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "cat /etc/issue" "t")
-			if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
+			if [[ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
 				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
 			else
 				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
@@ -8751,6 +8773,7 @@ function soft_docker_check_upgrade_custom()
 
 					function _soft_docker_check_upgrade_custom_img_trail()
 					{
+						# docker ps -a -f name=xxx|id=xxx
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS=$(docker ps -a | awk "{if(\$2~\"${1}\"){ print \$1}}")
 						echo_style_text "Starting <trail> exists 'containers'(<${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}>:[${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS:-none}])"
 						items_split_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CTN_IDS}" "_soft_docker_check_upgrade_custom_ctn_trail"

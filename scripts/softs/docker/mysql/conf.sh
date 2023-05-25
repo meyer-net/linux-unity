@@ -65,7 +65,7 @@ function conf_dc_mysql_etc_master()
     local TMP_DC_MSQ_CONF_SET_MASTER_SQL=$(cat <<EOF
 # GRANT FILE ON *.* TO 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 # GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
-${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}" -e"
+${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p'${TMP_DC_MSQ_CONF_DB_PASSWD}' -e"
 CREATE USER 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' IDENTIFIED BY '${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}';
 GRANT REPLICATION SLAVE, REPLICATION CLIENT ON *.* to 'slave'@'${TMP_DC_MSQ_CONF_DB_MASTER_SLAVE}' WITH GRANT OPTION;
 FLUSH PRIVILEGES;
@@ -129,7 +129,7 @@ function conf_dc_mysql_etc_slave()
     TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(console_input "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD" "Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' master@<${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}>:[${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}] account <password> for 'slave'" "y" "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD")
 
     # 获取主库状态
-    local TMP_DC_MSQ_CONF_DB_MASTER_STATUS=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "echo 'show master status\G;' | ${TMP_DC_MSQ_CONF_CMD_MARK} -h${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST} -uslave -p\"${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}\" -P${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}")
+    local TMP_DC_MSQ_CONF_DB_MASTER_STATUS=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "echo 'show master status\G;' | ${TMP_DC_MSQ_CONF_CMD_MARK} -h${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST} -uslave -p'${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}' -P${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}")
     local TMP_DC_MSQ_CONF_DB_MASTER_FILE=$(echo "${TMP_DC_MSQ_CONF_DB_MASTER_STATUS}" | awk -F':' '{if($1~"File"){print $2}}' | xargs echo)
     local TMP_DC_MSQ_CONF_DB_MASTER_POS=$(echo "${TMP_DC_MSQ_CONF_DB_MASTER_STATUS}" | awk -F':' '{if($1~"Position"){print $2}}' | xargs echo)
 
@@ -143,7 +143,7 @@ function conf_dc_mysql_etc_slave()
 # change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}', master_auto_position=1;
 # change master to master_host='${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}', master_port=${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}, master_user='slave', master_password='${TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD}', master_log_file='${TMP_DC_MSQ_CONF_DB_MASTER_FILE}', master_log_pos=${TMP_DC_MSQ_CONF_DB_MASTER_POS};
 # set @@GLOBAL.GTID_MODE = OFF;
-${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p"${TMP_DC_MSQ_CONF_DB_PASSWD}" -e"
+${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p'${TMP_DC_MSQ_CONF_DB_PASSWD}' -e"
 stop slave;
 reset slave;
 FLUSH PRIVILEGES;
@@ -164,7 +164,7 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "${TMP_DC_MSQ_CONF_SET_SLAVE_SQL}" "/tmp/set_db_slave.sh" "."
    
 	# 添加系统启动命令(不sleep可能会遇到服务还没起来的情况)
-    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c 'sleep 30 && echo \"start slave; show slave status\\\G;\" | ${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p\"${TMP_DC_MSQ_CONF_DB_PASSWD}\" -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}'" "" 999 "" "docker" "false" "0"
+    echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c \"sleep 30 && echo 'start slave; show slave status\\\G;' | ${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p'${TMP_DC_MSQ_CONF_DB_PASSWD}' -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}\"" "" 999 "" "docker" "false" "0"
     
     # 结束
     exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay 10 secs to exit"
@@ -206,8 +206,7 @@ function _conf_dc_mysql_etc_bind()
 
         # 临时密码
         TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/logs/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
-        TMP_DC_MSQ_CONF_TEMPORARY_PWD="${TMP_DC_MSQ_CONF_TEMPORARY_PWD//\`/\\\`/}"
-        TMP_DC_MSQ_CONF_TEMPORARY_PWD="${TMP_DC_MSQ_CONF_TEMPORARY_PWD//\"/\\\"/}"
+        TMP_DC_MSQ_CONF_TEMPORARY_PWD="${TMP_DC_MSQ_CONF_TEMPORARY_PWD//\'/\\\'/}"
 
         # 软件内部标识命令（大于等于11的版本被标记为mariadb）
         if [ -z "$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" 'which mysql')" ]; then

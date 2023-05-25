@@ -186,11 +186,11 @@ function conf_dc_library_mariadb() {
 
     # 开始配置
     local TMP_DC_MDB_SETUP_TEMPORARY_PWD=$(cat ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MDB_SETUP_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
-    TMP_DC_MDB_SETUP_TEMPORARY_PWD="${TMP_DC_MDB_SETUP_TEMPORARY_PWD//\`/\\\`/}"
-    TMP_DC_MDB_SETUP_TEMPORARY_PWD="${TMP_DC_MDB_SETUP_TEMPORARY_PWD//\"/\\\"/}"
     echo_style_text "'MySql': System temporary password is:"
     echo "${TMP_DC_MDB_SETUP_TEMPORARY_PWD}"
     echo_style_text "Please [remember it 👆] for local login"
+
+    TMP_DC_MDB_SETUP_TEMPORARY_PWD="${TMP_DC_MDB_SETUP_TEMPORARY_PWD//\'/\\\'/}"
 
     # 设置密码
     local TMP_DC_MDB_SETUP_DB_PASSWD=$(rand_passwd 'mysql' 'db' "${TMP_DC_MDB_SETUP_IMG_VER}")
@@ -214,7 +214,7 @@ EOF
     ## 大于11的版本，PASSWORD函数被取消
     # if [ $(echo "${TMP_DC_MDB_SETUP_SOFT_VER%.*} < 11" | bc) == 1 ]; then
         TMP_DC_MDB_SETUP_INIT_SCRIPT=$(cat <<EOF
-${TMP_DC_MDB_SETUP_CMD_MARK} -uroot -p"${TMP_DC_MDB_SETUP_TEMPORARY_PWD}" -e"
+${TMP_DC_MDB_SETUP_CMD_MARK} -uroot -p'${TMP_DC_MDB_SETUP_TEMPORARY_PWD}' -e"
 GRANT ALL PRIVILEGES ON *.* TO 'root'@'%' IDENTIFIED BY '${TMP_DC_MDB_SETUP_DB_PASSWD}' WITH GRANT OPTION;
 
 ${TMP_DC_MDB_SETUP_INIT_SCRIPT_END}

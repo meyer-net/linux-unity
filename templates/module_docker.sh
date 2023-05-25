@@ -50,6 +50,7 @@ function setup_dc_$setup_name() {
         echo_style_text "View the 'workingdir copy'↓:"
 
         # 拷贝应用目录
+        # docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir ${1} >& /dev/null
         
         # 查看列表
@@ -79,17 +80,17 @@ function formal_dc_$setup_name() {
     ### 日志
     #### /mountdisk/logs/docker_apps/$setup_name/imgver111111
     function _formal_dc_$setup_name_cp_logs() {
-    #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'logs copy'↓:"
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'logs copy'↓:"
 
-    #     # 拷贝日志目录
-    #     ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
-    #     # mkdir -pv ${1}/app
-    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
-    #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app >& /dev/null
-    #
-    #     # 查看列表
-    #     ls -lia ${1}
+        # 拷贝日志目录
+        ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
+        # mkdir -pv ${1}/app
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app >& /dev/null
+    
+        # 查看列表
+        ls -lia ${1}/app
     }
     soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}" "_formal_dc_$setup_name_cp_logs"
 
@@ -116,14 +117,14 @@ function formal_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/container"
     #### /mountdisk/etc/docker_apps/$setup_name/imgver111111
     function _formal_dc_$setup_name_cp_etc() {
-    #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'etc copy'↓:"
+        echo "${TMP_SPLITER2}"
+        echo_style_text "View the 'etc copy'↓:"
 
-    #     # 拷贝配置目录
-    #     ## /mountdisk/etc/docker_apps/$setup_name/imgver111111/app
-    #     # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK} ${1}/app >& /dev/null
-    #     docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
-    #     ls -lia ${1}
+        # 拷贝配置目录
+        ## /mountdisk/etc/docker_apps/$setup_name/imgver111111/app
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK} ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+        ls -lia ${1}/app
     
     #     # 移除本地配置目录(挂载)
     #     rm -rf ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK}
@@ -169,7 +170,8 @@ function formal_dc_$setup_name() {
     # soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}:/tmp"
     #
-    # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir
+    # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
@@ -181,7 +183,8 @@ function formal_dc_$setup_name() {
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     # if [ $(echo "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     # fi
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
@@ -372,7 +375,7 @@ function boot_build_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
