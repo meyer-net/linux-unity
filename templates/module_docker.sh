@@ -369,7 +369,7 @@ function boot_build_dc_$setup_name() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}], hold on please"
 
     # 设置密码
-    local TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'mysql' 'db' "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}")" "Please sure your 'mysql' <database password>" "y")
+    local TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'mysql' 'db' "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER}")" "Please sure your 'mysql' <database password>" "y")
     
     ## 标准启动参数
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"

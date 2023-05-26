@@ -17,15 +17,6 @@
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/etc/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/logs/library_postgres*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
-# 安装标题：$title_name
-# 软件名称：postgres
-# 软件端口：5432
-# 软件大写分组与简称：PSQ
-# 软件安装名称：library_postgres
-# 软件工作运行目录：/usr/lib/${TMP_DC_PSQ_SETUP_APP_MARK}
-# 软件GIT仓储名称：${docker_prefix}
-# 软件GIT仓储名称：${git_repo}
-#------------------------------------------------
 local TMP_DC_PSQ_SETUP_INN_PORT=5432
 local TMP_DC_PSQ_SETUP_OPN_PORT=1${TMP_DC_PSQ_SETUP_INN_PORT}
 
@@ -313,7 +304,7 @@ function exec_step_dc_library_postgres() {
     local TMP_DC_PSQ_SETUP_CTN_ARGS="${5}"
     
     # 软件内部标识版本（$3已返回该版本号，仅测试选择15.3的场景）
-    local TMP_DC_PSQ_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'psql --version | grep -oP "(?<=\) ).+(?=\(Debian)"')
+    local TMP_DC_PSQ_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'psql --version | grep -oP "(?<=\) ).+(?= \(Debian)"')
 
     ## 统一编排到的路径
     local TMP_DC_PSQ_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}/${TMP_DC_PSQ_SETUP_CTN_VER}

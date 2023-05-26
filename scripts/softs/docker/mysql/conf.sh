@@ -58,7 +58,7 @@ function conf_dc_mysql_etc_master()
     # 修改DB内配置
 	echo_style_text "Starting 'grant permission' to [slave]"
     local TMP_DC_MSQ_CONF_DB_PASSWD=$(console_input "TMP_DC_MSQ_CONF_TEMPORARY_PWD" "Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' <database password> of [localhost]" "y")
-    local TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(rand_passwd 'mysql-slave' 'db' "${TMP_DC_MSQ_CONF_CTN_IMG_VER}")
+    local TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(rand_passwd 'mysql-slave' 'db' "${TMP_DC_MSQ_CONF_CTN_SOFT_VER}")
     TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(console_input "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD" "Please sure your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' <database password> for [slave]" "y" "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD")
     local TMP_DC_MSQ_CONF_DB_MASTER_SLAVE=$(console_input "${LOCAL_HOST%.*}." "'MySQL': Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' <mysql slave address>")
 	
@@ -125,7 +125,7 @@ function conf_dc_mysql_etc_slave()
 	local TMP_DC_MSQ_CONF_DB_PASSWD=$(console_input "TMP_DC_MSQ_CONF_TEMPORARY_PWD" "'MySQL': Please ender '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' <localhost password> of [root]" "y")
 	local TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST=$(console_input "${LOCAL_HOST%.*}." "'MySQL': Please ender 'mysql master host' in internal")
 	local TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT=$(console_input "${TMP_DC_MSQ_CONF_SOFT_OPN_PORT}" "'MySQL': Please sure 'mysql master port' of host(<${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}>)")
-    local TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(rand_passwd 'mysql-slave' 'db' "${TMP_DC_MSQ_CONF_CTN_IMG_VER}")
+    local TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(rand_passwd 'mysql-slave' 'db' "${TMP_DC_MSQ_CONF_CTN_SOFT_VER}")
     TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD=$(console_input "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD" "Please ender your '${TMP_DC_MSQ_CONF_CTN_IMG_NAME}' master@<${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST}>:[${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}] account <password> for 'slave'" "y" "TMP_DC_MSQ_CONF_DB_SLAVE_PASSWD")
 
     # 获取主库状态
@@ -192,6 +192,16 @@ function _conf_dc_mysql_etc_bind()
         TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME="${TMP_DC_MSQ_CONF_CTN_IMG_NAME/\//_}"
         TMP_DC_MSQ_CONF_CTN_IMG_VER=$(echo "${TMP_DC_MSQ_CONF_CTN_CHOICE}" | cut -d':' -f2)
         TMP_DC_MSQ_CONF_CTN_ID=$(echo "${TMP_DC_MSQ_CONF_CTN_CHOICE}" | cut -d':' -f3)
+        # 软件内部标识命令（大于等于11的版本被标记为mariadb）
+        if [ -z "$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" 'which mysql')" ]; then
+            TMP_DC_MSQ_CONF_CMD_MARK="mariadb"
+        fi
+
+        TMP_DC_MSQ_CONF_CTN_SOFT_VER=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" '${TMP_DC_MSQ_CONF_CMD_MARK} -V | grep -oP "(?<=Distrib ).+(?=,)"')
+        if [ -z "${TMP_DC_MSQ_CONF_CTN_SOFT_VER}" ]; then
+            ## mysql  Ver 8.0.33 for Linux on x86_64 (MySQL Community Server - GPL)
+            TMP_DC_MSQ_CONF_CTN_SOFT_VER=$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" '${TMP_DC_MSQ_CONF_CMD_MARK} -V | grep -oP "(?<=Ver ).+(?= for)"')
+        fi
         
         local TMP_DC_MSQ_CONF_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${TMP_DC_MSQ_CONF_CTN_ID}")
         if [ -z "${TMP_DC_MSQ_CONF_CTN_RUNLIKE}" ]; then
@@ -208,11 +218,6 @@ function _conf_dc_mysql_etc_bind()
         TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/logs/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
         TMP_DC_MSQ_CONF_TEMPORARY_PWD="${TMP_DC_MSQ_CONF_TEMPORARY_PWD//\'/\\\'/}"
 
-        # 软件内部标识命令（大于等于11的版本被标记为mariadb）
-        if [ -z "$(docker_bash_channel_exec "${TMP_DC_MSQ_CONF_CTN_ID}" 'which mysql')" ]; then
-            TMP_DC_MSQ_CONF_CMD_MARK="mariadb"
-        fi
-
         # 配置文件路径
         TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MSQ_CONF_CTN_ID}")
     fi
@@ -225,6 +230,7 @@ function _conf_dc_mysql_etc_bind()
 local TMP_DC_MSQ_CONF_SETUP_DIR=
 local TMP_DC_MSQ_CONF_CTN_IMG_NAME=
 local TMP_DC_MSQ_CONF_CTN_IMG_VER=
+local TMP_DC_MSQ_CONF_CTN_SOFT_VER=
 local TMP_DC_MSQ_CONF_CTN_ID=
 local TMP_DC_MSQ_CONF_SOFT_OPN_PORT=
 local TMP_DC_MSQ_CONF_SOFT_INN_PORT=

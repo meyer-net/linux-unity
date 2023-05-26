@@ -19,6 +19,7 @@ CL_MAG="\033[35m"
 CL_CYN="\033[36m"
 CL_RST="\033[0m"
 
+EOF_TAG="EOF"
 GUM_PATH="/usr/bin/gum"
 PUP_PATH="/usr/bin/pup"
 export LC_CTYPE="en_US.UTF-8"
