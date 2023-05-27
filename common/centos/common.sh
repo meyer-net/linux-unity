@@ -3147,6 +3147,7 @@ function su_bash_conda_echo_profile()
 # 示例：
 #       docker_bash_channel_exec "" "whoami" 
 #       docker_bash_channel_exec "" "whoami" "t"
+#       docker_bash_channel_exec "" "whoami" "td"
 #       docker_bash_channel_exec "" "whoami" "" "root"
 function docker_bash_channel_exec()
 {
@@ -3163,6 +3164,7 @@ function docker_bash_channel_exec()
 	if [ -z "${_TMP_DOCKER_BASH_CHANNEL_EXEC_RUNLIKE}" ]; then
 		# 尝试进入
 		docker exec -u ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER} -i${3} ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID} sh -c "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}"
+		return $?
 	else
 		echo_style_text "'|👉' Docker channel script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
 	fi
@@ -3182,6 +3184,7 @@ function docker_bash_channel_exec()
 # 示例：
 #       docker_bash_channel_echo_exec "" "whoami" 
 #       docker_bash_channel_echo_exec "" "whoami" "t"
+#       docker_bash_channel_echo_exec "" "whoami" "td"
 #       docker_bash_channel_echo_exec "" "whoami" "" "root"
 function docker_bash_channel_echo_exec()
 {
@@ -3199,6 +3202,7 @@ EOF
 
 	if [ -n "${_TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT}" ]; then
 		docker_bash_channel_exec "${1}" "${_TMP_DOCKER_BASH_CHANNEL_ECHO_SCRIPT}" "${@:5}"
+		return $?
 	fi
 
 	# rm -rf ${_TMP_DOCKER_BASH_CHANNEL_ECHO_PATH}
@@ -7709,14 +7713,14 @@ function docker_image_boot_print()
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
 			local _TMP_DOCKER_IMG_BOOT_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "cat /etc/issue" "t")
 			if [[ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
-				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update" "t"
+				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update && apt-get -y install procps vim" "t"
 			else
 				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
 					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
 					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
 					echo_style_text "'Photon' system, do nothing"
 				else
-					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "yum -y update" "t"
+					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "yum -y update && yum -y install procps vim" "t"
 				fi
 			fi
 			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh" "t"

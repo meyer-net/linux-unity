@@ -53,20 +53,36 @@ function conf_dc_postgresql_etc_master()
 	
     file_content_not_exists_echo "^host replication rep_user ${TMP_DC_PSQ_CONF_DB_MASTER_SLAVE_HOST}/.*" "${TMP_DC_PSQ_CONF_LNK_ETC_DIR}/pg_hba.conf" "host replication rep_user ${TMP_DC_PSQ_CONF_DB_MASTER_SLAVE_HOST}/32 md5"
 
-    # 修改配置完重启
-    docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
 	# docker container restart ${TMP_DC_PSQ_CONF_CTN_ID}
 
-    local TMP_DC_PSQ_CONF_SET_MASTER_SH=$(cat <<EOF
-echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: If u cannot create rep_user, pls create manual on command"
+    # !!!此处之所以分为多段，且用-d后台执行&重启进程，纯属因DEBUG过程中，每次执行脚本时用户或DB创建了，但是进程被阻塞所致。
+    local TMP_DC_PSQ_CONF_SET_MASTER_DB_SH=$(cat <<EOF
+PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres -c "CREATE DATABASE test_replication_db WITH ENCODING 'UTF8';"
+EOF
+)
+    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_DB_SH}" "/tmp/create_master_test_db.sh" "." 'td' 'postgres'
+    
+    # 修改配置完重启
+    docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
+
+    local TMP_DC_PSQ_CONF_SET_MASTER_USR_SH=$(cat <<EOF
+echo
 # PGPASSWORD="${TMP_DC_PSQ_CONF_DB_PASSWD}" psql -U postgres -d postgres -c "CREATE ROLE rep_user LOGIN replication ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}';"
+PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres -c "CREATE USER rep_user replication LOGIN CONNECTION LIMIT 3 ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}';"
+EOF
+)
+    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_USR_SH}" "/tmp/create_db_master_usr.sh" "." 'td' 'postgres'
+    
+    # 修改配置完重启
+    docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
+
+    local TMP_DC_PSQ_CONF_SET_MASTER_SH=$(cat <<EOF
+echo
+echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: If u cannot create rep_user, pls create manual on command"
 PGPASSWORD="${TMP_DC_PSQ_CONF_DB_PASSWD}" psql -U postgres -d postgres << ${EOF_TAG}
-\c postgres
-CREATE DATABASE test_replication_db WITH ENCODING 'UTF8';
-CREATE USER rep_user replication LOGIN CONNECTION LIMIT 3 ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}'; 
+\l
 \du
 SELECT * FROM pg_user;
-\l
 ${EOF_TAG}
 echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: Master set success"
 echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: Password(${green}${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}${reset}) for ${red}slave${reset} set success"
