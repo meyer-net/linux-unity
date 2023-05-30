@@ -2634,7 +2634,11 @@ function console_input()
 			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}: ' --password"
 			;;
 		*)
-			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}, default: '"
+			local _TMP_CONSULE_INPUT_GUM_DFT_TXT_ECHO=
+			if [ -n "${_TMP_CONSULE_INPUT_VAR_VAL}" ]; then
+				_TMP_CONSULE_INPUT_GUM_DFT_TXT_ECHO=", default"
+			fi
+			_TMP_CONSULE_INPUT_GUM_ARGS="${_TMP_CONSULE_INPUT_GUM_ARGS} --prompt '${reset}${_TMP_CONSULE_INPUT_ECHO}${_TMP_CONSULE_INPUT_GUM_DFT_TXT_ECHO}: '"
 		esac
 
 		_TMP_CONSULE_INPUT_INPUT_CURRENT=$(eval gum input ${_TMP_CONSULE_INPUT_GUM_ARGS})
@@ -4879,7 +4883,7 @@ function docker_soft_dirs_bind()
 	# 真实路径 - 基础四大路径
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 
 	# 真实路径 - 挂载路径
@@ -4903,22 +4907,22 @@ function docker_soft_dirs_bind()
 
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID}"
 
 	# 虚拟目录 - 容器安装目录
-	if [ -a "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}" ]; then
-		local _TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS="$(ls -l ${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/ | awk -F' ' '{print $9}' | awk '$1=$1')"
+	if [ -a "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}" ]; then
+		local _TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS="$(ls -l ${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/ | awk -F' ' '{print $9}' | awk '$1=$1')"
 		function _docker_soft_dirs_bind_combine_append_setup()
 		{
-			item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}"
+			item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}$" "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}"
 		}
 
 		items_split_action "_TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS" "_docker_soft_dirs_bind_combine_append_setup"
 	fi
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 
 	if [ "${_TMP_DOCKER_SOFT_DIRS_BIND_VAR_TYPE}" == "array" ]; then
 		eval ${_TMP_DOCKER_SOFT_DIRS_BIND_VAR_NAME}='(${_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[*]})'
@@ -7528,8 +7532,8 @@ function docker_container_print()
             fi
         }
 
-        [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
-        [[ -a ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+        [[ -a ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+        [[ -a ${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
 
         echo "${TMP_SPLITER2}"
         echo_style_text "View the 'boot info'↓:"
@@ -7548,11 +7552,11 @@ function docker_container_print()
         items_split_action "${_TMP_DOCKER_CTN_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
         
         # 查看日志（config/image）
-        if [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]]; then
+        if [[ -a ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]]; then
             echo "${TMP_SPLITER2}"
             echo_style_text "View the 'container inspect'↓:"
-            echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
-            cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+            echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq > ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+            cat ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
         fi
 
         echo "${TMP_SPLITER2}"
@@ -7887,7 +7891,7 @@ function soft_setup_common_wget()
 	local _TMP_SOFT_SETUP_COMMON_WGET_NAME=${1}
 	# local _TMP_SOFT_SETUP_COMMON_WGET_MARK_NAME="${1/\//_}"
 	local _TMP_SOFT_SETUP_COMMON_WGET_URL=${2}
-	local _TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR=${3}
+	local _TMP_SOFT_SETUP_COMMON_WGET_DEPLOY_DIR=${3}
 	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT=${4}
 	local _TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT=${5}
 	local _TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR=
@@ -7896,7 +7900,7 @@ function soft_setup_common_wget()
 	function _soft_setup_common_wget()
 	{
 		_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR="${1}"
-		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALL_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_DEPLOY_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
 
 		# 清理解压包
 		if [ -n "${1}" ]; then
@@ -7904,10 +7908,10 @@ function soft_setup_common_wget()
 		fi
 	}
 
-	path_check_wget_action "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${_TMP_SOFT_SETUP_COMMON_WGET_URL}" "_soft_setup_common_wget"
-    # ls -d ${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_COMMON_WGET_NAME} | grep -v grep
+	path_check_wget_action "${_TMP_SOFT_SETUP_COMMON_WGET_DEPLOY_DIR}" "${_TMP_SOFT_SETUP_COMMON_WGET_URL}" "_soft_setup_common_wget"
+    # ls -d ${_TMP_SOFT_SETUP_COMMON_WGET_DEPLOY_DIR} && $? -ne 0   #ps -fe | grep ${_TMP_SOFT_SETUP_COMMON_WGET_NAME} | grep -v grep
 	if [ -z "${_TMP_SOFT_SETUP_COMMON_WGET_EXTRA_DIR}" ]; then
-		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_SETUP_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
+		script_check_action "_TMP_SOFT_SETUP_COMMON_WGET_INSTALLED_SCRIPT" "${_TMP_SOFT_SETUP_COMMON_WGET_NAME}" "${_TMP_SOFT_SETUP_COMMON_WGET_DEPLOY_DIR}" "${1}" "${_TMP_SOFT_SETUP_COMMON_WGET_ATT_PARAMS[*]}"
 		return $?
 	fi
 
@@ -7932,14 +7936,11 @@ function soft_setup_common_wget()
 #      soft_setup_wget "gum" "0.8.0" "exec_step_gum"
 function soft_setup_wget() 
 {
-	local _TMP_SOFT_SETUP_WGET_NAME=${1}
-	# local _TMP_SOFT_SETUP_WGET_MARK_NAME="${1/\//_}"
-	
 	typeset -l _TMP_SOFT_SETUP_WGET_LOWER_NAME
-	local _TMP_SOFT_SETUP_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_WGET_NAME}
-	local _TMP_SOFT_SETUP_WGET_SETUP_DIR=${SETUP_DIR}/${_TMP_SOFT_SETUP_WGET_LOWER_NAME}
+	local _TMP_SOFT_SETUP_WGET_LOWER_NAME=${1}
+	local _TMP_SOFT_SETUP_WGET_DEPLOY_DIR=${SETUP_DIR}/${_TMP_SOFT_SETUP_WGET_LOWER_NAME}
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_WGET_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -7961,18 +7962,17 @@ function soft_setup_wget()
 #      soft_setup_docker_wget "goharbor/harbor" "https://github.com/goharbor/harbor/releases/download/v1.10.17/harbor-offline-installer-v1.10.17.tgz" "exec_step_harbor"
 function soft_setup_docker_wget() 
 {
-	local _TMP_SOFT_SETUP_DOCKER_WGET_NAME=${1}
 	local _TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME="${1/\//_}"
 	
 	typeset -l _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME
-	local _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_DOCKER_WGET_NAME}
-	local _TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
+	local _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME=${1}
+	local _TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR=${DOCKER_APP_DEPLOY_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
 
 	if [ -n "${5}" ]; then
-		_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR=${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}/v${5}
+		_TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR=${_TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR}/v${5}
 	fi
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_DOCKER_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -7999,9 +7999,9 @@ function soft_setup_conda_wget()
 	
 	typeset -l _TMP_SOFT_SETUP_CONDA_WGET_LOWER_NAME
 	local _TMP_SOFT_SETUP_CONDA_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_CONDA_WGET_NAME}
-	local _TMP_SOFT_SETUP_CONDA_WGET_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_CONDA_WGET_MARK_NAME}
+	local _TMP_SOFT_SETUP_CONDA_WGET_DEPLOY_DIR=${CONDA_APP_DEPLOY_DIR}/${_TMP_SOFT_SETUP_CONDA_WGET_MARK_NAME}
 
-	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_CONDA_WGET_SETUP_DIR}" "${3}" "${4}" "${@:5}"
+	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_CONDA_WGET_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -8111,35 +8111,129 @@ function soft_setup_conda_git_wget()
 # 安装软件下载模式
 # 参数1：软件安装名称
 # 参数2：软件下载地址
-# 参数3：软件下载后执行函数/脚本
-# 参数4：软件下载附加参数
-function soft_setup_git() 
+# 参数3：安装检测路径
+# 参数4：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数6-N：附加参数
+# 示例：
+#       soft_setup_common_git "" "" "" "" "" ""
+function soft_setup_common_git() 
 {
-	local _TMP_SOFT_SETUP_GIT_URL=${2}
-	local _TMP_SOFT_SETUP_GIT_SETUP_SCRIPTS=${3}
-	local _TMP_SOFT_SETUP_GIT_URL_ARGS=${4}
+	local _TMP_SOFT_SETUP_COMMON_GIT_NAME=${1}
+	local _TMP_SOFT_SETUP_COMMON_GIT_URL=${2}
+	local _TMP_SOFT_SETUP_COMMON_GIT_DEPLOY_DIR=${3}
+	local _TMP_SOFT_SETUP_COMMON_GIT_INSTALL_SCRIPTS=${4}
+	local _TMP_SOFT_SETUP_COMMON_GIT_INSTALLED_SCRIPTS=${5}
+	local _TMP_SOFT_SETUP_COMMON_GIT_ATT_PARAMS=("${@:6}")
 	
 	typeset -l TMP_SOFT_LOWER_NAME
 	local TMP_SOFT_LOWER_NAME=${1}
-	local TMP_SOFT_SETUP_DIR=${SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
+	# local TMP_SOFT_DEPLOY_DIR=${SETUP_DIR}/${TMP_SOFT_LOWER_NAME}
 
-    ls -d ${TMP_SOFT_SETUP_DIR}   #ps -fe | grep ${1} | grep -v grep
-	if [ $? -ne 0 ]; then
-		local _TMP_SOFT_SETUP_GIT_FOLDER_NAME=$(echo "${_TMP_SOFT_SETUP_GIT_URL}" | awk -F'/' '{print $NF}')
+	function _soft_setup_common_git() 
+	{
+		# local _TMP_SOFT_SETUP_COMMON_GIT_FOLDER_NAME=$(echo "${_TMP_SOFT_SETUP_COMMON_GIT_URL}" | awk -F'/' '{print $NF}')
+		local _TMP_SOFT_SETUP_COMMON_GIT_FOLDER_NAME="${_TMP_SOFT_SETUP_COMMON_GIT_URL##*/}"
 
 		mkdir -pv ${DOWN_DIR} && cd ${DOWN_DIR}
-		if [ ! -f "${_TMP_SOFT_SETUP_GIT_FOLDER_NAME}" ]; then
-			git clone ${_TMP_SOFT_SETUP_GIT_URL} ${_TMP_SOFT_SETUP_GIT_URL_ARGS}
+		if [ ! -d "${_TMP_SOFT_SETUP_COMMON_GIT_FOLDER_NAME}" ]; then
+			git clone ${_TMP_SOFT_SETUP_COMMON_GIT_URL}
 		fi
 		
-		cd ${_TMP_SOFT_SETUP_GIT_FOLDER_NAME}
+		cd ${_TMP_SOFT_SETUP_COMMON_GIT_FOLDER_NAME}
 
 		# 安装函数调用
-		script_check_action "${3}" "${TMP_SOFT_SETUP_DIR}"
+		script_check_action "${_TMP_SOFT_SETUP_COMMON_GIT_INSTALL_SCRIPTS}" "${_TMP_SOFT_SETUP_COMMON_GIT_NAME}" "${_TMP_SOFT_SETUP_COMMON_GIT_DEPLOY_DIR}" "$(pwd)" "${_TMP_SOFT_SETUP_COMMON_GIT_ATT_PARAMS[*]}"
+		return $?
+	}
 	
-		echo "Complete."
-	fi
+	path_exists_yn_action "${3}" "${_TMP_SOFT_SETUP_COMMON_GIT_INSTALLED_SCRIPTS}" "_soft_setup_common_git"
+	return $?
+}
 
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
+function soft_setup_git() 
+{
+	typeset -l TMP_SOFT_SETUP_GIT_LOWER_NAME
+	local TMP_SOFT_SETUP_GIT_LOWER_NAME=${1}
+	local TMP_SOFT_SETUP_GIT_DEPLOY_DIR=${SETUP_DIR}/${TMP_SOFT_SETUP_GIT_LOWER_NAME}
+
+	soft_setup_common_git "${1}" "${2}" "${TMP_SOFT_SETUP_GIT_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
+	return $?
+}
+
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
+function soft_setup_docker_git() 
+{
+	local TMP_SOFT_SETUP_DOCKER_GIT_NAME=${1}
+	local TMP_SOFT_SETUP_DOCKER_GIT_MARK_NAME="${1/\//_}"
+
+	typeset -l TMP_SOFT_SETUP_DOCKER_GIT_LOWER_NAME
+	local TMP_SOFT_SETUP_DOCKER_GIT_LOWER_NAME=${TMP_SOFT_SETUP_DOCKER_GIT_MARK_NAME}
+	local TMP_SOFT_SETUP_DOCKER_GIT_DEPLOY_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_SOFT_SETUP_DOCKER_GIT_LOWER_NAME}
+
+	soft_setup_common_git "${1}" "${2}" "${TMP_SOFT_SETUP_DOCKER_GIT_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
+	return $?
+}
+
+# 安装软件下载模式
+# 参数1：软件安装名称
+# 参数2：软件下载地址
+# 参数3：软件下载后执行函数名称
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数4：软件已安装执行函数
+#       参数1：软件安装名称
+#       参数2：软件安装路径
+#       参数3：软件解压路径
+#       参数4：附加参数等
+# 参数5-N：附加参数
+function soft_setup_conda_git() 
+{
+	local TMP_SOFT_SETUP_CONDA_GIT_NAME=${1}
+	local TMP_SOFT_SETUP_CONDA_GIT_MARK_NAME="${1/\//_}"
+
+	typeset -l TMP_SOFT_SETUP_CONDA_GIT_LOWER_NAME
+	local TMP_SOFT_SETUP_CONDA_GIT_LOWER_NAME=${TMP_SOFT_SETUP_CONDA_GIT_MARK_NAME}
+	local TMP_SOFT_SETUP_CONDA_GIT_DEPLOY_DIR=${CONDA_APP_SETUP_DIR}/${TMP_SOFT_SETUP_CONDA_GIT_LOWER_NAME}
+
+	soft_setup_common_git "${1}" "${2}" "${TMP_SOFT_SETUP_CONDA_GIT_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
 }
 
@@ -8161,25 +8255,25 @@ function soft_setup_git()
 # 		pip install --upgrade setuptools
 		
 # 		local TMP_PY_DFT_SETUP_PATH=$(pip show pip | grep "Location" | awk -F' ' '{print $2}')
-# 		mv ${TMP_PY_DFT_SETUP_PATH} ${PY_PKGS_SETUP_DIR}
-# 		ln -sf ${PY_PKGS_SETUP_DIR} ${TMP_PY_DFT_SETUP_PATH}
+# 		mv ${TMP_PY_DFT_SETUP_PATH} ${PY_PKGS_DEPLOY_DIR}
+# 		ln -sf ${PY_PKGS_DEPLOY_DIR} ${TMP_PY_DFT_SETUP_PATH}
 # 	fi
 
 # 	typeset -l TMP_SOFT_LOWER_NAME
 # 	local TMP_SOFT_LOWER_NAME=${_TMP_SOFT_SETUP_PIP_NAME}
-# 	local TMP_SOFT_SETUP_DIR=$(pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}")
+# 	local TMP_SOFT_DEPLOY_DIR=$(pip show ${TMP_SOFT_LOWER_NAME} | grep "Location" | awk -F' ' '{print $2}' | xargs -I {} echo "{}/${TMP_SOFT_LOWER_NAME}")
 
 # 	# pip show supervisor
 # 	# pip freeze | grep "supervisor=="
-# 	if [ -z "${TMP_SOFT_SETUP_DIR}" ]; then
+# 	if [ -z "${TMP_SOFT_DEPLOY_DIR}" ]; then
 # 		echo_style_text "Pip start to install '${_TMP_SOFT_SETUP_PIP_NAME}'"
 # 		pip install ${TMP_SOFT_LOWER_NAME}
 # 		echo_style_text "Pip installed '${_TMP_SOFT_SETUP_PIP_NAME}'"
 
 # 		#安装后配置函数
-# 		script_check_action "_TMP_SOFT_SETUP_PIP_SETUP_FUNC" "${PY_PKGS_SETUP_DIR}/${TMP_SOFT_LOWER_NAME}"
+# 		script_check_action "_TMP_SOFT_SETUP_PIP_SETUP_FUNC" "${PY_PKGS_DEPLOY_DIR}/${TMP_SOFT_LOWER_NAME}"
 # 	else
-#     	ls -d ${TMP_SOFT_SETUP_DIR}   #ps -fe | grep ${_TMP_SOFT_SETUP_PIP_NAME} | grep -v grep
+#     	ls -d ${TMP_SOFT_DEPLOY_DIR}   #ps -fe | grep ${_TMP_SOFT_SETUP_PIP_NAME} | grep -v grep
 
 # 		return 1
 # 	fi
@@ -8611,7 +8705,7 @@ function soft_yum_check_action()
 	# if [ "${FUNCNAME[4]}" != "soft_yum_check_setup" ]; then
 	# 	soft_trail_clear "${_TMP_SOFT_YUM_CHECK_ACTION_CURRENT_SOFT_NAME}" "N"
 	# fi
-    soft_check_yn_action "${1}" "yum list installed | grep %s" "${3}" "${2}" "yum ${_TMP_SOFT_YUM_CHECK_ACTION_TYPE_DESC}ed repos"
+    soft_check_yn_action "${1}" "yum list installed | awk '{print \$1}' | grep '%s'" "${3}" "${2}" "yum ${_TMP_SOFT_YUM_CHECK_ACTION_TYPE_DESC}ed repos"
 	return $?
 }
 

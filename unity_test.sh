@@ -6,6 +6,8 @@
 #------------------------------------------------
 # Mark：启动
 #------------------------------------------------
+# Git代理参考：https://ghproxy.com
+#------------------------------------------------
 
 #---------- DIR ---------- {
 # Set magic variables for current file & dir
@@ -34,6 +36,9 @@ function bootstrap() {
     source common/${MAJOR_OS_LOWER}/common.sh
     source common/${MAJOR_OS_LOWER}/${MAJOR_VERS}/overwrite_vars.sh
     source common/bind_vars.sh
+
+    # source common/requirements.sh
+    # source common/functions.sh
 
     func_test
 

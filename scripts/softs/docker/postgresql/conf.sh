@@ -56,41 +56,48 @@ function conf_dc_postgresql_etc_master()
 	# docker container restart ${TMP_DC_PSQ_CONF_CTN_ID}
 
     # !!!此处之所以分为多段，且用-d后台执行&重启进程，纯属因DEBUG过程中，每次执行脚本时用户或DB创建了，但是进程被阻塞所致。
-    local TMP_DC_PSQ_CONF_SET_MASTER_DB_SH=$(cat <<EOF
-PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres -c "CREATE DATABASE test_replication_db WITH ENCODING 'UTF8';"
+    local TMP_DC_PSQ_CONF_SET_MASTER_TEST_DB_SH=$(cat <<EOF
+PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres << ${EOF_TAG} 
+CREATE DATABASE test_replication_db WITH ENCODING 'UTF8';
+\l
+\du
+${EOF_TAG}
 EOF
 )
-    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_DB_SH}" "/tmp/create_master_test_db.sh" "." 'td' 'postgres'
+    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_TEST_DB_SH}" "/tmp/create_master_test_db.sh" "." 'td' 'postgres'
     
-    # 修改配置完重启
-    docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
-
-    local TMP_DC_PSQ_CONF_SET_MASTER_USR_SH=$(cat <<EOF
+    local TMP_DC_PSQ_CONF_SET_MASTER_REP_USR_SH=$(cat <<EOF
 echo
 # PGPASSWORD="${TMP_DC_PSQ_CONF_DB_PASSWD}" psql -U postgres -d postgres -c "CREATE ROLE rep_user LOGIN replication ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}';"
-PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres -c "CREATE USER rep_user replication LOGIN CONNECTION LIMIT 3 ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}';"
+PGPASSWORD='${TMP_DC_PSQ_CONF_DB_PASSWD}' psql -U postgres -d postgres << ${EOF_TAG} 
+CREATE USER rep_user replication LOGIN CONNECTION LIMIT 3 ENCRYPTED PASSWORD '${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}';
+SELECT * FROM pg_user;
+${EOF_TAG}
 EOF
 )
-    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_USR_SH}" "/tmp/create_db_master_usr.sh" "." 'td' 'postgres'
+    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_REP_USR_SH}" "/tmp/create_db_master_rep_user.sh" "." 'td' 'postgres'
     
     # 修改配置完重启
     docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
-
-    local TMP_DC_PSQ_CONF_SET_MASTER_SH=$(cat <<EOF
+    
+    local TMP_DC_PSQ_CONF_CHECK_MASTER_SH=$(cat <<EOF
 echo
-echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: If u cannot create rep_user, pls create manual on command"
 PGPASSWORD="${TMP_DC_PSQ_CONF_DB_PASSWD}" psql -U postgres -d postgres << ${EOF_TAG}
 \l
 \du
 SELECT * FROM pg_user;
 ${EOF_TAG}
-echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: Master set success"
-echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: Password(${green}${TMP_DC_PSQ_CONF_DB_SLAVE_PASSWD}${reset}) for ${red}slave${reset} set success"
-echo "${TMP_DC_PSQ_CONF_CTN_IMG_NAME}: If got some error, pls run manual <docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/set_db_master.sh'>"
 EOF
 )
 
-    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_SH}" "/tmp/set_db_master.sh" "." "t"
+    docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_CHECK_MASTER_SH}" "/tmp/check_db_master.sh" "." "t"
+
+    echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': If u cannot create rep_user, pls create manual on command"
+    echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': Master set done"
+    echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': If got some error, pls run follow scripts manual:"
+    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_master_test_db.sh'>"
+    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_db_master_rep_user.sh'>"
+    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/check_db_master.sh'>"
     
     # 结束
     exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> master over, please checking the setup log, this will stay 10 secs to exit"

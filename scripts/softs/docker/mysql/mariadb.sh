@@ -14,6 +14,7 @@
 # docker ps -a --no-trunc | awk '{if($2~"mariadb"){print $1}}' | xargs docker rm
 # docker images | awk '{if($1~"mariadb"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/library_mariadb* && rm -rf /mountdisk/etc/docker_apps/library_mariadb* && rm -rf /mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/data/docker_apps/library_mariadb* && rm -rf /opt/docker/data/apps/library_mariadb* && rm -rf /opt/docker/etc/library_mariadb* && rm -rf /opt/docker/logs/library_mariadb* && rm -rf /mountdisk/repo/migrate/clean/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/library_mariadb*
+# rm -rf /mountdisk/repo/backup/opt/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/etc/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/logs/library_mariadb*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # 安装标题：$title_name

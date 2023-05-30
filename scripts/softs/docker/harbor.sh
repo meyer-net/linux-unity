@@ -17,6 +17,7 @@
 # docker ps -a | awk '{if($2~"goharbor/"){print $1}}' | xargs docker rm
 # docker images | awk '{if($1~"goharbor/"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/goharbor* && rm -rf /mountdisk/etc/docker_apps/goharbor* && rm -rf /mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/data/docker_apps/goharbor* && rm -rf /opt/docker/data/apps/goharbor* && rm -rf /opt/docker/etc/goharbor* && rm -rf /opt/docker/logs/goharbor* && rm -rf /mountdisk/repo/migrate/clean/goharbor_harbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker/volumes/000000000000_* && rm -rf /mountdisk/etc/conda_apps/supervisor/boots/goharbor_harbor.conf
+# rm -rf /mountdisk/repo/backup/opt/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/etc/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/logs/goharbor*
 # docker volume ls | awk '{print $2}' | xargs docker volume rm
 # docker volume ls | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
@@ -29,7 +30,7 @@
 # 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
-local TMP_DC_HB_SETUP_VER="1.10.17"
+local TMP_DC_HB_DOWN_VER="1.10.17"
 local TMP_DC_HB_SETUP_INN_HTTP_PORT=80
 local TMP_DC_HB_SETUP_INN_HTTPS_PORT=443
 local TMP_DC_HB_SETUP_OPN_HTTP_PORT=100${TMP_DC_HB_SETUP_INN_HTTP_PORT}
@@ -383,10 +384,10 @@ function conf_cpl_dc_goharbor_harbor() {
     yq -i '.data_volume = "'${TMP_DC_CPL_HB_SETUP_LNK_DATA_DIR}/${TMP_DC_HB_SETUP_COMPOSE_MARK}'"' harbor.yml
 
     # 设定DB密码
-    local TMP_DC_CPL_HB_SETUP_ADMIN_PASSWD=$(console_input "$(rand_passwd 'harbor' 'svr' "${TMP_DC_CPL_HB_MARK_VER}")" "Please sure your 'harbo' <admin password>" "y")
+    local TMP_DC_CPL_HB_SETUP_ADMIN_PASSWD=$(console_input "$(rand_passwd 'harbor' 'svr' "${TMP_DC_CPL_HB_COMPOSE_VER}")" "Please sure your 'harbo' <admin password>" "y")
     yq -i '.harbor_admin_password = "'${TMP_DC_CPL_HB_SETUP_ADMIN_PASSWD}'"' harbor.yml
 
-    local TMP_DC_CPL_HB_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'harbor' 'db' "${TMP_DC_CPL_HB_MARK_VER}")" "Please sure your 'harbo' <database password>" "y")
+    local TMP_DC_CPL_HB_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'harbor' 'db' "${TMP_DC_CPL_HB_COMPOSE_VER}")" "Please sure your 'harbo' <database password>" "y")
     yq -i '.database.password = "'${TMP_DC_CPL_HB_SETUP_DB_PASSWD}'"' harbor.yml
 
     # 注释不需要的节点配置
@@ -435,8 +436,8 @@ function build_compose_dc_goharbor_harbor() {
     fi
     
     ## 版本获取
-    local TMP_DC_CPL_HB_MARK_VER="v$(yq '._version' harbor.yml)"
-    local TMP_DC_CPL_HB_SETUP_VER="${TMP_DC_CPL_HB_MARK_VER:-v${4}}"
+    local TMP_DC_CPL_HB_COMPOSE_VER="$(yq '._version' harbor.yml)"
+    local TMP_DC_CPL_HB_SETUP_VER="v${TMP_DC_CPL_HB_COMPOSE_VER:-${4:-${TMP_DC_HB_DOWN_VER}}}"
     
     echo_style_wrap_text "Starting 'configuration' <compile> 'yaml', hold on please"
     
@@ -479,7 +480,7 @@ function build_compose_dc_goharbor_harbor() {
     echo_startup_supervisor_config "${TMP_DC_CPL_HB_SETUP_MARK_NAME}" "${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR}" "docker-compose up -d" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 10 "Install <goharbor/harbor> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Deploy <goharbor/harbor> over, please checking the setup log, this will stay 10 secs to exit"
 
     return $?
 }
@@ -493,7 +494,7 @@ function download_package_dc_goharbor_harbor() {
     echo_style_wrap_text "Download 'install package' <${1}>, hold on please"
 
     # 选择及下载安装版本
-    soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "${TMP_DC_HB_SETUP_VER}" "build_compose_dc_goharbor_harbor"
+    soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "${TMP_DC_HB_DOWN_VER}" "build_compose_dc_goharbor_harbor"
     return $?
 }
 
