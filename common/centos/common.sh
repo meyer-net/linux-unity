@@ -920,11 +920,14 @@ function change_json_node_arr()
 function comment_yaml_file_node_item()
 {
 	local _TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH=$(echo_discern_exchange_var_val "${1}")
-	local _TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL=$(diff -e <(yq "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}) ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH})
+
+	# 预先统一格式，不然输出格式会存在问题
+	(cat ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH} | yq) > ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp
+	local _TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL=$(diff -e <(yq "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp) ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp)
 
 	if [ -n "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" ]; then
 		# 删除节点
-		yq -i "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}
+		yq -i "del(${2})" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp
 
 		local _TMP_COMMENT_YAML_NODE_ITEM_LINE=$(echo "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" | awk 'NR==1')
 		local _TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM=$(echo "${_TMP_COMMENT_YAML_NODE_ITEM_LINE}" | egrep -o '^[0-9]+')
@@ -933,7 +936,7 @@ function comment_yaml_file_node_item()
 		# 逐行插入注释后的节点
 		function _comment_yaml_file_node_item_append()
 		{
-			sed -i "${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM}${_TMP_COMMENT_YAML_NODE_ITEM_LINE_ATTR} ${1}" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}
+			sed -i "${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM}${_TMP_COMMENT_YAML_NODE_ITEM_LINE_ATTR:-a} ${1}" ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp
 
 			# 行号后移
 			_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM=$((${_TMP_COMMENT_YAML_NODE_ITEM_LINE_NUM}+1))
@@ -941,6 +944,10 @@ function comment_yaml_file_node_item()
 		
 		# 忽略空行，最后一行
 		echo "${_TMP_COMMENT_YAML_NODE_ITEM_DIFF_VAL}" | awk 'NR>1{if(line!=""){print line}{line="#"$0}}' | eval "script_channel_action '_comment_yaml_file_node_item_append'"
+
+		# 还原文件
+		cat ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp > ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}
+		rm -rf ${_TMP_COMMENT_YAML_NODE_ITEM_FILE_PATH}.temp
 	fi
 	
     return $?
@@ -2941,7 +2948,7 @@ function exec_if_choice_custom()
 # 参数5：脚本路径/前缀
 function exec_if_choice()
 {
-	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5" 'exec_if_choice "${1}" "${2}" ${3} "${4}" "$5"'
+	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "${5}" 'exec_if_choice "${1}" "${2}" ${3} "${4}" "${5}"'
 	return $?
 }
 
@@ -2953,7 +2960,216 @@ function exec_if_choice()
 # 参数5：脚本路径/前缀
 function exec_if_choice_onece()
 {
-	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "$5"
+	exec_if_choice_custom "${1}" "${2}" ${3} "${4}" "${5}"
+	return $?
+}
+
+# 参照某类软件安装流程化（自定义或默认执行）操作，例：mysql/redis/postgres
+# 参数1：软件名称
+# 参数2：自定义时执行
+# 参数3：默认时执行
+function confirm_soft_setup_step_action()
+{
+    local _TMP_CONFIRM_SOFT_SETUP_STEP_ACTION_USE_CUSTOM="Y"
+    confirm_yn_action "_TMP_CONFIRM_SOFT_SETUP_STEP_ACTION_USE_CUSTOM" "Please 'sure' u will use <${1}> [custom] 'still or not'" "${2}" "${3}"
+	return $?
+}
+
+# 参照某类软件安装流程化（自定义或默认执行）操作，例：mysql/redis/postgres
+# 参数1：PSQL 默认主机地址
+# 参数2：PSQL 默认主机端口
+# 参数3：PSQL 新建用户登录名
+# 参数4：PSQL 新建用户登录密码
+# 参数5：PSQL 新建用户授权Database
+# 参数6：自定义时执行
+# 参数7：默认时执行
+function confirm_postgresql_setup_step_action()
+{
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST=${1}
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT=${2}
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME=${3}
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD=${4}
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB=${5}
+
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CUSTOM_SCRIPT="${6}"
+    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_DEPENDS_SCRIPT="${7}"
+	function _confirm_postgresql_setup_step_action_custom()
+	{
+		    local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTNS=$(docker ps -a --no-trunc | awk "{if(\$2~\"postgres\"){ print \$2\":\"\$1}}")
+        # local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTNS=$(docker ps -a --no-trunc | awk "{ print \$2\":\"\$1}")
+
+        # 选择修改的容器
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_CHOICE="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTNS}"
+        ## 大于一条，则开启选择是否使用 自定义的本地容器
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTN_COUNTS=$(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTNS}" | wc -l)
+        if [ $(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTN_COUNTS}-1" | bc) -gt 0 ]; then
+            # local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_USE_LOCAL="Y"
+            # confirm_yn_action "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_USE_LOCAL" "Checked 'depends' <postgresql> on [local] was exists, please 'sure' u will use 'still or not'" "__soft_cmd_check_confirm_git_action '${1}'" "echo_style_text \"Checked 'command'(<${1}>-'git') was ${_TMP_SOFT_CMD_CHECK_CONFIRM_GIT_ACTION_TYPE_DESC}ed\""
+            bind_if_choice "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_CHOICE" "Please choice which 'container' u want to execute on" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LCL_CTNS}"
+        fi
+
+        _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST="${LOCAL_HOST}"
+        _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT=15432
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER="postgres"
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD=
+
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID=$(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_CHOICE}" | cut -d':' -f3)
+        if [ -n "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" ]; then
+            local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}")    
+            if [ -z "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_RUNLIKE}" ]; then
+                echo_style_text "Cannot print 'runlike' from 'container' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}>"
+                exit -1
+            fi
+            
+            local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT_PAIR=$(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=-p )[0-9|:]+(?=\s*)")
+
+            _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT=$(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT_PAIR}" | cut -d':' -f1)
+            _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD=$(echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_RUNLIKE}" | grep -oP "(?<=--env=POSTGRES_PASSWORD=)\S+")
+        fi
+        
+        _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST=$(console_input "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST" "Please ender your 'postgres' <root host>")
+        if [ "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" == "${LOCAL_HOST}" ]; then
+            _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST="127.0.0.1"
+        fi
+
+        _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT=$(console_input "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT" "Please ender your 'postgres' <root host port> of [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]")
+
+        if [[ "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" != "127.0.0.1" && "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" != "localhost" ]]; then
+            _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER=$(console_input "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER" "Please ender your 'postgres' <root user> of [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}]")
+        fi
+
+        if [[ "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" != "127.0.0.1" && "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" != "localhost" ]]; then
+            _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD=$(console_input "_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD" "Please ender your 'postgres' <password> of [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER}]@[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}]" "y")
+        fi
+
+        # _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD=$(rand_simple_passwd 'mattermost' 'db' "${TMP_DC_CPL_MTTM_SETUP_VER}")
+
+        # !!!此处之所以分为多段，且用-d后台执行&重启进程，纯属因DEBUG过程中，每次执行脚本时用户或DB创建了，但是进程被阻塞所致。
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_DB_SH=$(cat <<EOF
+# CREATE DATABASE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB} OWNER '${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}' WITH ENCODING 'UTF8';
+PGPASSWORD='${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}' psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres << ${EOF_TAG} 
+CREATE DATABASE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB} WITH ENCODING 'UTF8';
+${EOF_TAG}
+EOF
+)
+        
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_SET_MASTER_USR_SH=$(cat <<EOF
+# CREATE USER ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME} WITH PASSWORD '${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD}';
+# ALTER ROLE "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}" WITH LOGIN;
+# PGPASSWORD="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}" psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres -c "CREATE ROLE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME} LOGIN ENCRYPTED PASSWORD '${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD}';"
+PGPASSWORD='${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}' psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres << ${EOF_TAG} 
+CREATE USER ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME} LOGIN CONNECTION LIMIT -1 ENCRYPTED PASSWORD '${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD}';
+${EOF_TAG}
+EOF
+)
+
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_SCHEMA_SH=$(cat <<EOF
+PGPASSWORD="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}" psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres << ${EOF_TAG}
+\c ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB};
+\c - postgres;
+GRANT ALL ON SCHEMA public TO ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+${EOF_TAG}
+EOF
+)
+
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_PRIVILEGES_SH=$(cat <<EOF
+PGPASSWORD="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}" psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres << ${EOF_TAG}
+\c ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB};
+\c - postgres;
+GRANT ALL PRIVILEGES ON DATABASE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB} TO ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+${EOF_TAG}
+EOF
+)
+     
+        local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_OWNER_SH=$(cat <<EOF
+PGPASSWORD="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}" psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres -c "ALTER DATABASE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB} OWNER TO ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};"
+EOF
+)
+
+        # 如果在本地存在docker环境的postgres
+        # ??? 如果在本地存在 postgres 客户端
+        if [ -n "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" ]; then
+            # 插入并执行SQL脚本
+            echo_style_text "Starting 'create' <database> [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}] backend..."
+            docker_bash_channel_echo_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_DB_SH}" "/tmp/init_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}_db.sh" "." 'td' 'postgres'     
+            
+            echo_style_text "Starting 'create' <user> [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}] backend..."
+            docker_bash_channel_echo_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_SET_MASTER_USR_SH}" "/tmp/init_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}_usr.sh" "." 'td' 'postgres'
+
+            # 修改配置完重启（第一次）
+            if [[ "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" == "127.0.0.1" || "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" == "localhost" ]]; then  
+                docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "pg_ctl restart && echo" "" "postgres"
+            else
+                echo_style_text "If u cannot create 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> or 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}> on host [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}], pls check manual or kill thread('pg_ctl restart') on command"
+            fi
+
+            # !!! 阻塞TAG检测，即已经创建了对应的DB的情况下，不会再进行流程阻塞验证
+            # local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_BLOCK_TAG=$(docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "psql -lqt | cut -d \| -f1 | grep -oP \"(?<= )\w+\" | grep -w \"${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}\"" "t" "postgres")
+            local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_BLOCK_TAG=$(docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "PGPASSWORD='${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}' psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -lqt | cut -d \| -f1 | grep -oP '(?<= )\w+' | grep -w '${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}'" "t" "postgres")
+            if [ -z "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_BLOCK_TAG}" ]; then
+                echo_style_text "Pls check 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> and 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}> [exists] on [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER}]@[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}], then <ender> 'any key' to go on..."
+                read -e _
+            fi
+
+            echo_style_text "Starting 'grant' <database>:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}] to <user>:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}] backend..."
+            docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_OWNER_SH}" "td" "postgres"
+            docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_SCHEMA_SH}" "td" "postgres"
+            docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_PRIVILEGES_SH}" "td" "postgres"
+            
+            # 修改配置完重启（第二次）
+            if [[ "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" == "127.0.0.1" || "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" == "localhost" ]]; then  
+                docker_bash_channel_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "pg_ctl restart && echo" "" "postgres"
+            else
+                echo_style_text "If u cannot grant 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> or 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}> permission on host [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}], pls check manual or kill thread('pg_ctl restart') on command"
+            fi
+
+            if [ -z "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_BLOCK_TAG}" ]; then
+                echo_style_text "Pls check 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> and 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}> [permission] on [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER}]@[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}], then <ender> 'any key' to go on..."
+                read -e _
+            fi
+
+            local _TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_DISPLAY_SH=$(cat <<EOF
+echo
+# REVOKE CONNECT ON DATABASE ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB} FROM ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+# REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA public FROM ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+# REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public FROM ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+# REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public FROM ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+# REVOKE ALL ON SCHEMA public FROM ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+# DROP USER ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME};
+PGPASSWORD="${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_PASSWORD}" psql -h ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST} -p ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT} -U ${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER} -d postgres << ${EOF_TAG}
+\l
+\du
+SELECT * FROM pg_user;
+${EOF_TAG}
+EOF
+)
+            
+            echo_style_text "Starting 'display grant' <database>:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}] to <user>:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}]..."
+            docker_bash_channel_echo_exec "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CTN_ID}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_DISPLAY_SH}" "/tmp/grant_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}_${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}_permission.sh" "." "t"
+        else
+            echo_style_text "Pls 'execute follow scripts manual' on <remote postgres> [service]："
+            echo "${TMP_SPLITER}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CREATE_DB_SH}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_SET_MASTER_USR_SH}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_OWNER_SH}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_SCHEMA_SH}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_PRIVILEGES_SH}"
+            echo "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_GRANT_DISPLAY_SH}"
+            echo "${TMP_SPLITER}"
+            echo_style_text "If u cannot create 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> or 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}>, pls check manual or kill thread('pg_ctl restart') on command"
+            echo_style_text "Pls check 'database' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}> and 'user' <${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}> exists on [${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_ROOT_USER}]@[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}]:[${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}], then <ender> 'any key' to go on..."
+            read -e _
+        fi
+
+		script_check_action "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_CUSTOM_SCRIPT}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_HOST}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_PORT}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_NAME}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_LOGIN_PASSWORD}" "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_MAIN_DB}"
+	}
+
+	function _confirm_postgresql_setup_step_action_depens()
+	{
+		script_check_action "${_TMP_CONFIRM_POSTGRESQL_SETUP_STEP_ACTION_DEPENDS_SCRIPT}"
+	}
+
+	confirm_soft_setup_step_action "postgresql" "_confirm_postgresql_setup_step_action_custom" "_confirm_postgresql_setup_step_action_depens"
 	return $?
 }
 
@@ -3012,6 +3228,38 @@ function curx_line_insert()
 		fi
 	fi
 	
+	return $?
+}
+
+##########################################################################################################
+# 环境操作类
+##########################################################################################################
+# 通过指定用户，通过管道执行脚本
+# 参数1：环境内容
+# 参数2：格式化内容
+# 示例：
+#   env_format_echo 'A=123' '${A}'
+function env_format_echo()
+{
+	# local _TMP_ENV_FORMAT_ECHO_ENV="${1}"
+	# local _TMP_ENV_FORMAT_ECHO_TEMPLATE="${2}"
+
+	sh -c "${1}
+
+cat <<EOF
+${2}
+EOF"
+	return $?
+}
+
+# 通过指定用户，通过管道执行脚本
+# 参数1：环境内容路径
+# 参数2：格式化内容路径
+# 示例：
+#       env_file_format_echo '.env' 'docker-compose.yml'
+function env_file_format_echo()
+{
+	env_format_echo "$(cat ${1})" "$(cat ${2})"
 	return $?
 }
 
@@ -4883,7 +5131,7 @@ function docker_soft_dirs_bind()
 	# 真实路径 - 基础四大路径
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_DATA_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_ATT_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[${#_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[@]}]="${DOCKER_APP_LOGS_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 
 	# 真实路径 - 挂载路径
@@ -4907,22 +5155,22 @@ function docker_soft_dirs_bind()
 
 	# 虚拟目录的连接是存在重复的，在此声明主要为了清理无效软连接
 	# 虚拟目录 - Docker目录
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/data/apps/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID}$" "${DOCKER_DATA_DIR}/containers/${_TMP_DOCKER_SOFT_DIRS_BIND_CTN_ID}"
 
 	# 虚拟目录 - 容器安装目录
-	if [ -a "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}" ]; then
-		local _TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS="$(ls -l ${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/ | awk -F' ' '{print $9}' | awk '$1=$1')"
+	if [ -a "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}" ]; then
+		local _TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS="$(ls -l ${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/ | awk -F' ' '{print $9}' | awk '$1=$1')"
 		function _docker_soft_dirs_bind_combine_append_setup()
 		{
-			item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}$" "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}"
+			item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}/${1}"
 		}
 
 		items_split_action "_TMP_DOCKER_SOFT_DIRS_BIND_APP_DIRS" "_docker_soft_dirs_bind_combine_append_setup"
 	fi
-	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_APP_DEPLOY_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
+	item_change_append_bind "_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR" "^${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}$" "${DOCKER_APP_SETUP_DIR}/${_TMP_DOCKER_SOFT_DIRS_BIND_STORE_REL_DIR}"
 
 	if [ "${_TMP_DOCKER_SOFT_DIRS_BIND_VAR_TYPE}" == "array" ]; then
 		eval ${_TMP_DOCKER_SOFT_DIRS_BIND_VAR_NAME}='(${_TMP_DOCKER_SOFT_DIRS_BIND_DIR_ARR[*]})'
@@ -5426,7 +5674,7 @@ function docker_container_mounts_action()
 		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION=$(echo "${1}" | jq '.Destination' | xargs echo)
 		local _TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE=$(echo "${1}" | jq '.Mode' | xargs echo)
 		
-		script_check_action "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_TYPE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE}"
+		script_check_action "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_SCRIPT}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_TYPE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_SOURCE}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_DESTINATION}" "${_TMP_DOCKER_CONTAINER_HOSTCONFIG_BINDS_ACTION_VOL_MODE:-rw}"
 	}
 
 	docker_container_mounts_json_action "${1}" "_docker_container_mounts_action"
@@ -5651,7 +5899,7 @@ function docker_change_container_inspect_wrap()
 	fi
 
 	# 挂载可能产生等待
-	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_env_conda_channel_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)")
+	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_env_conda_channel_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)" | awk 'NR==1')
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" ]; then
 		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" 180 3
 	fi
@@ -5990,7 +6238,7 @@ function docker_change_container_volume_migrate()
 
 # 修改DOCKER容器挂载信息
 # 参数1：容器ID
-# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app 
+# 参数2：挂载KV对，例 /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app /opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app:rw,z
 # 示例：
 #       docker_change_container_inspect_mounts "e75f9b427730" "/opt/docker_apps/browserless_chrome/imgver111111:/usr/src/app"
 function docker_change_container_inspect_mounts()
@@ -6011,6 +6259,7 @@ function docker_change_container_inspect_mounts()
 			# 检测倒未绑定对象
 			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL=$(echo "${1}" | awk -F':' '{print $1}')
 			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT=$(echo "${1}" | awk -F':' '{print $2}')
+			local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MODE=$(echo "${1}" | awk -F':' '{print $3}')
 			if [[ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" || -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}" ]]; then
 				return
 			fi
@@ -6019,24 +6268,70 @@ function docker_change_container_inspect_mounts()
 			if [ -z "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" ]; then				
 				echo_style_text "'Mounting' newer pair → <${1}>"	
 
-				docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+				docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}" "" "" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MODE}"
 			else
 				local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL=$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_PAIR}" | awk -F':' '{print $1}')
 				if [ "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" != "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL}" ]; then
 					echo_style_text "'Matched' fit local: <${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_MATCH_LOCAL}> → [${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}]"
 					echo_style_text "'Mounting' fit pair → <${1}>"
 
-					docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}"
+					docker_change_container_inspect_mount "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_ID}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_LOCAL}" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MOUNT}" "" "" "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_CTN_BIND_MODE}"
 				else
 					echo_style_text "'Keep' mount pair → <${1}>"	
 				fi
 			fi
 		}
 
-		items_split_action "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS}" "formal_dc_browserless_chrome_ctn_bind"
+		items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_MOUNTS_NEW_MOUNTS" "formal_dc_browserless_chrome_ctn_bind"
 	fi
 
     return $?
+}
+
+# 对compose.yml进行格式化处理
+# 参数1：分组名称
+# 参数2：存放docker-compose.yml文件的目录，为空则取当前目录
+function docker_compose_yml_formal_exec()
+{
+	local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_GROUP_NAME=${1}
+	local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_DIR=${2:-$(pwd)}
+
+	# 执行安装
+	# 参数1：yaml节点
+	# 参数2：索引
+	# 参数3：key
+	function _docker_compose_yml_formal_exec()
+	{
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE=$([[ -a ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_DIR}/.env ]] && echo "$(env_format_echo "$(cat ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_DIR}/.env)" "${1}")" || echo "${1}")
+
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME=$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE}" | yq ".image")
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_NAME=$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME}" |  cut -d':' -f1)
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_VER=$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
+
+		# 格式化容器名称
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME=$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE}" | yq ".container_name")
+		if [[ -z "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME}" || "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME}" == "null" ]]; then
+			_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME="${3}"
+		fi
+
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_FMT_NAME="${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME}"
+		if [ "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_GROUP_NAME}" == "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME}" ]; then
+			_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_FMT_NAME="main"
+		fi
+
+		local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NEW_NAME="${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_GROUP_NAME}_${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_FMT_NAME}_${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_VER}"
+		echo_style_text "Starting formal 'service' <${3}>('${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME}') container rename <${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NAME}> → [${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NEW_NAME}]"
+		yq -i '.services.'${3}'.container_name = "'${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_CTN_NEW_NAME}'"' docker-compose.yml
+	}
+
+	# 从docker-compose.yml中取已安装镜像信息
+	local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH="${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_DIR}/docker-compose.yml"
+	if [ -a ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH} ]; then
+		yaml_split_action "$(cat ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH} | yq '.services')" "_docker_compose_yml_formal_exec"
+		return $?
+	fi
+
+	echo_style_wrap_text "Cannot found <${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}>, please check"
 }
 
 # 输出Docker挂载卷名称
@@ -7027,19 +7322,21 @@ EOF
 		docker_snap_commit "_TMP_DOCKER_SNAP_CREATE_CTN_ID" "${_TMP_DOCKER_SNAP_CREATE_TIMESTAMP}"
 
 		# 输出构建yml(docker build -f /mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246.dockerfile.yml -t browserless/chrome .)
-		local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_CTN_ID})
-		if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}" ]; then
-			local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}/Dockerfile
+		local _TMP_DOCKER_SNAP_CREATE_SNAP_WORKING_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${_TMP_DOCKER_SNAP_CREATE_CTN_ID})
+		if [ -n "${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKING_DIR}" ]; then
+			local _TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE=${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKING_DIR}/Dockerfile
 			# if [ -n "$(docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" ]; then
 			if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "test -f ${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} && echo 1")" == "1" ]; then
 				echo "${TMP_SPLITER2}"
-				echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKDIR}])↓:"
+				echo_style_text "View the 'extract dockerfile from workdir' <${_TMP_DOCKER_SNAP_CREATE_IMG_FULL_NAME}>([${_TMP_DOCKER_SNAP_CREATE_SNAP_WORKING_DIR}])↓:"
 				docker cp -a ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:${_TMP_DOCKER_SNAP_CREATE_SNAP_DCFILE} ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 				ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile
 				echo "[-]"
 				cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile		
 			fi
 		fi
+
+		# docker-compose.yml不存在时才输出
 
 		# Dockerfile不存在时才输出
 		if [[ ! -a ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.Dockerfile ]]; then
@@ -7458,18 +7755,18 @@ function docker_container_print()
 
         # 展开Dockerfile，用于后续提取信息
         local _TMP_DOCKER_CTN_PRINT_CTN_INSPECT=$(docker container inspect ${_TMP_DOCKER_CTN_PRINT_CTN_ID})
-        local _TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP '(?<=^").*(?="$)')
+        local _TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq ".[0].Config.WorkingDir" | grep -oP '(?<=^").*(?="$)')
 
         local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT=""
-        if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}" ]; then
+        if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}" ]; then
             if [ "$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "echo 1")" == "1" ]; then
-                # local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile")
-                local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}/Dockerfile" "t")
+                # local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}/Dockerfile")
+                local _TMP_DOCKER_CTN_PRINT_CTN_DCFILE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "test -f ${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}/Dockerfile && cat ${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}/Dockerfile" "t")
                 if [ -n "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE}" ]; then
                     _TMP_DOCKER_CTN_PRINT_CTN_DCFILE_CHOWN_SCRIPT=$(echo "${_TMP_DOCKER_CTN_PRINT_CTN_DCFILE}" | grep -oP "(?<=chown ).+\s+\w+:\w+\s+[$|\w]+" | xargs -I {} echo "chown {}")
                 else
-                    # local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
-                    local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" "t" | tr -d "\r")
+                    # local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker exec -u root -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" | tr -d "\r")
+                    local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_PERS=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "ls -la /${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR} | awk 'NR>1' | awk -F' ' '{print \$3\":\"\$4\" \"\$9}'" "t" | tr -d "\r")
                     local _TMP_DOCKER_CTN_PRINT_CTN_WORKSPACE_CHOWNS=()
                     function _docker_image_boot_print_chown_workspace()
                     {
@@ -7479,7 +7776,7 @@ function docker_container_print()
                             local _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT=""
                             if [ "${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_DIR}" == "." ]; then
                                 local _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_PER=$(echo ${1} | cut -d' ' -f1)
-                                _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_CTN_PRINT_CTN_WORKINGDIR}"
+                                _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT="chown ${_TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_PER} /${_TMP_DOCKER_CTN_PRINT_CTN_WORKING_DIR}"
                             else
                                 _TMP_DOCKER_CTN_PRINT_CHOWN_WORKSPACE_SCRIPT="chown -R ${1}"
                             fi
@@ -7532,8 +7829,8 @@ function docker_container_print()
             fi
         }
 
-        [[ -a ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
-        [[ -a ${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_DEPLOY_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+        [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
+        [[ -a ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]] && find ${DOCKER_SETUP_DIR}/etc/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} -type l | eval "script_channel_action '_docker_image_boot_print_clear_unuse_link'"
 
         echo "${TMP_SPLITER2}"
         echo_style_text "View the 'boot info'↓:"
@@ -7552,11 +7849,11 @@ function docker_container_print()
         items_split_action "${_TMP_DOCKER_CTN_PRINT_MOUNT_ARR[*]}" "_docker_image_boot_print_ls_mounts"
         
         # 查看日志（config/image）
-        if [[ -a ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]]; then
+        if [[ -a ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME} ]]; then
             echo "${TMP_SPLITER2}"
             echo_style_text "View the 'container inspect'↓:"
-            echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq > ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
-            cat ${DOCKER_DEPLOY_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+            echo "${_TMP_DOCKER_CTN_PRINT_CTN_INSPECT}" | jq > ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
+            cat ${DOCKER_SETUP_DIR}/logs/${_TMP_DOCKER_CTN_PRINT_IMG_MARK_NAME}/${_TMP_DOCKER_CTN_PRINT_CTN_ID}.ctn.inspect.json
         fi
 
         echo "${TMP_SPLITER2}"
@@ -7578,6 +7875,8 @@ function docker_container_print()
 					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
 					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "tdnf -y update" "t"
 					echo_style_text "'Photon' system, do nothing"
+				elif [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
+					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apk update" "t"
 				else
 					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "yum -y update" "t"
 				fi
@@ -7723,6 +8022,8 @@ function docker_image_boot_print()
 					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
 					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
 					echo_style_text "'Photon' system, do nothing"
+				elif [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
+					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apk update" "t"
 				else
 					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "yum -y update && yum -y install procps vim" "t"
 				fi
@@ -7966,7 +8267,7 @@ function soft_setup_docker_wget()
 	
 	typeset -l _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME
 	local _TMP_SOFT_SETUP_DOCKER_WGET_LOWER_NAME=${1}
-	local _TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR=${DOCKER_APP_DEPLOY_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
+	local _TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR=${DOCKER_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_DOCKER_WGET_MARK_NAME}
 
 	if [ -n "${5}" ]; then
 		_TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR=${_TMP_SOFT_SETUP_DOCKER_WGET_DEPLOY_DIR}/v${5}
@@ -7999,7 +8300,7 @@ function soft_setup_conda_wget()
 	
 	typeset -l _TMP_SOFT_SETUP_CONDA_WGET_LOWER_NAME
 	local _TMP_SOFT_SETUP_CONDA_WGET_LOWER_NAME=${_TMP_SOFT_SETUP_CONDA_WGET_NAME}
-	local _TMP_SOFT_SETUP_CONDA_WGET_DEPLOY_DIR=${CONDA_APP_DEPLOY_DIR}/${_TMP_SOFT_SETUP_CONDA_WGET_MARK_NAME}
+	local _TMP_SOFT_SETUP_CONDA_WGET_DEPLOY_DIR=${CONDA_APP_SETUP_DIR}/${_TMP_SOFT_SETUP_CONDA_WGET_MARK_NAME}
 
 	soft_setup_common_wget "${1}" "${2}" "${_TMP_SOFT_SETUP_CONDA_WGET_DEPLOY_DIR}" "${3}" "${4}" "${@:5}"
 	return $?
@@ -8913,9 +9214,11 @@ function soft_docker_check_upgrade_custom()
 					"hub" | "unknow")
 						# 预先检索对应数字标记（针对 自定义tag与latest版本情况）
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_DIGESTS=$(echo_docker_image_digests "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}")
+
 						# 查找已安装docker 镜像，先做标记。用于判定是否有新增镜像
 						local _TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_BEFORE_IMG_IDS=$(docker images | awk 'NR>1{print $3}')
 
+						# 执行安装脚本
 						script_check_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INSTALL_SCRIPT" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
 
 						# 执行安装脚本后的镜像
@@ -8977,6 +9280,7 @@ function soft_docker_check_upgrade_custom()
 						}
 
 						items_split_action "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_INCREASE_IMG_IDS" "_soft_docker_check_upgrade_custom_compile_bind_exec"
+
 					;;
 					*)
 						docker_snap_restore_choice_action "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NEWER_VER}" "_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_NE_SCRIPT" "echo 'Cannot found snap ver('${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_IMG_NAME}:${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_CHOICE_VER}')" "${_TMP_SOFT_DOCKER_CHECK_UPGRADE_CUSTOM_STORE_TYPE}"
@@ -9070,7 +9374,7 @@ function soft_docker_check_choice_upgrade_action()
 # {
 # 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=""
 # 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPILE_SCRIPT=${3}
-# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${4}
+# 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT=${4}
 # 	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_INSTALL_SCRIPT=${5}
 # soft_docker_check_upgrade_custom "${1}" "${TMP_DC_CPS_HB_SETUP_VER}" "" 'docker pull ${1}:${2}' "${@:3:5}"
 # 	# 编译操作
@@ -9121,10 +9425,10 @@ function soft_docker_check_choice_upgrade_action()
 # 	# 参数2：版本信息
 # 	function _soft_docker_compose_check_upgrade_action_compose()
 # 	{
-# 		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT}" ]; then
+# 		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT}" ]; then
 # 			# 自定义安装
 # 			echo_style_wrap_text "Starting 'compose image'(<${1}>:[${2}]) from [${3}], hold on please"
-# 			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
+# 			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT" "${1}" "${2}"
 
 # 			# 执行安装
 # 			# 参数1：yaml节点
@@ -9191,52 +9495,51 @@ function soft_docker_check_choice_upgrade_action()
 # 参数5：重装选择N时 或镜像已存在时执行脚本
 # 参数6：动作类型描述，action/install
 # 示例：
-#     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "bash install" "exec_step_browserless_chrome"
-function soft_docker_compose_check_upgrade_action() 
+#     soft_docker_compile_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "resolve_compose_dc_goharbor_harbor_loop"
+#     soft_docker_compile_check_upgrade_action "goharbor/prepare" "imgver111111" "docker-compose -d up" "resolve_compose_dc_goharbor_harbor_loop"
+#     soft_docker_compile_check_upgrade_action "mattermost/mattermost-enterprise-edition" "imgver111111" "" "resolve_compose_dc_mattermost_loop"
+function soft_docker_compile_check_upgrade_action() 
 {
-	local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT=${3}
+	local _TMP_SOFT_DOCKER_COMPILE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT=${3}
 
 	# 安装操作(重命名container名称)
 	# 参数1：镜像名称
 	# 参数2：版本信息
-	function _soft_docker_compose_check_upgrade_action_compile()
+	function _soft_docker_compile_check_upgrade_action_compile()
 	{
-		if [ -n "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT}" ]; then
+		if [ -n "${_TMP_SOFT_DOCKER_COMPILE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT}" ]; then
 			# 自定义安装
 			echo_style_wrap_text "Starting 'compile image'(<${1}>:[${2}]) from [${3}], hold on please"
-			script_check_action "_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_COMPOSE_SCRIPT" "${1}" "${2}"
-
-			# 执行安装
-			# 参数1：yaml节点
-			# 参数2：索引
-			# 参数3：key
-			function _soft_docker_compose_check_upgrade_action_compile_formal()
-			{
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME=$(echo "${1}" | yq ".image")
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_NAME=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" |  cut -d':' -f1)
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER=$(echo "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}" | cut -d':' -f2 | awk '$1=$1')
-
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME=$(echo "${1}" | yq ".container_name")
-				if [ -z "${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}" ]; then
-					_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME="${3}"
-				fi
-
-				local _TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME="${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}_${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_VER}"
-				echo_style_text "Starting formal 'service' <${3}>('${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_IMG_FULL_NAME}') container rename <${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NAME}> → [${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME}]"
-				yq -i '.services.'${3}'.container_name = "'${_TMP_SOFT_DOCKER_COMPOSE_CHECK_UPGRADE_ACTION_CTN_NEW_NAME}'"' docker-compose.yml
-			}
-
-			# 从docker-compose.yml中取已安装镜像信息
-			if [ -a docker-compose.yml ]; then
-				yaml_split_action "$(cat docker-compose.yml | yq '.services')" "_soft_docker_compose_check_upgrade_action_compile_formal"
-				return $?
-			fi
-
-			echo_style_wrap_text "Cannot found docker-compose.yml, please check"
+			script_check_action "_TMP_SOFT_DOCKER_COMPILE_CHECK_UPGRADE_ACTION_COMPOSE_GEN_SCRIPT" "${1}" "${2}"
 		fi
+
+		docker_compose_yml_formal_exec "${1%%/*}" "$(pwd)"
 	}
 
-	soft_docker_check_upgrade_custom "${1}" "${2}" "_soft_docker_compose_check_upgrade_action_compile" "${@:4}"
+	soft_docker_check_upgrade_custom "${1}" "${2}" "_soft_docker_compile_check_upgrade_action_compile" "${@:4}"
 	
+	return $?
+}
+
+# Docker镜像检测后安装，存在时提示覆盖安装（基于Docker-Compose镜像检测类型的安装，并具有备份提示操作）
+# 参数1：镜像正则名称变量值或名，用于检测的基准镜像名，例：goharbor/ 或 browserless/chrome
+# 参数2：镜像版本变量值或名，用于检测的基准镜像版本，例：imgver111111
+# 参数3：compose编译脚本（例：bash prepare.sh / docker-compose -f docker-compose.yml -f docker-compose.without-nginx.yml up -d）
+# 参数4：重装选择Y时 或镜像不存在时默认的 安装/还原后后执行脚本
+#        参数1：镜像名称，例 browserless/chrome
+#        参数2：镜像版本，例 imgver111111_v1670329246
+#        参数3：启动命令，例 /bin/sh
+#        参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
+#        参数5：快照类型（快照有效），例 image/container/dockerfile
+#        参数6：镜像来源，例 snapshot/clean/hub/commit，默认snapshot
+# 参数5：重装选择N时 或镜像已存在时执行脚本
+# 参数6：动作类型描述，action/install
+# 示例：
+#     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "bash prepare" "resolve_compose_dc_goharbor_harbor_loop"
+#     soft_docker_compose_check_upgrade_action "goharbor/prepare" "imgver111111" "docker-compose -d up" "resolve_compose_dc_goharbor_harbor_loop"
+#     soft_docker_compose_check_upgrade_action "mattermost/mattermost-enterprise-edition" "imgver111111" "" "resolve_compose_dc_mattermost_loop"
+function soft_docker_compose_check_upgrade_action() 
+{
+	soft_docker_check_upgrade_custom "${1}" "${2}" "${3}" "${@:4}"	
 	return $?
 }

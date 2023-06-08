@@ -76,7 +76,8 @@ ${EOF_TAG}
 EOF
 )
     docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_SET_MASTER_REP_USR_SH}" "/tmp/create_db_master_rep_user.sh" "." 'td' 'postgres'
-    
+echo "检测阻塞"
+read -e TTTT
     # 修改配置完重启
     docker_bash_channel_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "pg_ctl restart" "" "postgres"
     
@@ -95,9 +96,9 @@ EOF
     echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': If u cannot create rep_user, pls create manual on command"
     echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': Master set done"
     echo_style_text "'${TMP_DC_PSQ_CONF_CTN_IMG_NAME}': If got some error, pls run follow scripts manual:"
-    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_master_test_db.sh'>"
-    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_db_master_rep_user.sh'>"
-    echo_style_text "<docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/check_db_master.sh'>"
+    echo "     docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_master_test_db.sh'"
+    echo "     docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/create_db_master_rep_user.sh'"
+    echo "     docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/check_db_master.sh'"
     
     # 结束
     exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> master over, please checking the setup log, this will stay 10 secs to exit"

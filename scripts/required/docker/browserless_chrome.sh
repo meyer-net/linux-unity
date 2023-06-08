@@ -41,6 +41,9 @@ function setup_dc_browserless_chrome() {
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app ${1} >& /dev/null
         
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
         # 查看列表
         ls -lia ${1}
     }
@@ -80,6 +83,9 @@ function formal_dc_browserless_chrome() {
         # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/var/lib/${TMP_DC_BLC_SETUP_APP_MARK} ${1} >& /dev/null
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_DATA_MARK} ${1} >& /dev/null
         
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
         # 查看列表
         ls -lia ${1}
     }
@@ -100,6 +106,10 @@ function formal_dc_browserless_chrome() {
     #     ## /mountdisk/etc/docker_apps/browserless_chrome/imgver111111/app
     #     # docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/usr/src/app/${TMP_DC_BLC_SETUP_ETC_MARK} ${1}/app >& /dev/null
     #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/etc/${TMP_DC_BLC_SETUP_APP_MARK} ${1}/app >& /dev/null
+        
+    #     # 授权
+    #     sudo chown -R 2000:2000 ${1}
+
     #     ls -lia ${1}
     
     #     # 移除本地配置目录(挂载)

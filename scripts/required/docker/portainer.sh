@@ -45,6 +45,9 @@ function setup_dc_portainer() {
         # 拷贝应用目录
         docker cp -a ${TMP_DC_PTN_SETUP_CTN_ID}:/ ${1} >& /dev/null
         
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
         # 查看列表
         ls -lia ${1}
     }

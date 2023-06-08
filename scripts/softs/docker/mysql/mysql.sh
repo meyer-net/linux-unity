@@ -81,6 +81,9 @@ function formal_dc_library_mysql() {
         else
             docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/log/${TMP_DC_MSQ_SETUP_APP_MARK}d.log ${1}/app/${TMP_DC_MSQ_SETUP_APP_MARK}d.log >& /dev/null
         fi
+
+        # 授权
+        sudo chown -R 2000:2000 ${1}
     
         # 查看列表
         ls -lia ${1}/app
@@ -95,6 +98,9 @@ function formal_dc_library_mysql() {
 
         # 拷贝日志目录
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/lib/${TMP_DC_MSQ_SETUP_DATA_MARK} ${1} >& /dev/null
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -117,6 +123,9 @@ function formal_dc_library_mysql() {
         
         path_not_exists_create "${1}/app"
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/my.cnf ${1}/app/my.cnf >& /dev/null
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
 
         ls -lia ${1}/app
     

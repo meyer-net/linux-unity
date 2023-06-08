@@ -44,6 +44,9 @@ function setup_dc_library_postgres() {
         # 拷贝应用目录
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_PSQ_SETUP_APP_MARK} ${1} >& /dev/null
         
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
         # 查看列表
         ls -lia ${1}
     }
@@ -77,6 +80,9 @@ function formal_dc_library_postgres() {
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/library_postgres/imgver111111/app
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/var/log/${TMP_DC_PSQ_SETUP_APP_MARK} ${1}/app >& /dev/null
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
     
         # 查看列表
         ls -lia ${1}/app
@@ -93,6 +99,9 @@ function formal_dc_library_postgres() {
         # 拷贝日志目录
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/var/lib/${TMP_DC_PSQ_SETUP_APP_MARK}/data ${1} >& /dev/null
         # docker_bash_channel_exec "${TMP_DC_PSQ_SETUP_CTN_ID}" "pg_ctl stop -D /var/lib/${TMP_DC_PSQ_SETUP_APP_MARK}/data -s -m fast && rm -rf /var/lib/${TMP_DC_PSQ_SETUP_APP_MARK}/data"
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -112,6 +121,9 @@ function formal_dc_library_postgres() {
         # 拷贝配置目录
         ## /mountdisk/etc/docker_apps/library_postgres/imgver111111/app
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/etc/${TMP_DC_PSQ_SETUP_APP_MARK} ${1}/app >& /dev/null
+
+        # 授权
+        sudo chown -R 2000:2000 ${1}
         
         ls -lia ${1}/app
     
@@ -202,8 +214,7 @@ function conf_dc_library_postgres() {
     echo_style_wrap_text "Starting 'configuration', hold on please"
 
     # 开始配置
-    # local TMP_DC_PSQ_SETUP_PG_HBA_START_LINE=$(cat ${TMP_DC_PSQ_SETUP_LNK_ETC_DIR}/pg_hba.conf | grep -n "# TYPE" | cut -d':' -f1)
-    # file_content_not_exists_echo "^query_cache_limit.*" ${TMP_DC_PSQ_SETUP_LNK_ETC_DIR}/pg_hba.conf "host    all             all              0.0.0.0/0              trust"
+    file_content_not_exists_echo "^superuser_reserved_connections.*" ${TMP_DC_PSQ_SETUP_LNK_ETC_DIR}/postgresql.conf "superuser_reserved_connections = 10"
 
     return $?
 }

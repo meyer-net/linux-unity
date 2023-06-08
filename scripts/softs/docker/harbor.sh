@@ -74,10 +74,10 @@ function formal_dc_goharbor_harbor() {
     
     ### ETC
     #### /opt/docker_apps/goharbor_harbor/v1.10.0/rely/goharbor_registry-photon/v1.10.17/etc/compose -> /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/compose/registry
-    path_not_exists_link "${TMP_DC_HB_SETUP_ETC_DIR}/compose" "" "${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/compose/${TMP_DC_HB_SETUP_SERVICE_KEY}"
+    path_not_exists_link "${TMP_DC_HB_SETUP_ETC_DIR}/${TMP_DC_HB_SETUP_COMPOSE_MARK}" "" "${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/${TMP_DC_HB_SETUP_COMPOSE_MARK}/${TMP_DC_HB_SETUP_SERVICE_KEY}"
     #### /opt/docker/etc/goharbor_harbor/v1.10.0/rely/goharbor_registry-photon/v1.10.17/compose -> /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/compose/registry
     #### /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/rely/goharbor_registry-photon/v1.10.17/compose -> /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/compose/registry
-    path_not_exists_link "${TMP_DC_SETUP_HB_RELY_LNK_ETC_DIR}/compose" "" "${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/compose/${TMP_DC_HB_SETUP_SERVICE_KEY}"
+    path_not_exists_link "${TMP_DC_SETUP_HB_RELY_LNK_ETC_DIR}/${TMP_DC_HB_SETUP_COMPOSE_MARK}" "" "${TMP_DC_CPL_HB_SETUP_LNK_ETC_DIR}/${TMP_DC_HB_SETUP_COMPOSE_MARK}/${TMP_DC_HB_SETUP_SERVICE_KEY}"
 
     # 有可能未创建容器，有容器的情况下才操作日志
     if [ -n "${TMP_DC_HB_SETUP_CTN_ID}" ]; then
@@ -147,13 +147,14 @@ function boot_check_dc_goharbor_harbor() {
     if [ -n "${TMP_DC_HB_SETUP_CTN_ID}" ]; then
         function _boot_check_dc_goharbor_harbor()
         {
+            TMP_DC_HB_SETUP_CTN_CURRENT_PORT=$(echo "${TMP_DC_HB_SETUP_CTN_CURRENT_PORT:-${2}}" | awk 'NR==1')
             if [ -n "${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}" ]; then
                 echo_style_text "View the 'container visit'↓:"
-                curl -s http://localhost:${2}
+                curl -s http://localhost:${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}
                 echo
 
                 # 授权iptables端口访问
-                echo_soft_port "${2}"
+                echo_soft_port "${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}"
                 
                 # 生成web授权访问脚本
                 echo_web_service_init_scripts "${TMP_DC_CPL_HB_SETUP_MARK_NAME}_${TMP_DC_HB_SETUP_IMG_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_HB_SETUP_MARK_NAME}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
@@ -203,6 +204,9 @@ function exec_step_dc_goharbor_harbor() {
         local TMP_DC_HB_SETUP_CTN_PORT=$(echo "${6}" | grep -oP "(?<=-p )\d+(?=:\d+)")
 
         # 统一编排到的路径(需注意日志与配置部分，注意会有多层结构，即不止compose)
+        ## !!!-1 路径由 habor.yml决定了logs根目录位置：/mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose
+        ## !!!-2 路径由 habor.yml决定了data根目录位置：/mountdisk/data/docker_apps/goharbor_harbor/v1.10.0/compose
+        ## !!!-3 路径由 prepare决定了etc根目录位置：/mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0/compose
         ## /opt/docker_apps/goharbor_harbor/v1.10.0/rely/goharbor_registry-photon/v1.10.17
         local TMP_DC_HB_SETUP_DIR=${TMP_DC_CPL_HB_SETUP_RELY_DIR}/${TMP_DC_HB_SETUP_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_IMG_VER}
         ## /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose/registry
@@ -304,11 +308,11 @@ function resolve_compose_dc_goharbor_harbor_loop()
     local TMP_DC_CPL_HB_SETUP_ETC_DIR=${TMP_DC_CPL_HB_SETUP_DIR}/${TMP_DC_HB_SETUP_ETC_MARK}
 
     ## 指定Docker的安装路径部分
-    ### /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0
+    ### /opt/docker/logs/goharbor_harbor/v1.10.0 & /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0
     local TMP_DC_CPL_SETUP_HB_LNK_LOGS_DIR=${DOCKER_SETUP_DIR}/${TMP_DC_HB_SETUP_LOGS_MARK}/${TMP_DC_CPL_HB_SETUP_MARK_NAME}/${TMP_DC_CPL_HB_SETUP_VER}
-    ### /mountdisk/data/docker_apps/goharbor_harbor/v1.10.0
+    ### /opt/docker/data/apps/goharbor_harbor/v1.10.0 & /mountdisk/data/docker_apps/goharbor_harbor/v1.10.0
     local TMP_DC_CPL_SETUP_HB_LNK_DATA_DIR=${DOCKER_SETUP_DIR}/${TMP_DC_HB_SETUP_DATA_MARK}/apps/${TMP_DC_CPL_HB_SETUP_MARK_NAME}/${TMP_DC_CPL_HB_SETUP_VER}
-    ### /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0
+    ### /opt/docker/etc/goharbor_harbor/v1.10.0 & /mountdisk/etc/docker_apps/goharbor_harbor/v1.10.0
     local TMP_DC_CPL_SETUP_HB_LNK_ETC_DIR=${DOCKER_SETUP_DIR}/${TMP_DC_HB_SETUP_ETC_MARK}/${TMP_DC_CPL_HB_SETUP_MARK_NAME}/${TMP_DC_CPL_HB_SETUP_VER}
     
     if [[ -a docker-compose.yml ]]; then
@@ -347,6 +351,9 @@ function formal_cpl_dc_goharbor_harbor() {
 
         # 拷贝应用目录
         cp -r ${TMP_DC_CPL_HB_EXTRA_DIR} ${1}
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -387,7 +394,7 @@ function conf_cpl_dc_goharbor_harbor() {
     local TMP_DC_CPL_HB_SETUP_ADMIN_PASSWD=$(console_input "$(rand_passwd 'harbor' 'svr' "${TMP_DC_CPL_HB_COMPOSE_VER}")" "Please sure your 'harbo' <admin password>" "y")
     yq -i '.harbor_admin_password = "'${TMP_DC_CPL_HB_SETUP_ADMIN_PASSWD}'"' harbor.yml
 
-    local TMP_DC_CPL_HB_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'harbor' 'db' "${TMP_DC_CPL_HB_COMPOSE_VER}")" "Please sure your 'harbo' <database password>" "y")
+    local TMP_DC_CPL_HB_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'harbor' 'db' "${TMP_DC_CPL_HB_COMPOSE_VER}")" "Please sure your 'harbo' dependency <database password>" "y")
     yq -i '.database.password = "'${TMP_DC_CPL_HB_SETUP_DB_PASSWD}'"' harbor.yml
 
     # 注释不需要的节点配置
@@ -465,8 +472,8 @@ function build_compose_dc_goharbor_harbor() {
     echo_style_wrap_text "Starting 'build' <compose> 'yaml' & 'execute' <compile>, hold on please"
     
     # 检测安装
-    soft_docker_compose_check_upgrade_action "goharbor/prepare" "${TMP_DC_CPL_HB_SETUP_VER}" "bash prepare --with-clair --with-chartmuseum" "resolve_compose_dc_goharbor_harbor_loop"
-    # soft_docker_compose_check_upgrade_action "goharbor/prepare" "${TMP_DC_CPL_HB_SETUP_VER}" "bash prepare --with-trivy" "resolve_compose_dc_goharbor_harbor_loop"
+    soft_docker_compile_check_upgrade_action "goharbor/prepare" "${TMP_DC_CPL_HB_SETUP_VER}" "bash prepare --with-clair --with-chartmuseum" "resolve_compose_dc_goharbor_harbor_loop"
+    # soft_docker_compile_check_upgrade_action "goharbor/prepare" "${TMP_DC_CPL_HB_SETUP_VER}" "bash prepare --with-trivy" "resolve_compose_dc_goharbor_harbor_loop"
 
     # 检测浏览
     boot_check_dc_goharbor_harbor "${TMP_DC_CPL_HB_SETUP_NAME}" "${TMP_DC_HB_SETUP_OPN_HTTP_PORT}"
@@ -493,7 +500,7 @@ function download_package_dc_goharbor_harbor() {
     
     echo_style_wrap_text "Download 'install package' <${1}>, hold on please"
 
-    # 选择及下载安装版本
+    # 选择及下载安装版本(离线安装模式)
     soft_setup_docker_git_wget "${1}" "${1}" "https://github.com/${1}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "${TMP_DC_HB_DOWN_VER}" "build_compose_dc_goharbor_harbor"
     return $?
 }
