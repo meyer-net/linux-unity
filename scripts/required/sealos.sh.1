@@ -50,8 +50,8 @@ function setup_sealos()
 	# 创建日志软链
 	local TMP_SLS_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/sealos
 	local TMP_SLS_SETUP_LNK_DATA_DIR=${DATA_DIR}/sealos
-	local TMP_SLS_SETUP_LOGS_DIR=${TMP_SLS_SETUP_DIR}/logs
-	local TMP_SLS_SETUP_DATA_DIR=${TMP_SLS_SETUP_DIR}/data
+	local TMP_SLS_SETUP_LOGS_DIR=${TMP_SLS_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+	local TMP_SLS_SETUP_DATA_DIR=${TMP_SLS_SETUP_DIR}/${DEPLOY_DATA_MARK}
 	
     # 还原 & 创建
 	soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_LOGS_DIR}"
@@ -86,24 +86,24 @@ function conf_sealos()
 	cd ${TMP_SLS_SETUP_DIR}
 	
 	# 统一编排到的etc路径
-	local TMP_SLS_SETUP_LNK_ETC_DIR=${ATT_DIR}/sealos
+	local TMP_SLS_SETUP_LNK_CONF_DIR=${CONF_DIR}/sealos
 	# 安装后的真实etc路径
-	local TMP_SLS_SETUP_ETC_DIR=${TMP_SLS_SETUP_DIR}/etc
+	local TMP_SLS_SETUP_CONF_DIR=${TMP_SLS_SETUP_DIR}/${DEPLOY_CONF_MARK}
 
 	# 开始配置
 	# 特殊多层结构下使用
-    # path_not_exists_create $(dirname ${TMP_SLS_SETUP_LNK_ETC_DIR})
+    # path_not_exists_create $(dirname ${TMP_SLS_SETUP_LNK_CONF_DIR})
 
     # 还原 & 移动 - ①-Y：存在配置文件：原路径文件放给真实路径
-	soft_path_restore_confirm_move "${TMP_SLS_SETUP_ETC_DIR}" "${TMP_SLS_SETUP_LNK_ETC_DIR}"
+	soft_path_restore_confirm_move "${TMP_SLS_SETUP_CONF_DIR}" "${TMP_SLS_SETUP_LNK_CONF_DIR}"
 
 	# 还原 & 创建 - ②-N：不存在配置文件：
-	# soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_ETC_DIR}"
+	# soft_path_restore_confirm_create "${TMP_SLS_SETUP_LNK_CONF_DIR}"
 
 	# 替换原路径链接
-    # path_not_exists_link "${TMP_SLS_SETUP_LNK_ETC_DIR}" "" "/etc/sealos" 
-    # path_not_exists_link "${TMP_SLS_SETUP_ETC_DIR}" "" "/etc/sealos"
-	path_not_exists_link "${TMP_SLS_SETUP_ETC_DIR}" "" "${TMP_SLS_SETUP_LNK_ETC_DIR}" 
+    # path_not_exists_link "${TMP_SLS_SETUP_LNK_CONF_DIR}" "" "/etc/sealos" 
+    # path_not_exists_link "${TMP_SLS_SETUP_CONF_DIR}" "" "/etc/sealos"
+	path_not_exists_link "${TMP_SLS_SETUP_CONF_DIR}" "" "${TMP_SLS_SETUP_LNK_CONF_DIR}" 
 
 # 	# -- 服务配置加载 ？？？服务配置还原操作
 # 	tee /usr/lib/systemd/system/sealos.service <<-EOF
@@ -130,7 +130,7 @@ function conf_sealos()
 
 	# 授权权限，否则无法写入
 	# chown -R sealos:sealos ${TMP_SLS_SETUP_DIR}
-	# chown -R sealos:sealos ${TMP_SLS_SETUP_LNK_ETC_DIR}
+	# chown -R sealos:sealos ${TMP_SLS_SETUP_LNK_CONF_DIR}
 
 	return $?
 }

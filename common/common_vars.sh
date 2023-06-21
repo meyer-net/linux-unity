@@ -10,7 +10,14 @@
 #---------- SYS ---------- {
 red=$(tput setaf 1)
 green=$(tput setaf 2)
+white=$(tput setaf 7)
+tan=$(tput setaf 202)
+blue=$(tput setaf 25)
+
+bold=$(tput bold)
+underline=$(tput sgr 0 1)
 reset=$(tput sgr0)
+
 CL_RED="\033[31m"
 CL_GRN="\033[32m"
 CL_YLW="\033[33m"
@@ -92,21 +99,36 @@ if [ "${LSBLK_MOUNT_ROOT}" == "/" ]; then
     LSBLK_MOUNT_ROOT=
 fi
 
+# 编译标记
+DEPLOY_COMPOSE_MARK="compose"
+# 依赖标记
+DEPLOY_RELY_MARK="rely"
+# 工作目录标记
+DEPLOY_WORK_MARK="work"
+# 日志标记
+DEPLOY_LOGS_MARK="logs"
+# 数据标记
+DEPLOY_DATA_MARK="data"
+# 配置标记
+DEPLOY_CONF_MARK="conf"
+
 MOUNT_ROOT=${LSBLK_MOUNT_ROOT:-"/mountdisk"}
 MOUNT_DIR=${MOUNT_ROOT}
 DEFAULT_DIR=/home/${CURRENT_USER}/default
-ATT_DIR=${MOUNT_DIR}/etc
-DATA_DIR=${MOUNT_DIR}/data
-LOGS_DIR=${MOUNT_DIR}/logs
-DOCKER_ATT_DIR=${ATT_DIR}/docker
-DOCKER_DATA_DIR=${DATA_DIR}/docker
+LOGS_DIR=${MOUNT_DIR}/${DEPLOY_LOGS_MARK}
+DATA_DIR=${MOUNT_DIR}/${DEPLOY_DATA_MARK}
+CONF_DIR=${MOUNT_DIR}/${DEPLOY_CONF_MARK}
 DOCKER_LOGS_DIR=${LOGS_DIR}/docker
-DOCKER_APP_ATT_DIR=${ATT_DIR}/docker_apps
-DOCKER_APP_DATA_DIR=${DATA_DIR}/docker_apps
+DOCKER_DATA_DIR=${DATA_DIR}/docker
+DOCKER_CONF_DIR=${CONF_DIR}/docker 
+
 DOCKER_APP_LOGS_DIR=${LOGS_DIR}/docker_apps
-CONDA_APP_ATT_DIR=${ATT_DIR}/conda_apps
-CONDA_APP_DATA_DIR=${DATA_DIR}/conda_apps
+DOCKER_APP_DATA_DIR=${DATA_DIR}/docker_apps
+DOCKER_APP_CONF_DIR=${CONF_DIR}/docker_apps
+
 CONDA_APP_LOGS_DIR=${LOGS_DIR}/conda_apps
+CONDA_APP_DATA_DIR=${DATA_DIR}/conda_apps
+CONDA_APP_CONF_DIR=${CONF_DIR}/conda_apps
 
 BACKUP_DIR=${MOUNT_DIR}/repo/backup
 COVER_DIR=${MOUNT_DIR}/repo/cover
@@ -136,7 +158,7 @@ PLAYWRIGHT_SCRIPTS_DIR=${PLAYWRIGHT_HOME}/scripts
 PY_ENV="pyenv37"
 PY_PKGS_SETUP_DIR=${SETUP_DIR}/python_packages
 PY3_PKGS_SETUP_DIR=${SETUP_DIR}/python3_packages
-SUPERVISOR_ATT_DIR=${CONDA_APP_ATT_DIR}/supervisor
+SUPERVISOR_CONF_DIR=${CONDA_APP_CONF_DIR}/supervisor
 SUPERVISOR_LOGS_DIR=${CONDA_APP_LOGS_DIR}/supervisor
 SUPERVISOR_DATA_DIR=${CONDA_APP_DATA_DIR}/supervisor
 DOCKER_NETWORK="cuckoo-network"

@@ -13,8 +13,8 @@
 # docker ps -a --no-trunc | awk '{if($2~"mariadb"){print $1}}' | xargs docker stop
 # docker ps -a --no-trunc | awk '{if($2~"mariadb"){print $1}}' | xargs docker rm
 # docker images | awk '{if($1~"mariadb"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/library_mariadb* && rm -rf /mountdisk/etc/docker_apps/library_mariadb* && rm -rf /mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/data/docker_apps/library_mariadb* && rm -rf /opt/docker/data/apps/library_mariadb* && rm -rf /opt/docker/etc/library_mariadb* && rm -rf /opt/docker/logs/library_mariadb* && rm -rf /mountdisk/repo/migrate/clean/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/library_mariadb*
-# rm -rf /mountdisk/repo/backup/opt/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/etc/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/etc/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/logs/library_mariadb*
+# rm -rf /opt/docker_apps/library_mariadb* && rm -rf /mountdisk/conf/docker_apps/library_mariadb* && rm -rf /mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/data/docker_apps/library_mariadb* && rm -rf /opt/docker/data/apps/library_mariadb* && rm -rf /opt/docker/conf/library_mariadb* && rm -rf /opt/docker/logs/library_mariadb* && rm -rf /mountdisk/repo/migrate/clean/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/library_mariadb*
+# rm -rf /mountdisk/repo/backup/opt/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/conf/library_mariadb* && rm -rf /mountdisk/repo/backup/opt/docker/logs/library_mariadb*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # 安装标题：$title_name
@@ -89,25 +89,25 @@ function formal_dc_library_mariadb() {
         echo_style_text "View the 'data copy'↓:"
 
         # 拷贝日志目录
-        docker cp -a ${TMP_DC_MDB_SETUP_CTN_ID}:/var/lib/${TMP_DC_MDB_SETUP_DATA_MARK} ${1} >& /dev/null
+        docker cp -a ${TMP_DC_MDB_SETUP_CTN_ID}:/var/lib/${DEPLOY_DATA_MARK} ${1} >& /dev/null
         
         # 查看列表
         ls -lia ${1}
     }
     soft_path_restore_confirm_create "${TMP_DC_MDB_SETUP_LNK_DATA_DIR}" "_formal_dc_library_mariadb_cp_data"
 
-    ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_MDB_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_MDB_SETUP_CTN_ID}"
-    #### /mountdisk/etc/docker_apps/library_mariadb/10.4.29/container
-    local TMP_DC_MDB_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/etc/docker_apps/library_mariadb/10.4.29
-    function _formal_dc_library_mariadb_cp_etc() {
+    #### /mountdisk/conf/docker_apps/library_mariadb/10.4.29/container
+    local TMP_DC_MDB_SETUP_LNK_CONF_CTN_DIR="${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/container"
+    #### /mountdisk/conf/docker_apps/library_mariadb/10.4.29
+    function _formal_dc_library_mariadb_cp_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'etc copy'↓:"
+        echo_style_text "View the 'conf copy'↓:"
 
         # 拷贝配置目录
-        ## ${TMP_DC_MDB_SETUP_CTN_ID}:/etc/mysql -> /mountdisk/etc/docker_apps/library_mariadb/10.4.29/app
+        ## ${TMP_DC_MDB_SETUP_CTN_ID}:/etc/mysql -> /mountdisk/conf/docker_apps/library_mariadb/10.4.29/app
         if [ -z "${TMP_DC_MDB_SETUP_MYCNF_EXISTS}" ]; then
             docker_bash_channel_exec "${TMP_DC_MDB_SETUP_CTN_ID}" "rm -rf /etc/mysql/my.cnf && ln -sf /etc/mysql/mariadb.cnf /etc/mysql/my.cnf" "t"
         fi
@@ -121,10 +121,10 @@ function formal_dc_library_mariadb() {
 
         ls -lia ${1}/app
     
-        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/library_mariadb/10.4.29/container
-        soft_path_restore_confirm_swap "${TMP_DC_MDB_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_MDB_SETUP_CTN_DIR}"
+        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/conf/docker_apps/library_mariadb/10.4.29/container
+        soft_path_restore_confirm_swap "${TMP_DC_MDB_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_MDB_SETUP_CTN_DIR}"
     }
-    soft_path_restore_confirm_create "${TMP_DC_MDB_SETUP_LNK_ETC_DIR}" "_formal_dc_library_mariadb_cp_etc"
+    soft_path_restore_confirm_create "${TMP_DC_MDB_SETUP_LNK_CONF_DIR}" "_formal_dc_library_mariadb_cp_conf"
     
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
@@ -133,21 +133,21 @@ function formal_dc_library_mariadb() {
     #### /opt/docker_apps/library_mariadb/10.4.29/logs -> /mountdisk/logs/docker_apps/library_mariadb/10.4.29
     path_not_exists_link "${TMP_DC_MDB_SETUP_LOGS_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/library_mariadb/10.4.29 -> /mountdisk/logs/docker_apps/library_mariadb/10.4.29
-    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/library_mariadb/10.4.29/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/library_mariadb/10.4.29/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MDB_SETUP_CTN_ID}-json.log" "" "${TMP_DC_MDB_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_MDB_SETUP_CTN_ID}-json.log"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_LOGS_MARK}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}"
+    #### /mountdisk/logs/docker_apps/library_mariadb/10.4.29/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/library_mariadb/10.4.29/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MDB_SETUP_CTN_ID}-json.log" "" "${TMP_DC_MDB_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_MDB_SETUP_CTN_ID}-json.log"
     ### 数据
     #### /opt/docker_apps/library_mariadb/10.4.29/data -> /mountdisk/data/docker_apps/library_mariadb/10.4.29
     path_not_exists_link "${TMP_DC_MDB_SETUP_DATA_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_DATA_DIR}"
     #### /opt/docker/data/apps/library_mariadb/10.4.29 -> /mountdisk/data/docker_apps/library_mariadb/10.4.29
-    path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_DATA_DIR}"
-    ### ETC
-    #### /opt/docker_apps/library_mariadb/10.4.29/etc -> /mountdisk/etc/docker_apps/library_mariadb/10.4.29
-    path_not_exists_link "${TMP_DC_MDB_SETUP_ETC_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_ETC_DIR}"
-    #### /opt/docker/etc/library_mariadb/10.4.29 -> /mountdisk/etc/docker_apps/library_mariadb/10.4.29
-    path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_ETC_DIR}"
-    # #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/library_mariadb/10.4.29/container
-    path_not_exists_link "${TMP_DC_MDB_SETUP_CTN_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_ETC_CTN_DIR}"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/apps/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_DATA_DIR}"
+    ### CONF
+    #### /opt/docker_apps/library_mariadb/10.4.29/conf -> /mountdisk/conf/docker_apps/library_mariadb/10.4.29
+    path_not_exists_link "${TMP_DC_MDB_SETUP_CONF_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_CONF_DIR}"
+    #### /opt/docker/conf/library_mariadb/10.4.29 -> /mountdisk/conf/docker_apps/library_mariadb/10.4.29
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}" "" "${TMP_DC_MDB_SETUP_LNK_CONF_DIR}"
+    # #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/conf/docker_apps/library_mariadb/10.4.29/container
+    path_not_exists_link "${TMP_DC_MDB_SETUP_CTN_DIR}" "" "${TMP_DC_MDB_SETUP_LNK_CONF_CTN_DIR}"
 
     # # 预实验部分        
     # ## 目录调整完修改启动参数
@@ -157,21 +157,21 @@ function formal_dc_library_mariadb() {
     # ${TMP_DC_MDB_SETUP_CTN_TMP}:/tmp"
     #
     # ${TMP_DC_MDB_SETUP_WORK_DIR}:$work_dir"
-    # # ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_MDB_SETUP_APP_MARK}"
-    # # ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:$work_dir/${TMP_DC_MDB_SETUP_LOGS_MARK}"
-    # # ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_MDB_SETUP_DATA_MARK}"
-    # # ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MDB_SETUP_APP_MARK}"
-    # # ${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/app:$work_dir/${TMP_DC_MDB_SETUP_ETC_MARK}
-    # # ${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_MDB_SETUP_APP_MARK}
+    # # ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_MDB_DEPLOY_APP_MARK}"
+    # # ${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:$work_dir/${DEPLOY_LOGS_MARK}"
+    # # ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:$work_dir/${DEPLOY_DATA_MARK}"
+    # # ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MDB_DEPLOY_APP_MARK}"
+    # # ${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/app:$work_dir/${DEPLOY_CONF_MARK}
+    # # ${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/app:/etc/${TMP_DC_MDB_DEPLOY_APP_MARK}
     # echo "${TMP_SPLITER2}"
     # echo_style_text "Starting 'inspect change', hold on please"
     
     # 挂载目录(必须停止服务才能修改，否则会无效)
     ## 小于等于10.4的版本
     if [ -n "${TMP_DC_MDB_SETUP_MYCNF_EXISTS}" ]; then
-        docker_change_container_volume_migrate "${TMP_DC_MDB_SETUP_CTN_ID}" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MDB_SETUP_APP_MARK} ${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/app:/etc/mysql ${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/app/my.cnf:/etc/my.cnf" "" $([[ -z "${TMP_DC_MDB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+        docker_change_container_volume_migrate "${TMP_DC_MDB_SETUP_CTN_ID}" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_MDB_DEPLOY_APP_MARK} ${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/app:/etc/mysql ${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/app/my.cnf:/etc/my.cnf" "" $([[ -z "${TMP_DC_MDB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     else
-        docker_change_container_volume_migrate "${TMP_DC_MDB_SETUP_CTN_ID}" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log/mysql ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/mysql ${TMP_DC_MDB_SETUP_LNK_ETC_DIR}/app:/etc/mysql" "" $([[ -z "${TMP_DC_MDB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+        docker_change_container_volume_migrate "${TMP_DC_MDB_SETUP_CTN_ID}" "${TMP_DC_MDB_SETUP_LNK_LOGS_DIR}/app:/var/log/mysql ${TMP_DC_MDB_SETUP_LNK_DATA_DIR}:/var/lib/mysql ${TMP_DC_MDB_SETUP_LNK_CONF_DIR}/app:/etc/mysql" "" $([[ -z "${TMP_DC_MDB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
 
     return $?
@@ -226,8 +226,8 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MDB_SETUP_CTN_ID}" "${TMP_DC_MDB_SETUP_INIT_SCRIPT}" "/tmp/change_passwd.sh" "."
 
     # 配置服务
-    local TMP_DC_MDB_SETUP_LNK_ETC_MYSQLD_NODE_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MDB_SETUP_CTN_ID}")
-    conf_dc_mysql_etc "mariadb" "${TMP_DC_MDB_SETUP_LNK_ETC_MYSQLD_NODE_PATH}" "${TMP_DC_MDB_SETUP_SOFT_VER}"
+    local TMP_DC_MDB_SETUP_LNK_CONF_MYSQLD_NODE_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MDB_SETUP_CTN_ID}")
+    conf_dc_mysql_etc "mariadb" "${TMP_DC_MDB_SETUP_LNK_CONF_MYSQLD_NODE_PATH}" "${TMP_DC_MDB_SETUP_SOFT_VER}"
     
     return $?
 }
@@ -241,6 +241,9 @@ function test_dc_library_mariadb() {
     echo_style_wrap_text "Starting 'test', hold on please"
 
     # 实验部分
+    ## 1：检测启停
+    docker container stop ${TMP_DC_MDB_SETUP_CTN_ID}
+    docker container start ${TMP_DC_MDB_SETUP_CTN_ID}
 
     return $?
 }
@@ -338,20 +341,16 @@ function exec_step_dc_library_mariadb() {
     local TMP_DC_MDB_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}
     local TMP_DC_MDB_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}
     local TMP_DC_MDB_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}
-    local TMP_DC_MDB_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}
+    local TMP_DC_MDB_SETUP_LNK_CONF_DIR=${DOCKER_APP_CONF_DIR}/${TMP_DC_MDB_SETUP_IMG_MARK_NAME}/${TMP_DC_MDB_SETUP_CTN_VER}
 
     ## 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_MDB_SETUP_WORK_MARK="work"
-    local TMP_DC_MDB_SETUP_LOGS_MARK="logs"
-    local TMP_DC_MDB_SETUP_DATA_MARK="data"
-    local TMP_DC_MDB_SETUP_ETC_MARK="etc"
-    local TMP_DC_MDB_SETUP_APP_MARK="mysql"
+    local TMP_DC_MDB_DEPLOY_APP_MARK="mysql"
 
     ## 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_MDB_SETUP_WORK_DIR=${TMP_DC_MDB_SETUP_DIR}/${TMP_DC_MDB_SETUP_WORK_MARK}
-    local TMP_DC_MDB_SETUP_LOGS_DIR=${TMP_DC_MDB_SETUP_DIR}/${TMP_DC_MDB_SETUP_LOGS_MARK}
-    local TMP_DC_MDB_SETUP_DATA_DIR=${TMP_DC_MDB_SETUP_DIR}/${TMP_DC_MDB_SETUP_DATA_MARK}
-    local TMP_DC_MDB_SETUP_ETC_DIR=${TMP_DC_MDB_SETUP_DIR}/${TMP_DC_MDB_SETUP_ETC_MARK}
+    local TMP_DC_MDB_SETUP_WORK_DIR=${TMP_DC_MDB_SETUP_DIR}/${DEPLOY_WORK_MARK}
+    local TMP_DC_MDB_SETUP_LOGS_DIR=${TMP_DC_MDB_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+    local TMP_DC_MDB_SETUP_DATA_DIR=${TMP_DC_MDB_SETUP_DIR}/${DEPLOY_DATA_MARK}
+    local TMP_DC_MDB_SETUP_CONF_DIR=${TMP_DC_MDB_SETUP_DIR}/${DEPLOY_CONF_MARK}
     
     echo_style_wrap_text "Starting 'execute step' <${TMP_DC_MDB_SETUP_IMG_NAME}>:[${TMP_DC_MDB_SETUP_CTN_VER}]('${TMP_DC_MDB_SETUP_CTN_ID}'), hold on please"
 
@@ -399,10 +398,10 @@ function boot_build_dc_library_mariadb() {
     
     ## 标准启动参数
     local TMP_DC_MDB_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro"
-    # local TMP_DC_MDB_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    local TMP_DC_MDB_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_MDB_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_MDB_SETUP_OPN_PORT}:${TMP_DC_MDB_SETUP_INN_PORT}"
     # 获取宿主机root权限
-    local TMP_DC_MDB_SETUP_PRE_ARG_ENVS="--privileged=true --expose ${TMP_DC_MDB_SETUP_OPN_PORT} --env=MARIADB_RANDOM_ROOT_PASSWORD=yes"
+    local TMP_DC_MDB_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_MDB_SETUP_OPN_PORT} --env=MARIADB_RANDOM_ROOT_PASSWORD=yes"
     local TMP_DC_MDB_SETUP_PRE_ARGS="--name=${TMP_DC_MDB_SETUP_IMG_MARK_NAME}_${TMP_DC_MDB_SETUP_IMG_VER} ${TMP_DC_MDB_SETUP_PRE_ARG_PORTS} ${TMP_DC_MDB_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_MDB_SETUP_PRE_ARG_ENVS} ${TMP_DC_MDB_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定

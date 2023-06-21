@@ -12,45 +12,45 @@ function conf_dc_mysql_etc_master()
 {
     _conf_dc_mysql_etc_bind
 
-    if [ -z "${TMP_DC_MSQ_CONF_LNK_ETC_PATH}" ]; then
+    if [ -z "${TMP_DC_MSQ_CONF_LNK_CONF_PATH}" ]; then
         echo_style_text "Cannot define conf path"
         return
     fi
 
-    if [[ ! -f ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} ]]; then
-        echo_style_text "Cannot found conf path <${TMP_DC_MSQ_CONF_LNK_ETC_PATH}>"
+    if [[ ! -f ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} ]]; then
+        echo_style_text "Cannot found conf path <${TMP_DC_MSQ_CONF_LNK_CONF_PATH}>"
         return
     fi
 
 	echo_style_wrap_text "Starting 'configuration' <${TMP_DC_MSQ_CONF_CTN_IMG_NAME}> [master]"
     
     # 修改文件配置
-	echo_style_text "Starting 'change cnf'(<${TMP_DC_MSQ_CONF_LNK_ETC_PATH}>)"
+	echo_style_text "Starting 'change cnf'(<${TMP_DC_MSQ_CONF_LNK_CONF_PATH}>)"
 	## 不加binlog-do-db和binlog_ignore_db，那就表示备份全部数据库。
 	## echo_style_text "'MySQL': Please Ender MySQL-Master All DB To Bak And Use Character ',' To Split Like 'db_a,db_b' In Network"
 	## read -e DBS
 
     # file_content_part_not_exists_mquote_echo "^long_query_time=" ${1} "mysqld" "long_query_time=3"
     ## 指定主库的 server id
-	sed -i "s@^server-id.*@server-id = ${LOCAL_ID}@g" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH}
+	sed -i "s@^server-id.*@server-id = ${LOCAL_ID}@g" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH}
 
-	file_content_part_not_exists_mquote_echo "^relay-log-index.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "relay-log-index = relay-bin-index"
-	file_content_part_not_exists_mquote_echo "^relay-log = .*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "relay-log = relay-bin"
+	file_content_part_not_exists_mquote_echo "^relay-log-index.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "relay-log-index = relay-bin-index"
+	file_content_part_not_exists_mquote_echo "^relay-log = .*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "relay-log = relay-bin"
     ## 可以指定需要记录的库
     ## 需要记录多个库，只需要重复配置 binlog-do-db
     ### binlog-do-db=test_db
     ## 也可以指定不需要记录的库
-	file_content_part_not_exists_mquote_echo "^binlog-ignore-db.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "binlog-ignore-db = mysql"
+	file_content_part_not_exists_mquote_echo "^binlog-ignore-db.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "binlog-ignore-db = mysql"
 
     # Last_IO_Error: Got fatal error 1236 from master when reading data from binary log: 'Binary log is not open'
-    file_content_part_not_exists_mquote_echo "^innodb_flush_log_at_trx_commit.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "innodb_flush_log_at_trx_commit = 1"
-    file_content_part_not_exists_mquote_echo "^sync_binlog.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "sync_binlog = 1"
+    file_content_part_not_exists_mquote_echo "^innodb_flush_log_at_trx_commit.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "innodb_flush_log_at_trx_commit = 1"
+    file_content_part_not_exists_mquote_echo "^sync_binlog.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "sync_binlog = 1"
     ## 指定 Binlog 的位置
-    file_content_part_not_exists_mquote_echo "^log-bin.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "log-bin=mysql-bin.log"
+    file_content_part_not_exists_mquote_echo "^log-bin.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "log-bin=mysql-bin.log"
 
 	## 表示只备份
-	## file_content_part_not_exists_mquote_echo "^binlog-do-db.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "binlog-do-db=$DBS"
-	file_content_part_not_exists_mquote_echo "^# Defind for" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "# Defind for master set by meyer.cheng, at ${LOCAL_TIME}"
+	## file_content_part_not_exists_mquote_echo "^binlog-do-db.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "binlog-do-db=$DBS"
+	file_content_part_not_exists_mquote_echo "^# Defind for" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "# Defind for master set by meyer.cheng, at ${LOCAL_TIME}"
 
     ## 修改配置完重启
 	docker container restart ${TMP_DC_MSQ_CONF_CTN_ID}
@@ -91,13 +91,13 @@ function conf_dc_mysql_etc_slave()
 {
     _conf_dc_mysql_etc_bind
 
-    if [ -z "${TMP_DC_MSQ_CONF_LNK_ETC_PATH}" ]; then
+    if [ -z "${TMP_DC_MSQ_CONF_LNK_CONF_PATH}" ]; then
         echo_style_text "Cannot define conf path"
         return
     fi
 
-    if [[ ! -f ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} ]]; then
-        echo_style_text "Cannot found conf path <${TMP_DC_MSQ_CONF_LNK_ETC_PATH}>"
+    if [[ ! -f ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} ]]; then
+        echo_style_text "Cannot found conf path <${TMP_DC_MSQ_CONF_LNK_CONF_PATH}>"
         return
     fi
 
@@ -108,15 +108,15 @@ function conf_dc_mysql_etc_slave()
 	#read -e DBS
 
     # 修改文件配置
-	echo_style_text "Starting 'change cnf'(<${TMP_DC_MSQ_CONF_LNK_ETC_PATH}>)"
-	sed -i "s@^server-id.*@server-id = ${LOCAL_ID}@g" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH}
-	sed -i "s@^innodb_thread_concurrency.*@innodb_thread_concurrency = 0@g" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH}
+	echo_style_text "Starting 'change cnf'(<${TMP_DC_MSQ_CONF_LNK_CONF_PATH}>)"
+	sed -i "s@^server-id.*@server-id = ${LOCAL_ID}@g" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH}
+	sed -i "s@^innodb_thread_concurrency.*@innodb_thread_concurrency = 0@g" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH}
 
-	file_content_part_not_exists_mquote_echo "^skip-slave-start" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "skip-slave-start"
-	file_content_part_not_exists_mquote_echo "^replicate-ignore-db.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "replicate-ignore-db = mysql"
+	file_content_part_not_exists_mquote_echo "^skip-slave-start" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "skip-slave-start"
+	file_content_part_not_exists_mquote_echo "^replicate-ignore-db.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "replicate-ignore-db = mysql"
 	#表示只备份
-	#file_content_part_not_exists_mquote_echo "^replicate-do-db.*" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "replicate-do-db = $DBS"
-	file_content_part_not_exists_mquote_echo "^# Defind for" ${TMP_DC_MSQ_CONF_LNK_ETC_PATH} "mysqld" "# Defind for slave set by meyer.cheng, at ${LOCAL_TIME}"
+	#file_content_part_not_exists_mquote_echo "^replicate-do-db.*" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "replicate-do-db = $DBS"
+	file_content_part_not_exists_mquote_echo "^# Defind for" ${TMP_DC_MSQ_CONF_LNK_CONF_PATH} "mysqld" "# Defind for slave set by meyer.cheng, at ${LOCAL_TIME}"
 
 	docker container restart ${TMP_DC_MSQ_CONF_CTN_ID}
         
@@ -215,11 +215,11 @@ function _conf_dc_mysql_etc_bind()
         TMP_DC_MSQ_CONF_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_MSQ_CONF_CTN_IMG_MARK_NAME}/${TMP_DC_MSQ_CONF_CTN_IMG_VER}
 
         # 临时密码
-        TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/logs/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
+        TMP_DC_MSQ_CONF_TEMPORARY_PWD=$(cat ${TMP_DC_MSQ_CONF_SETUP_DIR}/${DEPLOY_LOGS_MARK}/container/${TMP_DC_MSQ_CONF_CTN_ID}-json.log | grep "GENERATED ROOT PASSWORD: " | jq ".log" | awk 'END{print}' | grep -oP "(?<=GENERATED ROOT PASSWORD: ).+(?=\\\n\")")
         TMP_DC_MSQ_CONF_TEMPORARY_PWD="${TMP_DC_MSQ_CONF_TEMPORARY_PWD//\'/\\\'/}"
 
         # 配置文件路径
-        TMP_DC_MSQ_CONF_LNK_ETC_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MSQ_CONF_CTN_ID}")
+        TMP_DC_MSQ_CONF_LNK_CONF_PATH=$(docker_container_mysql_etc_mysqld_node_file_path_echo "${TMP_DC_MSQ_CONF_CTN_ID}")
     fi
 	return $?
 }
@@ -234,7 +234,7 @@ local TMP_DC_MSQ_CONF_CTN_SOFT_VER=
 local TMP_DC_MSQ_CONF_CTN_ID=
 local TMP_DC_MSQ_CONF_SOFT_OPN_PORT=
 local TMP_DC_MSQ_CONF_SOFT_INN_PORT=
-local TMP_DC_MSQ_CONF_LNK_ETC_PATH=
+local TMP_DC_MSQ_CONF_LNK_CONF_PATH=
 local TMP_DC_MSQ_CONF_TEMPORARY_PWD=
 local TMP_DC_MSQ_CONF_CMD_MARK="mysql"
 

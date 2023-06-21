@@ -72,7 +72,7 @@ SUPERVISORCTL=\$PREFIX/bin/supervisorctl
 PIDFILE=/tmp/supervisord.pid
 LOCKFILE=/tmp/supervisord.lock
 
-OPTIONS="-c ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf"
+OPTIONS="-c ${TMP_SUP_SETUP_LNK_CONF_DIR}/supervisor.conf"
 
 # unset this variable if you don't care to wait for child processes to shutdown before removing the \$LOCKFILE-lock
 WAIT_FOR_SUBPROCESSES=yes
@@ -192,7 +192,7 @@ condrestart)
     RETVAL=$?
     ;;
 status)
-	[[ -a \$(cat ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf | grep -oP "(?<=^serverurl=unix://)[^;]+") ]] && \$SUPERVISORCTL \$OPTIONS status
+	[[ -a \$(cat ${TMP_SUP_SETUP_LNK_CONF_DIR}/supervisor.conf | grep -oP "(?<=^serverurl=unix://)[^;]+") ]] && \$SUPERVISORCTL \$OPTIONS status
 	running
 	RETVAL=$?
     ;;
@@ -223,10 +223,10 @@ function formal_supervisor()
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_LOGS_DIR}"
 	## 数据
 	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_DATA_DIR}"
-	## ETC - ②-N：不存在配置文件：
-	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_ETC_DIR}"
-    ## ETC - 手动生成文件
-	path_not_exists_action "${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf" "su_bash_env_conda_channel_exec 'cd && echo_supervisord_conf > ${TMP_SUP_SETUP_LNK_ETC_DIR}/supervisor.conf' '${TMP_SUP_SETUP_ENV}'"
+	## CONF - ②-N：不存在配置文件：
+	soft_path_restore_confirm_create "${TMP_SUP_SETUP_LNK_CONF_DIR}"
+    ## CONF - 手动生成文件
+	path_not_exists_action "${TMP_SUP_SETUP_LNK_CONF_DIR}/supervisor.conf" "su_bash_env_conda_channel_exec 'cd && echo_supervisord_conf > ${TMP_SUP_SETUP_LNK_CONF_DIR}/supervisor.conf' '${TMP_SUP_SETUP_ENV}'"
 	
 	# 创建链接规则
 	## 工作
@@ -235,11 +235,11 @@ function formal_supervisor()
 	path_not_exists_link "${TMP_SUP_SETUP_LOGS_DIR}" "" "${TMP_SUP_SETUP_LNK_LOGS_DIR}"
 	## 数据
 	path_not_exists_link "${TMP_SUP_SETUP_DATA_DIR}" "" "${TMP_SUP_SETUP_LNK_DATA_DIR}"
-	## ETC - ①-2Y
-    path_not_exists_link "${TMP_SUP_SETUP_ETC_DIR}" "" "${TMP_SUP_SETUP_LNK_ETC_DIR}"
+	## CONF - ①-2Y
+    path_not_exists_link "${TMP_SUP_SETUP_CONF_DIR}" "" "${TMP_SUP_SETUP_LNK_CONF_DIR}"
     # 安装不产生规格下的bin目录，所以手动还原创建
 	path_not_exists_create "${TMP_SUP_SETUP_BIN_DIR}" "" "path_not_exists_link '${TMP_SUP_SETUP_BIN_DIR}/supervisor' '' '${TMP_SUP_SETUP_MCD_ENVS_DIR}/bin/supervisor'"
-	path_not_exists_create "${TMP_SUP_SETUP_LNK_ETC_DIR}/boots"
+	path_not_exists_create "${TMP_SUP_SETUP_LNK_CONF_DIR}/boots"
 
 	# 预实验部分
 
@@ -262,18 +262,18 @@ function conf_supervisor()
 	su_bash_conda_echo_profile 'export PATH SUPERVISOR_HOME' "" "${TMP_SUP_SETUP_ENV}"
 	
 	## 修改配置文件
-    sed -i "s@^[;]*\[inet_http_server\]@\[inet_http_server\]@g" etc/supervisor.conf
-    sed -i "s@^[;]*port=.*@port=${LOCAL_HOST}:${TMP_SUP_SETUP_HTTP_PORT}@g" etc/supervisor.conf
-    sed -i "s@^[;]*logfile=.*@logfile=${TMP_SUP_SETUP_LNK_LOGS_DIR}/supervisor.log@g" etc/supervisor.conf
-    sed -i "s@^[;]*\[include\]@\[include\]@g" etc/supervisor.conf
-    sed -i "s@^[;]*files = .*@files = ${TMP_SUP_SETUP_LNK_ETC_DIR}/boots/*.conf@g" etc/supervisor.conf
+    sed -i "s@^[;]*\[inet_http_server\]@\[inet_http_server\]@g" ${DEPLOY_CONF_MARK}/supervisor.conf
+    sed -i "s@^[;]*port=.*@port=${LOCAL_HOST}:${TMP_SUP_SETUP_HTTP_PORT}@g" ${DEPLOY_CONF_MARK}/supervisor.conf
+    sed -i "s@^[;]*logfile=.*@logfile=${TMP_SUP_SETUP_LNK_LOGS_DIR}/supervisor.log@g" ${DEPLOY_CONF_MARK}/supervisor.conf
+    sed -i "s@^[;]*\[include\]@\[include\]@g" ${DEPLOY_CONF_MARK}/supervisor.conf
+    sed -i "s@^[;]*files = .*@files = ${TMP_SUP_SETUP_LNK_CONF_DIR}/boots/*.conf@g" ${DEPLOY_CONF_MARK}/supervisor.conf
 
-	## 授权权限，否则无法写入
+	## 授权权限，否则无法写入 
 	chown -R conda:root ${TMP_SUP_SETUP_DIR}
 	chown -R conda:root ${TMP_SUP_SETUP_LNK_WORK_DIR}
 	chown -R conda:root ${TMP_SUP_SETUP_LNK_LOGS_DIR}
 	chown -R conda:root ${TMP_SUP_SETUP_LNK_DATA_DIR}
-	chown -R conda:root ${TMP_SUP_SETUP_LNK_ETC_DIR}
+	chown -R conda:root ${TMP_SUP_SETUP_LNK_CONF_DIR}
 	
     ## 目录调整完重启进程(目录调整是否有效的验证点)
     su_bash_env_conda_channel_exec "supervisor status" "${TMP_SUP_SETUP_ENV}"
@@ -316,7 +316,7 @@ function boot_supervisor()
 
 [Unit]
 Description=Supervisor daemon
-After=rc-local.service
+After=rc-local.service network.target
 Before=docker.service
 
 [Service]
@@ -329,7 +329,7 @@ ExecStop=/bin/bash -c "source .bashrc && conda activate ${TMP_SUP_SETUP_ENV} && 
 ExecReload=/bin/bash -c "source .bashrc && conda activate ${TMP_SUP_SETUP_ENV} && supervisor reload"
 KillMode=process
 Restart=on-failure
-RestartSec=15s
+RestartSec=42s
 SysVStartPriority=99
 
 [Install]
@@ -442,14 +442,14 @@ function exec_step_supervisor()
 	local TMP_SUP_SETUP_DIR=${CONDA_APP_SETUP_DIR}/${TMP_SUP_SETUP_MARK_NAME}
 	local TMP_SUP_SETUP_LNK_LOGS_DIR=${CONDA_APP_LOGS_DIR}/${TMP_SUP_SETUP_MARK_NAME}
 	local TMP_SUP_SETUP_LNK_DATA_DIR=${CONDA_APP_DATA_DIR}/${TMP_SUP_SETUP_MARK_NAME}
-	local TMP_SUP_SETUP_LNK_ETC_DIR=${CONDA_APP_ATT_DIR}/${TMP_SUP_SETUP_MARK_NAME}
+	local TMP_SUP_SETUP_LNK_CONF_DIR=${CONDA_APP_CONF_DIR}/${TMP_SUP_SETUP_MARK_NAME}
 
 	## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_SUP_SETUP_BIN_DIR=${TMP_SUP_SETUP_DIR}/bin
-	local TMP_SUP_SETUP_WORK_DIR=${TMP_SUP_SETUP_DIR}/work
-	local TMP_SUP_SETUP_LOGS_DIR=${TMP_SUP_SETUP_DIR}/logs
+	local TMP_SUP_SETUP_WORK_DIR=${TMP_SUP_SETUP_DIR}/${DEPLOY_WORK_MARK}
+	local TMP_SUP_SETUP_LOGS_DIR=${TMP_SUP_SETUP_DIR}/${DEPLOY_LOGS_MARK}
 	local TMP_SUP_SETUP_DATA_DIR=${TMP_SUP_SETUP_DIR}/scripts
-	local TMP_SUP_SETUP_ETC_DIR=${TMP_SUP_SETUP_DIR}/etc
+	local TMP_SUP_SETUP_CONF_DIR=${TMP_SUP_SETUP_DIR}/${DEPLOY_CONF_MARK}
 
 	set_env_supervisor 
 

@@ -12,9 +12,12 @@
 # 安装时版本：23.3.1
 #------------------------------------------------
 # Debug：
-# rm -rf /opt/conda* && rm -rf /mountdisk/etc/conda* && rm -rf /mountdisk/logs/conda* && rm -rf /mountdisk/data/conda* && rm -rf /home/conda && rm -rf ~/.conda && rm -rf ~/.cache/conda && rm -rf /var/spool/mail/conda && systemctl stop supervisor.service && rm -rf /usr/lib/systemd/system/supervisor.service
+# rm -rf /opt/conda* && rm -rf /mountdisk/conf/conda* && rm -rf /mountdisk/logs/conda* && rm -rf /mountdisk/data/conda* && rm -rf /home/conda && rm -rf ~/.conda && rm -rf ~/.cache/conda && rm -rf /var/spool/mail/conda
+# chmod -v u+w /etc/sudoers && cat /etc/sudoers | grep -En "^conda " | cut -d':' -f1 | xargs -I {} sh -c "sed -i '{}d' /etc/sudoers" && chmod -v u-w /etc/sudoers
 # ps -ef | grep conda | awk 'NR>1{print $2}' | xargs kill -9
-# userdel conda && groupdel conda
+# cat /etc/shadow | grep -En "^conda:" | cut -d':' -f1 | xargs -I {} sh -c "sed -i '{}d' /etc/shadow"
+# cat /etc/passwd | grep -En "^conda:" | cut -d':' -f1 | xargs -I {} sh -c "sed -i '{}d' /etc/passwd"
+# vipw 手动删除用户
 #------------------------------------------------
 # 相关目录：
 #         /opt/conda/bin/conda
@@ -112,8 +115,9 @@ function change_down_miniconda()
     ## 修改许可阅读确认
     sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@read -r dummy@#read -r dummy@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
 
-    ## 修改阅读太多内容
+    ## 修改阅读太多内容(多种规格，不同版本这里有些差异)
     sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@\"\$pager\" <<EOF@pager=<<EOF@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
+    sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@\"\$pager\" <<'EOF'@pager=<<EOF@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
 
     ## 修改是否同意的选择默认为yes
     sed -i -e "1,${TMP_MCD_SETUP_SH_FILE_LINES} s@read -r ans@ans='yes'@g" ${TMP_MCD_SETUP_SH_FILE_SH_NAME}
@@ -173,9 +177,9 @@ function formal_miniconda()
     soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_HOME_PKGS_DIR}" "${TMP_MCD_SETUP_DATA_HOME_PKGS_DIR}"
     soft_path_restore_confirm_create "${CONDA_APP_DATA_DIR}"
     # soft_path_restore_confirm_swap "${TMP_MCD_SETUP_LNK_DATA_ENVS_DIR}" "/home/conda/.conda/envs"
-	## ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
-	soft_path_restore_confirm_move "${TMP_MCD_SETUP_LNK_ETC_DIR}" "${TMP_MCD_SETUP_ETC_DIR}"
-    soft_path_restore_confirm_create "${CONDA_APP_ATT_DIR}"
+	## CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
+	soft_path_restore_confirm_move "${TMP_MCD_SETUP_LNK_CONF_DIR}" "${TMP_MCD_SETUP_CONF_DIR}"
+    soft_path_restore_confirm_create "${CONDA_APP_CONF_DIR}"
     
 	# 创建链接规则
 
@@ -200,16 +204,20 @@ function conf_miniconda()
     file_content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
 
     # 授权
-	chown -R conda:root "${TMP_MCD_SETUP_DATA_HOME_ENVS_DIR}"
 	chown -R conda:root ${TMP_MCD_SETUP_DIR}
+	chown -R conda:root "${TMP_MCD_SETUP_DATA_HOME_ENVS_DIR}"
+	chown -R conda:root "${TMP_MCD_SETUP_DATA_ROOT_ENVS_DIR}"
+	chown -R conda:root "${TMP_MCD_SETUP_DATA_HOME_PKGS_DIR}"
+	chown -R conda:root "${TMP_MCD_SETUP_DATA_ROOT_PKGS_DIR}"
     chown -R conda:root ${TMP_MCD_SETUP_LNK_DATA_DIR}
-	chown -R conda:root ${TMP_MCD_SETUP_LNK_ETC_DIR}
+	chown -R conda:root ${TMP_MCD_SETUP_LNK_CONF_DIR}
 
     # 同步环境变量
     ## ~/.bashrc 中存在，故不启用，仅记录
 	## 环境变量或软连接
-	echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
-	echo_etc_profile 'export CONDA_HOME'
+	# echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
+    # echo_etc_profile 'PATH=$CONDA_HOME/bin:$PATH'
+	# echo_etc_profile 'export CONDA_HOME'
 
     # 重新加载profile文件
 	source /etc/profile
@@ -219,10 +227,23 @@ function conf_miniconda()
     ### 配置主环境登录不进入虚拟环境
     condabin/conda config --set auto_activate_base false
     su_bash_conda_channel_exec "conda config --set show_channel_urls yes"
+    ## 是否自动确认
+    # su_bash_conda_channel_exec "conda config --set always_yes yes"
+
+    ### 设置SSL验证为false，否则可能出现（但是加了pip update时又会出现 SSL验证问题，囧rz）：
+    # Collecting package metadata (current_repodata.json): failed
+    # CondaSSLError: Encountered an SSL error. Most likely a certificate verification issue.
+    # Exception: HTTPSConnectionPool(host='conda.anaconda.org', port=443): Max retries exceeded with url: /microsoft/linux-64/current_repodata.json (Caused by SSLError(SSLCertVerificationError(1, '[SSL: CERTIFICATE_VERIFY_FAILED] certificate verify failed: certificate is not yet valid (_ssl.c:997)')))
+    # su_bash_conda_channel_exec "conda config --set ssl_verify false"
 
     local TMP_CMD_SETUP_CNLS=$(su_bash_conda_channel_exec "conda config --show-sources | grep '^  -' | cut -d' ' -f4")
+    # item_not_exists_action "^https:\/\/mirrors.bfsu.edu.cn\/anaconda\/pkgs\/free\/$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/free/'"
+    # item_not_exists_action "^https:\/\/mirrors.bfsu.edu.cn\/anaconda\/pkgs\/main\/$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/main/'"
+    # item_not_exists_action "^https:\/\/mirrors.bfsu.edu.cn\/anaconda\/pkgs\/cloud\/conda-forge\/$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/cloud/conda-forge/'"
+    # item_not_exists_action "^https:\/\/mirrors.bfsu.edu.cn\/anaconda\/pkgs\/cloud\/bioconda\/$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels https://mirrors.bfsu.edu.cn/anaconda/pkgs/cloud/bioconda/'"
+    item_not_exists_action "^microsoft$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels microsoft'"
     item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels conda-forge'"
-    item_not_exists_action "^conda-forge$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels microsoft'"
+    item_not_exists_action "^bioconda$" "${TMP_CMD_SETUP_CNLS}" "su_bash_conda_channel_exec 'conda config --add channels bioconda'"
 
 	return $?
 }
@@ -376,7 +397,7 @@ function check_setup_miniconda()
 	local TMP_MCD_SETUP_LNK_DATA_PKGS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/pkgs/basic
 	local TMP_MCD_SETUP_LNK_DATA_ROOT_PKGS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/pkgs/root
 	local TMP_MCD_SETUP_LNK_DATA_HOME_PKGS_DIR=${TMP_MCD_SETUP_LNK_DATA_DIR}/pkgs/home
-	local TMP_MCD_SETUP_LNK_ETC_DIR=${ATT_DIR}/conda
+	local TMP_MCD_SETUP_LNK_CONF_DIR=${CONF_DIR}/conda
     
 	# 安装后的真实路径（此处依据实际路径名称修改）
 	local TMP_MCD_SETUP_DATA_ENVS_DIR=${TMP_MCD_SETUP_DIR}/envs
@@ -385,7 +406,10 @@ function check_setup_miniconda()
 	local TMP_MCD_SETUP_DATA_PKGS_DIR=${TMP_MCD_SETUP_DIR}/pkgs
 	local TMP_MCD_SETUP_DATA_HOME_PKGS_DIR="/home/conda/pkgs"
 	local TMP_MCD_SETUP_DATA_ROOT_PKGS_DIR="/root/.conda/pkgs"
-	local TMP_MCD_SETUP_ETC_DIR=${TMP_MCD_SETUP_DIR}/etc
+
+    ## 初始化时，目录便已存在路径为etc
+	# local TMP_MCD_SETUP_CONF_DIR=${TMP_MCD_SETUP_DIR}/${DEPLOY_CONF_MARK}
+    local TMP_MCD_SETUP_CONF_DIR=${TMP_MCD_SETUP_DIR}/etc
 
     # 临时
 	local TMP_MCD_CURRENT_DIR=$(pwd)

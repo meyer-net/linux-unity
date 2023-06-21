@@ -47,26 +47,26 @@ function conf_dc_mysql_etc()
 function docker_container_mysql_etc_mysqld_node_file_path_echo()
 {
     function _docker_container_mysql_etc_mysqld_node_file_path_echo_judge() {
-        local TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO=${DOCKER_APP_SETUP_DIR}/${3/\//_}/${4}/etc
-        bind_symlink_link_path "TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO"
+        local TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO=${DOCKER_APP_SETUP_DIR}/${3/\//_}/${4}/${DEPLOY_CONF_MARK}
+        bind_symlink_link_path "TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO"
 
         # 配置文件路径    
         case "${3}" in
         "library/mysql")
-            echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/etc/app/my.cnf"
+            echo "${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/${DEPLOY_CONF_MARK}/app/my.cnf"
             ;;
         "library/mariadb")
             if [ -n "$(docker_bash_channel_exec "${2}" "ls /etc | grep 'my.cnf'")" ]; then
-                echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf"
+                echo "${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf"
             else
-                if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf ]; then
-                    echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf"
+                if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf ]; then
+                    echo "${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.conf.d/50-server.cnf"
                 else
-                    if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf ]; then
-                        echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf"
+                    if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf ]; then
+                        echo "${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/mariadb.cnf"
                     else
-                        if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf ]; then
-                            echo "${TMP_DOCKER_CONTAINER_MYSQL_ETC_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf"
+                        if [ -f ${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf ]; then
+                            echo "${TMP_DOCKER_CONTAINER_MYSQL_CONF_MYSQLD_NODE_FILE_PATH_ECHO}/app/my.cnf.d/server.cnf"
                         fi
                     fi
                 fi

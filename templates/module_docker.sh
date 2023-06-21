@@ -13,7 +13,7 @@
 # docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker stop
 # docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker rm
 # docker images | awk '{if($1~"$image_name"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/etc/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/etc/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
+# rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/conf/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # 安装标题：$title_name
@@ -21,7 +21,6 @@
 # 软件端口：$soft_port
 # 软件大写分组与简称：$soft_upper_short_name
 # 软件安装名称：$setup_name
-# 软件工作运行目录：$work_dir
 # 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
@@ -51,14 +50,22 @@ function setup_dc_$setup_name() {
 
         # 拷贝应用目录
         # docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
-        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir ${1} >& /dev/null
+        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
         
-        # 查看列表
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
+        # 查看拷贝列表
         ls -lia ${1}
     }
 
     # 创建安装目录(纯属为了规范)
-    soft_path_restore_confirm_pcreate ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR} "_setup_dc_$setup_name_cp_source"
+    ## 1：存在working dir
+    soft_path_restore_confirm_pcreate "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}" "_setup_dc_$setup_name_cp_source"
+    ## 2：不存在working dir
+    # soft_path_restore_confirm_create ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}
+    ## ??? compose部分3：本地已构建出work dir -> /opt/docker_apps/portainer_portainer/imgver111111/work
+    # soft_path_restore_confirm_swap "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}" "${TMP_DC_PTN_SETUP_SETUP_DIR}/compose"
 
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
@@ -87,9 +94,12 @@ function formal_dc_$setup_name() {
         ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
         # mkdir -pv ${1}/app
         # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
-        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK} ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_LOGS_MARK} ${1}/app >& /dev/null
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
     
-        # 查看列表
+        # 查看拷贝列表
         ls -lia ${1}/app
     }
     soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}" "_formal_dc_$setup_name_cp_logs"
@@ -103,41 +113,49 @@ function formal_dc_$setup_name() {
         # 拷贝日志目录
         # mkdir -pv ${1}
         # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
-        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK} ${1} >& /dev/null
+        docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${1} >& /dev/null
         
-        # 查看列表
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+        
+        # 查看拷贝列表
         ls -lia ${1}
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}" "_formal_dc_$setup_name_cp_data"
 
-    ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}"
-    #### /mountdisk/etc/docker_apps/$setup_name/imgver111111/container
-    local TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/etc/docker_apps/$setup_name/imgver111111
-    function _formal_dc_$setup_name_cp_etc() {
+    #### /mountdisk/conf/docker_apps/$setup_name/imgver111111/container
+    local TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_CTN_DIR="${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/container"
+    #### /mountdisk/conf/docker_apps/$setup_name/imgver111111
+    function _formal_dc_$setup_name_cp_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'etc copy'↓:"
+        echo_style_text "View the 'conf copy'↓:"
 
         # 拷贝配置目录
-        ## /mountdisk/etc/docker_apps/$setup_name/imgver111111/app
-        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK} ${1}/app >& /dev/null
+        ## /mountdisk/conf/docker_apps/$setup_name/imgver111111/app
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_CONF_MARK} ${1}/app >& /dev/null
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+        
+        # 授权
+        sudo chown -R 2000:2000 ${1}
+
+        # 查看拷贝列表
         ls -lia ${1}/app
     
     #     # 移除本地配置目录(挂载)
-    #     rm -rf ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK}
-        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/etc/docker_apps/$setup_name/imgver111111/container
-        soft_path_restore_confirm_swap "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR}"
+    #     rm -rf ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}/${DEPLOY_CONF_MARK}
+        #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/conf/docker_apps/$setup_name/imgver111111/container
+        soft_path_restore_confirm_swap "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR}"
     }
-    soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "_formal_dc_$setup_name_cp_etc"
+    soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}" "_formal_dc_$setup_name_cp_conf"
    
-    ### 迁移ETC下LOGS归位
+    ### 迁移CONF下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
     ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/$setup_name/imgver111111/container/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
-    #### /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
-    # soft_path_restore_confirm_move "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
+    #### /mountdisk/conf/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log ©&<- /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
+    # soft_path_restore_confirm_move "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
     #### ]
 
     ## 创建链接规则
@@ -147,21 +165,21 @@ function formal_dc_$setup_name() {
     #### /opt/docker_apps/$setup_name/imgver111111/logs -> /mountdisk/logs/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/$setup_name/imgver111111 -> /mountdisk/logs/docker_apps/$setup_name/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_LOGS_MARK}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
+    #### /mountdisk/logs/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/$setup_name/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}-json.log"
     ### 数据
     #### /opt/docker_apps/$setup_name/imgver111111/data -> /mountdisk/data/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
     #### /opt/docker/data/apps/$setup_name/imgver111111 -> /mountdisk/data/docker_apps/$setup_name/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-    ### ETC
-    #### /opt/docker_apps/$setup_name/imgver111111/etc -> /mountdisk/etc/docker_apps/$setup_name/imgver111111
-    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
-    #### /opt/docker/etc/$setup_name/imgver111111 -> /mountdisk/etc/docker_apps/$setup_name/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
-    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/$setup_name/imgver111111/container
-    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_CTN_DIR}"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/apps/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
+    ### CONF
+    #### /opt/docker_apps/$setup_name/imgver111111/conf -> /mountdisk/conf/docker_apps/$setup_name/imgver111111
+    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_CONF_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}"
+    #### /opt/docker/conf/$setup_name/imgver111111 -> /mountdisk/conf/docker_apps/$setup_name/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}"
+    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/conf/docker_apps/$setup_name/imgver111111/container
+    path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_CTN_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_CTN_DIR}"
 
     # 预实验部分        
     ## 目录调整完修改启动参数
@@ -170,21 +188,21 @@ function formal_dc_$setup_name() {
     # soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}:/tmp"
     #
-    # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir
+    # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}
     # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_LOGS_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/app:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK}
-    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/app:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_CONF_MARK}
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
     echo "${TMP_SPLITER2}"
     echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     # if [ $(echo "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
-    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
-    # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:$work_dir ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:$work_dir/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR} ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK}" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     # fi
     
     # # 给该一次性容器取个别名，以后就可以直接使用whaler了
@@ -216,6 +234,9 @@ function test_dc_$setup_name() {
     echo_style_wrap_text "Starting 'test', hold on please"
 
     # 实验部分
+    ## 1：检测启停
+    docker container stop ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}
+    docker container start ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}
 
     return $?
 }
@@ -301,6 +322,7 @@ function exec_step_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_VER="${3}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_CMD="${4}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS="${5}"
+    local TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR="$(echo "${5}" | grep -oP "(?<=--workdir\=)[^\s]+")"
     
     # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
     local TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" '$soft_name -V | grep -oP "(?<=Distrib ).+(?=,)"')
@@ -309,20 +331,16 @@ function exec_step_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
-    local TMP_DC_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
+    local TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR=${DOCKER_APP_CONF_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
 
     ## 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_$soft_upper_short_name_SETUP_WORK_MARK="work"
-    local TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK="logs"
-    local TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK="data"
-    local TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK="etc"
     local TMP_DC_$soft_upper_short_name_SETUP_APP_MARK="chrome"
 
     ## 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_WORK_MARK}
-    local TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_LOGS_MARK}
-    local TMP_DC_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_DATA_MARK}
-    local TMP_DC_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_ETC_MARK}
+    local TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_WORK_MARK}
+    local TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+    local TMP_DC_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_DATA_MARK}
+    local TMP_DC_$soft_upper_short_name_SETUP_CONF_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_CONF_MARK}
     
     echo_style_wrap_text "Starting 'execute step' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}]('${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}'), hold on please"
 
@@ -373,9 +391,9 @@ function boot_build_dc_$setup_name() {
     
     ## 标准启动参数
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
-    # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定

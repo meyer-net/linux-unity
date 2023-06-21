@@ -49,7 +49,7 @@ function set_env_docker()
 
     #对应删除
     #${SYS_SETUP_COMMAND} remove docker-ce
-    #rm -rf /mountdisk/logs/docker && rm -rf /mountdisk/data/docker* && rm -rf /opt/docker && rm -rf /etc/docker && rm -rf /var/lib/docker && rm -rf /opt/.requriements_ivhed && rm -rf /mountdisk/etc/docker && rm -rf /var/run/docker && systemctl daemon-reload && systemctl disable docker.service
+    #rm -rf /mountdisk/logs/docker && rm -rf /mountdisk/data/docker* && rm -rf /opt/docker && rm -rf /etc/docker && rm -rf /var/lib/docker && rm -rf /opt/.requriements_ivhed && rm -rf /mountdisk/conf/docker && rm -rf /var/run/docker && systemctl daemon-reload && systemctl disable docker.service
     
 	return $?
 }
@@ -198,19 +198,19 @@ function formal_docker()
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
     soft_path_restore_confirm_create "${DOCKER_APP_DATA_DIR}"
-	## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
-    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
+	## CONF - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
+    soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_CONF_DIR}"
     soft_path_restore_confirm_create "/etc/docker"
-    soft_path_restore_confirm_create "${DOCKER_APP_ATT_DIR}"
+    soft_path_restore_confirm_create "${DOCKER_APP_CONF_DIR}"
 
 	# 创建链接规则
 	## 日志
     path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
 	## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
-	## ETC - ①-2Y
-    path_not_exists_link "${TMP_DOCKER_SETUP_ETC_DIR}" "" "${TMP_DOCKER_SETUP_LNK_ETC_DIR}"
-    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main" "" "/etc/docker"
+	## CONF - ①-2Y
+    path_not_exists_link "${TMP_DOCKER_SETUP_CONF_DIR}" "" "${TMP_DOCKER_SETUP_LNK_CONF_DIR}"
+    path_not_exists_link "${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main" "" "/etc/docker"
     
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
@@ -231,8 +231,8 @@ function conf_docker()
 
 	# 开始配置，iptables为false时，容器间通讯会存在问题。但不影响安装
     ## 目录调整完重启进程(目录调整是否有效的验证点)
-    if [ ! -a ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json ]; then
-        cat > ${TMP_DOCKER_SETUP_LNK_ETC_DIR}/main/daemon.json << 'EOF'
+    if [ ! -a ${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main/daemon.json ]; then
+        cat > ${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main/daemon.json << 'EOF'
 {
   "registry-mirrors": ["https://hub.docker.com/", "https://hub.daocloud.io/"],
   "insecure-registries": []
@@ -250,7 +250,7 @@ EOF
 	chown -R docker:root ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:root ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
     chown -R docker:root ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
-	chown -R docker:root ${TMP_DOCKER_SETUP_LNK_ETC_DIR}
+	chown -R docker:root ${TMP_DOCKER_SETUP_LNK_CONF_DIR}
 
     # 启动服务
     systemctl start docker.service
@@ -478,13 +478,13 @@ function exec_step_docker()
     local TMP_DOCKER_SETUP_LNK_BIN_DIR=${TMP_DOCKER_SETUP_DIR}/bin
     local TMP_DOCKER_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/docker
     local TMP_DOCKER_SETUP_LNK_DATA_DIR=${DATA_DIR}/docker
-	local TMP_DOCKER_SETUP_LNK_ETC_DIR=${ATT_DIR}/docker
+	local TMP_DOCKER_SETUP_LNK_CONF_DIR=${CONF_DIR}/docker
 
 	# 安装后的真实路径
-    local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/logs
-    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/main
-    local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/data/apps
-	local TMP_DOCKER_SETUP_ETC_DIR=${TMP_DOCKER_SETUP_DIR}/etc
+    local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+    local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/main
+    local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/apps
+	local TMP_DOCKER_SETUP_CONF_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}
 
 	set_env_docker 
 

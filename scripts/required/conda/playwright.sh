@@ -378,8 +378,8 @@ function exec_step_playwright()
 
 	## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_PLR_SETUP_BIN_DIR=${TMP_PLR_SETUP_DIR}/bin
-	local TMP_PLR_SETUP_WORK_DIR=${TMP_PLR_SETUP_DIR}/work
-	local TMP_PLR_SETUP_LOGS_DIR=${TMP_PLR_SETUP_DIR}/logs
+	local TMP_PLR_SETUP_WORK_DIR=${TMP_PLR_SETUP_DIR}/${DEPLOY_WORK_MARK}
+	local TMP_PLR_SETUP_LOGS_DIR=${TMP_PLR_SETUP_DIR}/${DEPLOY_LOGS_MARK}
 	local TMP_PLR_SETUP_DATA_DIR=${TMP_PLR_SETUP_DIR}/scripts
 
 	set_env_playwright 

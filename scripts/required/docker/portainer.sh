@@ -13,7 +13,7 @@
 # docker ps -a --no-trunc | awk '{if($2~"portainer/portainer"){print $1}}' | xargs docker stop
 # docker ps -a --no-trunc | awk '{if($2~"portainer/portainer"){print $1}}' | xargs docker rm
 # docker images | awk '{if($1~"portainer/portainer"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/portainer_portainer* && rm -rf /mountdisk/etc/docker_apps/portainer_portainer* && rm -rf /mountdisk/logs/docker_apps/portainer_portainer* && rm -rf /mountdisk/data/docker_apps/portainer_portainer* && rm -rf /opt/docker/data/apps/portainer_portainer* && rm -rf /opt/docker/etc/portainer_portainer* && rm -rf /opt/docker/logs/portainer_portainer* && rm -rf /mountdisk/repo/migrate/clean/portainer_portainer*
+# rm -rf /opt/docker_apps/portainer_portainer* && rm -rf /mountdisk/conf/docker_apps/portainer_portainer* && rm -rf /mountdisk/logs/docker_apps/portainer_portainer* && rm -rf /mountdisk/data/docker_apps/portainer_portainer* && rm -rf /opt/docker/data/apps/portainer_portainer* && rm -rf /opt/docker/conf/portainer_portainer* && rm -rf /opt/docker/logs/portainer_portainer* && rm -rf /mountdisk/repo/migrate/clean/portainer_portainer*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # docker run --name=portainer --volume=/var/run/docker.sock:/var/run/docker.sock --volume=/mountdisk/data/portainer:/data --workdir=/ -p 8000:8000 -p 9000:9000 --expose=9443 --restart=always --runtime=runc --detach=true portainer/portainer
@@ -43,12 +43,13 @@ function setup_dc_portainer() {
         echo_style_text "View the 'workingdir copy'↓:"
 
         # 拷贝应用目录
-        docker cp -a ${TMP_DC_PTN_SETUP_CTN_ID}:/ ${1} >& /dev/null
+        docker cp -a ${TMP_DC_PTN_SETUP_CTN_ID}:${TMP_DC_PTN_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
         
-        # 授权
+        # 删除重复目录
+        docker container inspect ${TMP_DC_PTN_SETUP_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_PTN_SETUP_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
+    
+        # 修改权限 & 查看列表
         sudo chown -R 2000:2000 ${1}
-        
-        # 查看列表
         ls -lia ${1}
     }
 
@@ -80,18 +81,18 @@ function formal_dc_portainer() {
     #### /mountdisk/data/docker_apps/portainer_portainer/imgver111111
     soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}" "${TMP_DC_PTN_SETUP_WORK_DIR}/data"
 
-    ### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
-    ### ETC目录规范
+    ### CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
+    ### CONF目录规范
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_PTN_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_PTN_SETUP_CTN_ID}"
-    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container
-    local TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR="${TMP_DC_PTN_SETUP_LNK_ETC_DIR}/container"
-    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
-    function _formal_dc_portainer_cp_etc() {
-        soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}" "${TMP_DC_PTN_SETUP_CTN_DIR}"
+    #### /mountdisk/conf/docker_apps/portainer_portainer/imgver111111/container
+    local TMP_DC_PTN_SETUP_LNK_CONF_CTN_DIR="${TMP_DC_PTN_SETUP_LNK_CONF_DIR}/container"
+    #### /mountdisk/conf/docker_apps/portainer_portainer/imgver111111
+    function _formal_dc_portainer_cp_conf() {
+        soft_path_restore_confirm_swap "${TMP_DC_PTN_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_PTN_SETUP_CTN_DIR}"
     }
-    #### /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
-    soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}" "_formal_dc_portainer_cp_etc"
+    #### /mountdisk/conf/docker_apps/portainer_portainer/imgver111111
+    soft_path_restore_confirm_create "${TMP_DC_PTN_SETUP_LNK_CONF_DIR}" "_formal_dc_portainer_cp_conf"
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
@@ -100,21 +101,21 @@ function formal_dc_portainer() {
     #### /opt/docker_apps/portainer_portainer/imgver111111/logs -> /mountdisk/logs/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_LOGS_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
     #### /opt/docker/logs/portainer_portainer/imgver111111 -> /mountdisk/logs/docker_apps/portainer_portainer/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/logs/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
-    #### /mountdisk/logs/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log
-    path_not_exists_link "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_PTN_SETUP_CTN_ID}-json.log" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}/${TMP_DC_PTN_SETUP_CTN_ID}-json.log"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_LOGS_MARK}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}"
+    #### /mountdisk/logs/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/portainer_portainer/imgver111111/container/${CTN_ID}-json.log
+    path_not_exists_link "${TMP_DC_PTN_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_PTN_SETUP_CTN_ID}-json.log" "" "${TMP_DC_PTN_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_PTN_SETUP_CTN_ID}-json.log"
     ### 数据
     #### /opt/docker_apps/portainer_portainer/imgver111111/workspace -> /mountdisk/data/docker_apps/portainer_portainer/imgver111111
     path_not_exists_link "${TMP_DC_PTN_SETUP_DATA_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
     #### /opt/docker/data/apps/portainer_portainer/imgver111111 -> /mountdisk/data/docker_apps/portainer_portainer/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/data/apps/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
-    ### ETC
-    #### /opt/docker_apps/portainer_portainer/imgver111111/etc -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
-    path_not_exists_link "${TMP_DC_PTN_SETUP_ETC_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}"
-    #### /opt/docker/etc/portainer_portainer/imgver111111 -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111
-    path_not_exists_link "${DOCKER_SETUP_DIR}/etc/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_DIR}"
-    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/etc/docker_apps/portainer_portainer/imgver111111/container
-    path_not_exists_link "${TMP_DC_PTN_SETUP_CTN_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_ETC_CTN_DIR}"
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/apps/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}"
+    ### CONF
+    #### /opt/docker_apps/portainer_portainer/imgver111111/conf -> /mountdisk/conf/docker_apps/portainer_portainer/imgver111111
+    path_not_exists_link "${TMP_DC_PTN_SETUP_CONF_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_CONF_DIR}"
+    #### /opt/docker/conf/portainer_portainer/imgver111111 -> /mountdisk/conf/docker_apps/portainer_portainer/imgver111111
+    path_not_exists_link "${DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}" "" "${TMP_DC_PTN_SETUP_LNK_CONF_DIR}"
+    #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/conf/docker_apps/portainer_portainer/imgver111111/container
+    path_not_exists_link "${TMP_DC_PTN_SETUP_CTN_DIR}" "" "${TMP_DC_PTN_SETUP_LNK_CONF_CTN_DIR}"
 
     # 预实验部分        
     ## 目录调整完修改启动参数
@@ -123,7 +124,7 @@ function formal_dc_portainer() {
     echo_style_text "Starting 'inspect change', hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
-    docker_change_container_volume_migrate "${TMP_DC_PTN_SETUP_CTN_ID}" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}:/${TMP_DC_PTN_SETUP_DATA_MARK}" "" $([[ -z "${TMP_DC_PTN_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    docker_change_container_volume_migrate "${TMP_DC_PTN_SETUP_CTN_ID}" "${TMP_DC_PTN_SETUP_LNK_DATA_DIR}:/${DEPLOY_DATA_MARK}" "" $([[ -z "${TMP_DC_PTN_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
 
     return $?
 }
@@ -147,6 +148,8 @@ function test_dc_portainer() {
 
     # 实验部分
     echo_style_wrap_text "Starting 'test', hold on please"
+    docker container stop ${TMP_DC_PTN_SETUP_CTN_ID}
+    docker container start ${TMP_DC_PTN_SETUP_CTN_ID}
 
     return $?
 }
@@ -226,26 +229,23 @@ function exec_step_portainer() {
     local TMP_DC_PTN_SETUP_CTN_VER="${3}"
     local TMP_DC_PTN_SETUP_CTN_CMD="${4}"
     local TMP_DC_PTN_SETUP_CTN_ARGS="${5}"
+    local TMP_DC_PTN_SETUP_CTN_WORK_DIR="$(echo "${5}" | grep -oP "(?<=--workdir\=)[^\s]+")"
 
     # 统一编排到的路径
     local TMP_DC_PTN_CURRENT_DIR=$(pwd)
     local TMP_DC_PTN_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}
     local TMP_DC_PTN_SETUP_LNK_LOGS_DIR=${DOCKER_APP_LOGS_DIR}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}
     local TMP_DC_PTN_SETUP_LNK_DATA_DIR=${DOCKER_APP_DATA_DIR}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}
-    local TMP_DC_PTN_SETUP_LNK_ETC_DIR=${DOCKER_APP_ATT_DIR}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}
+    local TMP_DC_PTN_SETUP_LNK_CONF_DIR=${DOCKER_APP_CONF_DIR}/${TMP_DC_PTN_SETUP_IMG_MARK_NAME}/${TMP_DC_PTN_SETUP_CTN_VER}
 
     # 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_PTN_SETUP_WORK_MARK="work"
-    local TMP_DC_PTN_SETUP_LOGS_MARK="logs"
-    local TMP_DC_PTN_SETUP_DATA_MARK="data"
-    local TMP_DC_PTN_SETUP_ETC_MARK="etc"
-    local TMP_DC_PTN_SETUP_APP_MARK="chrome"
+    # local TMP_DC_PTN_DEPLOY_APP_MARK="portainer"
 
     # 安装后的真实路径（此处依据实际路径名称修改）
-    local TMP_DC_PTN_SETUP_WORK_DIR=${TMP_DC_PTN_SETUP_DIR}/${TMP_DC_PTN_SETUP_WORK_MARK}
-    local TMP_DC_PTN_SETUP_LOGS_DIR=${TMP_DC_PTN_SETUP_DIR}/${TMP_DC_PTN_SETUP_LOGS_MARK}
-    local TMP_DC_PTN_SETUP_DATA_DIR=${TMP_DC_PTN_SETUP_DIR}/${TMP_DC_PTN_SETUP_DATA_MARK}
-    local TMP_DC_PTN_SETUP_ETC_DIR=${TMP_DC_PTN_SETUP_DIR}/${TMP_DC_PTN_SETUP_ETC_MARK}
+    local TMP_DC_PTN_SETUP_WORK_DIR=${TMP_DC_PTN_SETUP_DIR}/${DEPLOY_WORK_MARK}
+    local TMP_DC_PTN_SETUP_LOGS_DIR=${TMP_DC_PTN_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+    local TMP_DC_PTN_SETUP_DATA_DIR=${TMP_DC_PTN_SETUP_DIR}/${DEPLOY_DATA_MARK}
+    local TMP_DC_PTN_SETUP_CONF_DIR=${TMP_DC_PTN_SETUP_DIR}/${DEPLOY_CONF_MARK}
     
     echo_style_wrap_text "Starting 'execute step' <${TMP_DC_PTN_SETUP_IMG_NAME}>:[${TMP_DC_PTN_SETUP_CTN_VER}]('${TMP_DC_PTN_SETUP_CTN_ID}'), hold on please"
 
@@ -293,7 +293,7 @@ function boot_build_dc_portainer() {
     
     # 标准启动参数
     local TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
-    # local TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    local TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_PTN_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_PTN_SETUP_OPN_PORT}:${TMP_DC_PTN_SETUP_INN_PORT}"
     local TMP_DC_PTN_SETUP_PRE_ARG_ENVS=""
     local TMP_DC_PTN_SETUP_PRE_ARGS="--name=${TMP_DC_PTN_SETUP_IMG_MARK_NAME}_${TMP_DC_PTN_SETUP_IMG_VER} ${TMP_DC_PTN_SETUP_PRE_ARG_PORTS} ${TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_PTN_SETUP_PRE_ARG_ENVS} ${TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS}"

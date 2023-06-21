@@ -97,12 +97,12 @@ function formal_$soft_name()
 	# ### 数据 - ②-N：不存在数据文件：
 	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
 
-	### ETC - ①-1Y：存在配置文件：原路径文件放给真实路径
-	soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" 
-	# ## ETC - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
+	### CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
+	soft_path_restore_confirm_move "${TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR}" "${TMP_$soft_upper_short_name_SETUP_CONF_DIR}" 
+	# ## CONF - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     # soft_path_restore_confirm_action "/etc/$soft_name"
-	# ### ETC - ②-N：不存在配置文件：
-	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}"
+	# ### CONF - ②-N：不存在配置文件：
+	# soft_path_restore_confirm_create "${TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR}"
 
 	# 创建链接规则（原始存在则使用）
 	## 日志 - supervisor
@@ -111,11 +111,11 @@ function formal_$soft_name()
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
 	## 数据 - ②-N
 	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_DATA_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}"
-	# ## ETC - ①-2Y
-    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" "" "/etc/$soft_name" 
-    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "/etc/$soft_name"
-	## ETC - ②-N
-	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_ETC_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}" 
+	# ## CONF - ①-2Y
+    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR}" "" "/etc/$soft_name" 
+    # path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_CONF_DIR}" "" "/etc/$soft_name"
+	## CONF - ②-N
+	path_not_exists_link "${TMP_$soft_upper_short_name_SETUP_CONF_DIR}" "" "${TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR}" 
 	
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_$soft_upper_short_name_SETUP_LNK_BIN_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}' '' '/usr/bin/${TMP_$soft_upper_short_name_SETUP_NAME}'"
@@ -145,7 +145,7 @@ function conf_$soft_name()
 	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_DIR}
 	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}
 	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR}
-	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR}
+	# chown -R $setup_owner:$setup_owner_group ${TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR}
 
     # # 中止进程
     # systemctl stop $soft_name.service
@@ -279,12 +279,12 @@ function exec_step_$soft_name()
 	## 统一编排到的路径
 	local TMP_$soft_upper_short_name_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
 	local TMP_$soft_upper_short_name_SETUP_LNK_DATA_DIR=${DATA_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
-	local TMP_$soft_upper_short_name_SETUP_LNK_ETC_DIR=${ATT_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
+	local TMP_$soft_upper_short_name_SETUP_LNK_CONF_DIR=${CONF_DIR}/${TMP_$soft_upper_short_name_SETUP_NAME}
 
 	## 安装后的真实路径（此处依据实际路径名称修改）
-	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/logs
-	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/data
-	local TMP_$soft_upper_short_name_SETUP_ETC_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/etc
+	local TMP_$soft_upper_short_name_SETUP_LOGS_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_LOGS_MARK}
+	local TMP_$soft_upper_short_name_SETUP_DATA_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_DATA_MARK}
+	local TMP_$soft_upper_short_name_SETUP_CONF_DIR=${TMP_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_CONF_MARK}
 
 	set_env_$soft_name 
 
