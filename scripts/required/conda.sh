@@ -377,6 +377,9 @@ function exec_step_miniconda()
 
 	# reconf_miniconda 
 
+    # 结束
+    exec_sleep 30 "Install <conda> over, please checking the setup log, this will stay 30 secs to exit"
+
 	return $?
 }
 

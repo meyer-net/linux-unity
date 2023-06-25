@@ -605,7 +605,7 @@ function deploy_compose_dc_harbor() {
     echo_startup_supervisor_config "${TMP_DC_CPL_HB_SETUP_MARK_REPO}_${TMP_DC_CPL_HB_SETUP_VER}" "${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR}" "docker-compose up -d" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 15 "Deploy <${TMP_DC_HB_SETUP_REPO}> over, please checking the setup log, this will stay 15 secs to exit"
+    exec_sleep 30 "Deploy <${TMP_DC_HB_SETUP_REPO}> over, please checking the setup log, this will stay 30 secs to exit"
 
     return $?
 }

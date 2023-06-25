@@ -202,6 +202,13 @@ function setup_plugin_nvm()
 
     # path_not_exists_action "/usr/bin/node" "ln -sf ${TMP_NVM_SETUP_NODE_PATH} /usr/bin/node" "Node at '/usr/bin/node' was linked"
     # path_not_exists_action "/usr/local/bin/node" "ln -sf ${TMP_NVM_SETUP_NODE_PATH} /usr/bin/node" "Node at '/usr/local/bin/node' was linked"
+
+    # !!! 解决如下错误
+    # npm ERR! code CERT_NOT_YET_VALID
+    # npm ERR! errno CERT_NOT_YET_VALID
+    # npm ERR! request to https://registry.npmjs.org/npm failed, reason: certificate is not yet valid
+    npm config set strict-ssl false
+    npm config set unsafe-perm true
     
     echo "${TMP_SPLITER2}"	
     echo_style_text "Starting install package manager tool of 'npm'"
@@ -319,6 +326,9 @@ function exec_step_nvm()
 	boot_nvm 
 
 	reconf_nvm 
+
+    # 结束
+    exec_sleep 30 "Install <nvm> over, please checking the setup log, this will stay 30 secs to exit"
 
 	return $?
 }

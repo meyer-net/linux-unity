@@ -265,9 +265,6 @@ function boot_check_dc_library_mariadb() {
         # 授权iptables端口访问
         echo_soft_port "TMP_DC_MDB_SETUP_OPN_PORT"
     fi
-    
-    # 结束
-    exec_sleep 10 "Install <library/mariadb> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################
@@ -370,6 +367,9 @@ function exec_step_dc_library_mariadb() {
     boot_check_dc_library_mariadb
 
     reconf_dc_library_mariadb
+    
+    # 结束
+    exec_sleep 30 "Install <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
 
     return $?
 }

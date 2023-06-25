@@ -259,9 +259,6 @@ function boot_check_dc_library_postgres() {
     echo_style_text "View echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}" "${TMP_DC_PSQ_SETUP_DIR}" "systemctl start ${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}" "${TMP_DC_PSQ_SETUP_DIR}" "bin/${TMP_DC_PSQ_SETUP_IMG_MARK_NAME} start"
-    
-    # 结束
-    exec_sleep 10 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 10 secs to exit"
 }
 
 ##########################################################################################################
@@ -351,6 +348,9 @@ function exec_step_dc_library_postgres() {
     boot_check_dc_library_postgres
 
     reconf_dc_library_postgres
+    
+    # 结束
+    exec_sleep 30 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
 
     return $?
 }
