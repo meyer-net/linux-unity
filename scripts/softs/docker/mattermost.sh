@@ -118,27 +118,27 @@ function formal_dc_rely_mattermost() {
     #### 1：没有文件夹
     # #### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/logs/compose/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost.log
     # path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_SERVICE_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_LOGS_DIR}.log"
-    # #### /opt/docker/logs/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost.log
+    # #### /opt/docker/logs/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost.log
     # #### /mountdisk/logs/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost.log
     # path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_LOGS_DIR}.log"
     #### 2：有文件夹
     #### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/logs/compose/mattermost/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost/mattermost.log
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_SERVICE_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_LOGS_DIR}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log"
-    #### /opt/docker/logs/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost/mattermost.log
+    #### /opt/docker/logs/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost/mattermost.log
     #### /mountdisk/logs/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose/mattermost/mattermost.log -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4/compose/mattermost/mattermost.log
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_LOGS_DIR}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}.log"
     
     ### 数据
     #### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/data -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_SERVICE_DATA_DIR}" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_DATA_DIR}"
-    #### /opt/docker/data/apps/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1 -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
+    #### /opt/docker/data/apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1 -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
     #### /mountdisk/data/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1 -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_DATA_DIR}" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_DATA_DIR}"
     
     ### CONF
     #### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/conf/compose -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_SERVICE_CONF_DIR}/${DEPLOY_COMPOSE_MARK}" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_CONF_DIR}"
-    #### /opt/docker/conf/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost
+    #### /opt/docker/conf/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost
     #### /mountdisk/conf/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/compose -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost
     path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}" "" "${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_CONF_DIR}"
 
@@ -153,17 +153,17 @@ function formal_dc_rely_mattermost() {
         path_swap_link "${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_MTTM_SETUP_CTN_DIR}"
         #### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/conf/container -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost
         path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_SERVICE_CONF_DIR}/container" "" "${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}"
-        #### /opt/docker/conf/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost
+        #### /opt/docker/conf/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost
         #### /mountdisk/conf/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost
         path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_CONF_DIR}/container" "" "${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}"
 
         # 等待容器日志生成
         exec_sleep_until_not_empty "Waitting for [container log] generate '${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log'" "[ -a ${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log ] && echo 1" 10 1
 
-        #### /opt/docker/logs/mattermost/v2.4/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
+        #### /opt/docker/logs/mattermost_docker/v2.4/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
         #### /mountdisk/logs/docker_apps/mattermost_docker/v2.4/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
         path_not_exists_link "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/container/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log" "" "${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log"
-        #### /opt/docker/logs/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
+        #### /opt/docker/logs/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
         #### /mountdisk/logs/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/container/${CTN_ID}-json.log -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/container/mattermost/${CTN_ID}-json.log
         path_not_exists_link "${TMP_DC_MTTM_SETUP_RELY_LNK_LOGS_DIR}/container/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log" "" "${TMP_DC_MTTM_SETUP_LNK_CONF_CTN_DIR}/${TMP_DC_MTTM_SETUP_RELY_CTN_ID}-json.log"
 
@@ -295,13 +295,13 @@ function exec_step_dc_rely_mattermost() {
         local TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_CONF_DIR=${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}
 
         # 指定Docker的安装路径部分
-        ## /opt/docker/logs/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
+        ## /opt/docker/logs/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         ## /mountdisk/logs/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         local TMP_DC_MTTM_SETUP_RELY_LNK_LOGS_DIR=${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}
-        ## /opt/docker/data/apps/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
+        ## /opt/docker/data/apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         ## /mountdisk/data/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         local TMP_DC_MTTM_SETUP_RELY_LNK_DATA_DIR=${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}
-        ## /opt/docker/conf/mattermost/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
+        ## /opt/docker/conf/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         ## /mountdisk/conf/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1
         local TMP_DC_MTTM_SETUP_RELY_LNK_CONF_DIR=${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}
 
@@ -362,19 +362,19 @@ function formal_adjust_cps_dc_mattermost() {
     ## 日志
     ### /opt/docker_apps/mattermost_docker/v2.4/logs -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_MTTM_SETUP_LOGS_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}"
-    ### /opt/docker/logs/mattermost/v2.4 -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4
+    ### /opt/docker/logs/mattermost_docker/v2.4 -> /mountdisk/logs/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_SETUP_MTTM_DC_LOGS_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}"
     ## 数据
     ### /opt/docker_apps/mattermost_docker/v2.4/data -> /mountdisk/data/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_MTTM_SETUP_DATA_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}"
-    ### /opt/docker/data/apps/mattermost/v2.4 -> /mountdisk/data/docker_apps/mattermost_docker/v2.4
+    ### /opt/docker/data/apps/mattermost_docker/v2.4 -> /mountdisk/data/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_SETUP_MTTM_DC_DATA_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}"
     ## CONF
     ### /opt/docker_apps/mattermost_docker/v2.4/conf -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_MTTM_SETUP_CONF_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}"
     ### /opt/docker_apps/mattermost_docker/v2.4/compose/common/config -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose
     # path_not_exists_link "${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}/common/config" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}"
-    ### /opt/docker/conf/mattermost/v2.4 -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4
+    ### /opt/docker/conf/mattermost_docker/v2.4 -> /mountdisk/conf/docker_apps/mattermost_docker/v2.4
     path_not_exists_link "${TMP_DC_CPL_SETUP_MTTM_DC_CONF_DIR}" "" "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}"
     
     # 设置权限
