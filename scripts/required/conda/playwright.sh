@@ -306,11 +306,11 @@ function boot_playwright()
     echo_style_wrap_text "Starting 'boot check' in env(<${TMP_PLR_SETUP_ENV}>), hold on please"
 	
     # 打印版本
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     su_bash_env_conda_channel_exec "playwright -V" "${TMP_PLR_SETUP_ENV}"
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'help'↓:"
+    echo_style_text "[View] the 'help'↓:"
     su_bash_env_conda_channel_exec "playwright -h" "${TMP_PLR_SETUP_ENV}"
 
 	return $?

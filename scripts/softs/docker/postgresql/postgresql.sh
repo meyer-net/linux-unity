@@ -39,7 +39,7 @@ function setup_dc_library_postgres() {
 
     function _setup_dc_library_postgres_cp_source() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'workingdir copy'↓:"
+        echo_style_text "[View] the 'workingdir copy'↓:"
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_PSQ_DEPLOY_APP_MARK} ${1} >& /dev/null
@@ -73,7 +73,7 @@ function formal_dc_library_postgres() {
     #### /mountdisk/logs/docker_apps/library_postgres/imgver111111
     function _formal_dc_library_postgres_cp_logs() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'logs copy'↓:"
+        echo_style_text "[View] the 'logs copy'↓:"
 
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/library_postgres/imgver111111/app
@@ -92,7 +92,7 @@ function formal_dc_library_postgres() {
     #### /mountdisk/data/docker_apps/library_postgres/imgver111111
     function _formal_dc_library_postgres_cp_data() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'data copy'↓:"
+        echo_style_text "[View] the 'data copy'↓:"
 
         # 拷贝日志目录
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/var/lib/${TMP_DC_PSQ_DEPLOY_APP_MARK}/data ${1} >& /dev/null
@@ -114,7 +114,7 @@ function formal_dc_library_postgres() {
     #### /mountdisk/conf/docker_apps/library_postgres/imgver111111
     function _formal_dc_library_postgres_cp_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'conf copy'↓:"
+        echo_style_text "[View] the 'conf copy'↓:"
 
         # 拷贝配置目录
         ## /mountdisk/conf/docker_apps/library_postgres/imgver111111/app
@@ -133,7 +133,7 @@ function formal_dc_library_postgres() {
     #### /mountdisk/conf/docker_apps/library_postgres/imgver111111/data
     function _formal_dc_library_postgres_lnk_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'conf link'↓:"
+        echo_style_text "[View] the 'conf link'↓:"
 
         # 废弃，容器中无法检测到路径
         # #### /mountdisk/data/docker_apps/library_postgres/imgver111111/postgresql.conf -> /mountdisk/conf/docker_apps/library_postgres/imgver111111/data/postgresql.conf
@@ -157,7 +157,7 @@ function formal_dc_library_postgres() {
    
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'symlink create':↓"
+    echo_style_text "[View] the 'symlink create':↓"
     ### 日志
     #### /opt/docker_apps/library_postgres/imgver111111/logs -> /mountdisk/logs/docker_apps/library_postgres/imgver111111
     path_not_exists_link "${TMP_DC_PSQ_SETUP_LOGS_DIR}" "" "${TMP_DC_PSQ_SETUP_LNK_LOGS_DIR}"
@@ -243,11 +243,13 @@ function boot_check_dc_library_postgres() {
     echo_style_wrap_text "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_PSQ_SETUP_CTN_PORT}" ]; then
-        echo_style_text "View the 'container visit'↓:"
+        echo_style_text "[View] the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_PSQ_SETUP_CTN_PORT}
         echo
 
         # 授权iptables端口访问
+        echo "${TMP_SPLITER2}"
+        echo_style_text "[View] echo the 'port'(<${TMP_DC_PSQ_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_PSQ_SETUP_OPN_PORT"
         
         # 生成web授权访问脚本
@@ -256,7 +258,7 @@ function boot_check_dc_library_postgres() {
     
     # 授权开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'supervisor startup conf'↓:"
+    echo_style_text "[View] echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}" "${TMP_DC_PSQ_SETUP_DIR}" "systemctl start ${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}" "${TMP_DC_PSQ_SETUP_DIR}" "bin/${TMP_DC_PSQ_SETUP_IMG_MARK_NAME} start"
 }

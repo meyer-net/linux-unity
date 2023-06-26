@@ -273,32 +273,32 @@ function boot_miniconda()
     echo_style_wrap_text "Starting 'boot' <miniconda>, hold on please"
 
     ## 当前启动命令 && 等待启动
-    echo_style_text "View the 'channels' from env([${PY_ENV}])↓:"
+    echo_style_text "[View] the 'channels' from env([${PY_ENV}])↓:"
     su_bash_conda_channel_exec "conda config --get show_channel_urls"
     su_bash_conda_channel_exec "conda config --get channels"
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'sources' from env([${PY_ENV}])↓:"
+    echo_style_text "[View] the 'sources' from env([${PY_ENV}])↓:"
     su_bash_conda_channel_exec "conda config --show-sources"
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'list' from env([${PY_ENV}])↓:"
+    echo_style_text "[View] the 'list' from env([${PY_ENV}])↓:"
 	su_bash_conda_channel_exec "conda list"
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'env list'↓:"
+    echo_style_text "[View] the 'env list'↓:"
 	condabin/conda env list
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'update'↓:"
+    echo_style_text "[View] the 'update'↓:"
     condabin/conda update -y conda
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     condabin/conda --version
 
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'info'↓:"
+    echo_style_text "[View] the 'info'↓:"
     condabin/conda info
 
     # 结束

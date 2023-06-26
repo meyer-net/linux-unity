@@ -70,7 +70,7 @@ function formal_dc_library_mysql() {
     #### /mountdisk/logs/docker_apps/library_mysql/5.7.42
     function _formal_dc_library_mysql_cp_logs() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'logs copy'↓:"
+        echo_style_text "[View] the 'logs copy'↓:"
         
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/library_mysql/5.7.42/app
@@ -94,7 +94,7 @@ function formal_dc_library_mysql() {
     #### /mountdisk/data/docker_apps/library_mysql/5.7.42
     function _formal_dc_library_mysql_cp_data() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'data copy'↓:"
+        echo_style_text "[View] the 'data copy'↓:"
 
         # 拷贝日志目录
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/lib/${DEPLOY_DATA_MARK} ${1} >& /dev/null
@@ -115,7 +115,7 @@ function formal_dc_library_mysql() {
     #### /mountdisk/conf/docker_apps/library_mysql/5.7.42
     function _formal_dc_library_mysql_cp_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'conf copy'↓:"
+        echo_style_text "[View] the 'conf copy'↓:"
 
         # 拷贝配置目录
         ## ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/mysql -> /mountdisk/conf/docker_apps/library_mysql/5.7.42/app
@@ -136,7 +136,7 @@ function formal_dc_library_mysql() {
     
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'symlink create':↓"
+    echo_style_text "[View] the 'symlink create':↓"
     ### 日志
     #### /opt/docker_apps/library_mysql/5.7.42/logs -> /mountdisk/logs/docker_apps/library_mysql/5.7.42
     path_not_exists_link "${TMP_DC_MSQ_SETUP_LOGS_DIR}" "" "${TMP_DC_MSQ_SETUP_LNK_LOGS_DIR}"
@@ -271,11 +271,13 @@ function boot_check_dc_library_mysql() {
     echo_style_wrap_text "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_MSQ_SETUP_CTN_PORT}" ]; then
-        echo_style_text "View the 'container port'↓:"
+        echo_style_text "[View] the 'container port'↓:"
         lsof -i:${TMP_DC_MSQ_SETUP_CTN_PORT}
         echo
 
         # 授权iptables端口访问
+        echo "${TMP_SPLITER2}"
+        echo_style_text "[View] echo the 'port'(<${TMP_DC_MSQ_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_MSQ_SETUP_OPN_PORT"
     fi
 }

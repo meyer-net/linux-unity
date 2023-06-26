@@ -221,9 +221,10 @@ function boot_check_dc_mattermost() {
                 echo_style_text "[View] the 'container visit'↓:"
                 curl -s http://localhost:${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}
                 echo
-                echo "${TMP_SPLITER2}"
 
                 # 授权iptables端口访问
+                echo "${TMP_SPLITER2}"
+                echo_style_text "[View] echo the 'port'(<${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}>) to iptables:↓"
                 echo_soft_port "${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}"
                 
                 # 生成web授权访问脚本

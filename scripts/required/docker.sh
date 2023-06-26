@@ -70,7 +70,7 @@ function special_backup_docker()
 
         # 删除容器临时文件（例如：.X99-lock）
         echo "${TMP_SPLITER3}"
-        echo_style_text "View the 'container tmp files clear -> /tmp'↓:"
+        echo_style_text "[View] the 'container tmp files clear -> /tmp'↓:"
         echo_style_text "[before]:"
         # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
         docker_bash_channel_exec "${1}" "ls -lia" "" "" "/tmp"
@@ -85,7 +85,7 @@ function special_backup_docker()
 
         # 停止容器
         echo "${TMP_SPLITER3}"
-        echo_style_text "View the 'container status after stop command now'↓:"
+        echo_style_text "[View] the 'container status after stop command now'↓:"
         docker stop ${1}
         echo "[-]"
 		docker ps -a | awk 'NR==1'
@@ -96,7 +96,7 @@ function special_backup_docker()
         # echo_style_text "Starting remove 'container' <${2}>([${1}])↓:"
         # docker container rm ${1}
         # echo "${TMP_SPLITER3}"
-        # echo_style_text "View the 'surplus containers'↓:"
+        # echo_style_text "[View] the 'surplus containers'↓:"
         # docker ps -a
         
         # # 删除镜像
@@ -109,7 +109,7 @@ function special_backup_docker()
         # rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
         
         # echo "${TMP_SPLITER3}"
-        # echo_style_text "View the 'surplus images'↓:"
+        # echo_style_text "[View] the 'surplus images'↓:"
         # docker images
     }
 
@@ -317,7 +317,7 @@ function test_docker()
     local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
 
     # ??? 先删除由于备份产生还原的Commit版
-    # echo_style_text "View & remove the 'backuped data exists images'↓:"
+    # echo_style_text "[View] & remove the 'backuped data exists images'↓:"
     # docker images | awk 'NR==1'
     # docker images | grep -E "v[0-9]+SC[0-9]"
     # docker images | grep -E "v[0-9]+SC[0-9]" | awk -F' ' '{print $3}' | xargs -I {} docker rmi {}
@@ -371,7 +371,7 @@ function boot_docker()
     echo_style_wrap_text "Starting 'boot' <docker>, hold on please"
 
     ## 设置系统管理，开机启动
-    echo_style_text "View the 'systemctl info'↓:"
+    echo_style_text "[View] the 'systemctl info'↓:"
     chkconfig docker on # systemctl enable docker.service
 	systemctl enable containerd.service
 	systemctl enable docker.socket
@@ -379,7 +379,7 @@ function boot_docker()
 
 	# 启动及状态检测
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'service status'↓:"
+    echo_style_text "[View] the 'service status'↓:"
     systemctl start docker.service
 
     exec_sleep 3 "Initing <docker>, hold on please"
@@ -389,31 +389,31 @@ function boot_docker()
     cat logs/boot.log
 
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     docker -v
 
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'info'↓:"
+    echo_style_text "[View] the 'info'↓:"
     docker info
     
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'network list'↓:"
+    echo_style_text "[View] the 'network list'↓:"
     docker network ls
     
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'bridge inspect'↓:"
+    echo_style_text "[View] the 'bridge inspect'↓:"
     docker inspect bridge
         
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'images'↓:"
+    echo_style_text "[View] the 'images'↓:"
     docker images
     
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'containers'↓:"
+    echo_style_text "[View] the 'containers'↓:"
     docker ps -a
     
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'system df'↓:"
+    echo_style_text "[View] the 'system df'↓:"
     docker system df
 
     # 结束

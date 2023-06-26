@@ -192,14 +192,14 @@ function boot_$soft_name()
 # EOF
 
     # ## 设置系统管理，开机启动
-    # echo_style_text "View the 'systemctl info'↓:"
+    # echo_style_text "[View] the 'systemctl info'↓:"
     # chkconfig $setup_name on
 	# systemctl enable $setup_name.service
 	# systemctl list-unit-files | grep $setup_name
 	
 	# # 启动及状态检测
     # echo "${TMP_SPLITER2}"
-    # echo_style_text "View the 'service status'↓:"
+    # echo_style_text "[View] the 'service status'↓:"
     # systemctl start $setup_name.service
 
     # # 等待启动
@@ -213,33 +213,33 @@ function boot_$soft_name()
 	
     # 打印版本
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     su_bash_env_conda_channel_exec "$setup_name -v" "${TMP_$soft_upper_short_name_SETUP_ENV}"
     # su_bash_env_conda_channel_exec "$setup_name -V" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'help'↓:"
+    echo_style_text "[View] the 'help'↓:"
     su_bash_env_conda_channel_exec "$setup_name -h" "${TMP_$soft_upper_short_name_SETUP_ENV}"
 
 	# 等待执行完毕 产生端口
-    echo_style_text "View the 'booting port'↓:"
+    echo_style_text "[View] the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', hold on please" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
+    echo_style_text "[View] echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'supervisor startup conf'↓:"
+    echo_style_text "[View] echo the 'supervisor startup conf'↓:"
 	# echo_conda_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service" "999" "${TMP_$soft_upper_short_name_SETUP_ENV}" false 0
 	echo_conda_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "${TMP_$soft_upper_short_name_SETUP_NAME} start" "999" "${TMP_$soft_upper_short_name_SETUP_ENV}"
     
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'web service init script'↓:"
+    echo_style_text "[View] echo the 'web service init script'↓:"
     #echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束

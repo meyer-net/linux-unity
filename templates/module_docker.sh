@@ -46,7 +46,7 @@ function setup_dc_$setup_name() {
 
     function _setup_dc_$setup_name_cp_source() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'workingdir copy'↓:"
+        echo_style_text "[View] the 'workingdir copy'↓:"
 
         # 拷贝应用目录
         # docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
@@ -88,7 +88,7 @@ function formal_dc_$setup_name() {
     #### /mountdisk/logs/docker_apps/$setup_name/imgver111111
     function _formal_dc_$setup_name_cp_logs() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'logs copy'↓:"
+        echo_style_text "[View] the 'logs copy'↓:"
 
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
@@ -108,7 +108,7 @@ function formal_dc_$setup_name() {
     #### /mountdisk/data/docker_apps/$setup_name/imgver111111
     function _formal_dc_$setup_name_cp_data() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'data copy'↓:"
+        echo_style_text "[View] the 'data copy'↓:"
 
         # 拷贝日志目录
         # mkdir -pv ${1}
@@ -131,7 +131,7 @@ function formal_dc_$setup_name() {
     #### /mountdisk/conf/docker_apps/$setup_name/imgver111111
     function _formal_dc_$setup_name_cp_conf() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'conf copy'↓:"
+        echo_style_text "[View] the 'conf copy'↓:"
 
         # 拷贝配置目录
         ## /mountdisk/conf/docker_apps/$setup_name/imgver111111/app
@@ -160,7 +160,7 @@ function formal_dc_$setup_name() {
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'symlink create':↓"
+    echo_style_text "[View] the 'symlink create':↓"
     ### 日志
     #### /opt/docker_apps/$setup_name/imgver111111/logs -> /mountdisk/logs/docker_apps/$setup_name/imgver111111
     path_not_exists_link "${TMP_DC_$soft_upper_short_name_SETUP_LOGS_DIR}" "" "${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}"
@@ -251,11 +251,13 @@ function boot_check_dc_$setup_name() {
     echo_style_wrap_text "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}" ]; then
-        echo_style_text "View the 'container visit'↓:"
+        echo_style_text "[View] the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}
         echo
 
         # 授权iptables端口访问
+        echo "${TMP_SPLITER2}"
+        echo_style_text "[View] echo the 'port'(<${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT"
         
         # 生成web授权访问脚本
@@ -264,7 +266,7 @@ function boot_check_dc_$setup_name() {
     
     # 授权开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'supervisor startup conf'↓:"
+    echo_style_text "[View] echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "systemctl start ${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME} start"
     

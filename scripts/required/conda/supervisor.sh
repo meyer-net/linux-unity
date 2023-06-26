@@ -308,7 +308,7 @@ function boot_supervisor()
 	# 配置服务
 	## 启动配置加载
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'systemctl conf'↓:"
+    echo_style_text "[View] the 'systemctl conf'↓:"
 	local TMP_SUP_SETUP_MCD_ENV_HOME=$(su_bash_env_conda_channel_exec "cd;pwd" "${TMP_SUP_SETUP_ENV}")
 	### 服务必须再docker.service启动之前运行
 	tee /usr/lib/systemd/system/supervisor.service <<-EOF
@@ -340,14 +340,14 @@ EOF
 
     ## 设置系统管理，开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'systemctl info'↓:"
+    echo_style_text "[View] the 'systemctl info'↓:"
     chkconfig supervisor on
 	systemctl enable supervisor.service
 	systemctl list-unit-files | grep supervisor
 	
 	## 启动及状态检测
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'service status'↓:"
+    echo_style_text "[View] the 'service status'↓:"
     systemctl start supervisor.service
 
     exec_sleep 3 "Initing <supervisor> in env(<${TMP_SUP_SETUP_ENV}>), hold on please"
@@ -357,27 +357,27 @@ EOF
     cat logs/boot.log
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     su_bash_env_conda_channel_exec "supervisord -v" "${TMP_SUP_SETUP_ENV}"
 	
 	echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'help'↓:"
+    echo_style_text "[View] the 'help'↓:"
     su_bash_env_conda_channel_exec "supervisord -h" "${TMP_SUP_SETUP_ENV}"
 	
 	## 等待执行完毕 产生端口
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'booting port'↓:"
+    echo_style_text "[View] the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <supervisor> to port '${TMP_SUP_SETUP_HTTP_PORT}', wait for a moment" "lsof -i:${TMP_SUP_SETUP_HTTP_PORT}" 180 3
 	lsof -i:${TMP_SUP_SETUP_HTTP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'port'(<${TMP_SUP_SETUP_HTTP_PORT}>) to iptables:↓"
+    echo_style_text "[View] echo the 'port'(<${TMP_SUP_SETUP_HTTP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_SUP_SETUP_HTTP_PORT}
     
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'web service init script'↓:"
+    echo_style_text "[View] echo the 'web service init script'↓:"
     echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SUP_SETUP_HTTP_PORT} "${LOCAL_HOST}"
 
 	return $?

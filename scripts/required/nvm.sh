@@ -122,11 +122,11 @@ function boot_nvm()
     # 当前启动命令 && 等待启动
 	
 	# 启动及状态检测
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     nvm --version
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'current'↓:"
+    echo_style_text "[View] the 'current'↓:"
     nvm current
 
     # 结束
@@ -158,10 +158,10 @@ function setup_plugin_nvm()
     ## 版本检测
     echo_style_text "Starting install the popular 'nodejs vers' for most users, wait for a moment"
     echo "${TMP_SPLITER}"
-    echo_style_text "View the 'remote list'↓:"
+    echo_style_text "[View] the 'remote list'↓:"
     nvm ls-remote --lts
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'local list'↓:"
+    echo_style_text "[View] the 'local list'↓:"
 	nvm ls
 
     # local TMP_NVM_SETUP_MOST_USR_VER=$(curl -s https://nodejs.org/en/ | grep "https://nodejs.org/dist" | awk -F'\"' '{print $2}' | awk -F'/' '{print $(NF-1)}' | awk NR==1 | sed 's@v@@')
@@ -227,23 +227,23 @@ function setup_plugin_nvm()
 	npm install -g es-checker@latest
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'local list'↓:"
+    echo_style_text "[View] the 'local list'↓:"
 	nvm ls
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'current nodejs version'↓:"
+    echo_style_text "[View] the 'current nodejs version'↓:"
 	node --version
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'current nodejs v8-options/harmony'↓:"
+    echo_style_text "[View] the 'current nodejs v8-options/harmony'↓:"
 	node --v8-options | grep harmony
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'current npm version'↓:"
+    echo_style_text "[View] the 'current npm version'↓:"
 	npm --version
     
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'es-checker'↓:"
+    echo_style_text "[View] the 'es-checker'↓:"
 	es-checker
 
 	return $?
@@ -266,7 +266,7 @@ function reconf_nvm()
     sed -i "s@^const open = require('open');@const open = import('open');@g" $(npm root -g)/nrm/cli.js
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'nrm list'↓:"
+    echo_style_text "[View] the 'nrm list'↓:"
 	nrm ls
     
 	#* npm -------- https://registry.npmjs.org/
@@ -285,11 +285,11 @@ function reconf_nvm()
 	local TMP_NVM_SETUP_SOFT_NPM_NRM_REPO=$(echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}" | grep "${TMP_NVM_SETUP_SOFT_NPM_NRM_RESP_MIN}" | sed "s@-@@g" | grep -oP "(?<=\s).*(?=\s\d)" | awk '{sub("^ *","");sub(" *$","");print}' | awk 'NR==1')
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'nrm test'↓:"
+    echo_style_text "[View] the 'nrm test'↓:"
 	echo "${TMP_NVM_SETUP_SOFT_NPM_NRM_TEST}"
 
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'quickly registry'↓:"
+    echo_style_text "[View] the 'quickly registry'↓:"
     echo_style_text "[${TMP_NVM_SETUP_SOFT_NPM_NRM_REPO}]"
     
     echo "${TMP_SPLITER2}"

@@ -37,7 +37,7 @@ function setup_dc_browserless_chrome() {
     # /opt/docker_apps/browserless_chrome/imgver111111/work/
     function _setup_dc_browserless_chrome_cp_work() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'workingdir copy'↓:"
+        echo_style_text "[View] the 'workingdir copy'↓:"
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:${TMP_DC_BLC_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
@@ -78,7 +78,7 @@ function formal_dc_browserless_chrome() {
     #### /mountdisk/data/docker_apps/browserless_chrome/imgver111111
     function _formal_dc_browserless_chrome_cp_data() {
         echo "${TMP_SPLITER2}"
-        echo_style_text "View the 'data copy'↓:"
+        echo_style_text "[View] the 'data copy'↓:"
 
         # 拷贝日志目录
         # mkdir -pv ${1}
@@ -102,7 +102,7 @@ function formal_dc_browserless_chrome() {
     #### /mountdisk/conf/docker_apps/browserless_chrome/imgver111111
     function _formal_dc_browserless_chrome_cp_conf() {
     #     echo "${TMP_SPLITER2}"
-    #     echo_style_text "View the 'conf copy'↓:"
+    #     echo_style_text "[View] the 'conf copy'↓:"
 
     #     # 拷贝日志目录
     #     ## /mountdisk/conf/docker_apps/browserless_chrome/imgver111111/app
@@ -130,7 +130,7 @@ function formal_dc_browserless_chrome() {
 
     ## 创建链接规则
     echo "${TMP_SPLITER2}"
-    echo_style_text "View the 'symlink create':↓"
+    echo_style_text "[View] the 'symlink create':↓"
     ### 日志
     #### /opt/docker_apps/browserless_chrome/imgver111111/logs -> /mountdisk/logs/docker_apps/browserless_chrome/imgver111111
     path_not_exists_link "${TMP_DC_BLC_SETUP_LOGS_DIR}" "" "${TMP_DC_BLC_SETUP_LNK_LOGS_DIR}"
@@ -215,11 +215,13 @@ function boot_check_dc_browserless_chrome() {
     echo_style_wrap_text "Starting 'boot check', hold on please"
 
     if [ -n "${TMP_DC_BLC_SETUP_CTN_PORT}" ]; then
-        echo_style_text "View the 'container visit'↓:"
+        echo_style_text "[View] the 'container visit'↓:"
         curl -s http://localhost:${TMP_DC_BLC_SETUP_CTN_PORT}
         echo
 
         # 授权iptables端口访问
+        echo "${TMP_SPLITER2}"
+        echo_style_text "[View] echo the 'port'(<${TMP_DC_BLC_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_BLC_SETUP_OPN_PORT"
 
         # 生成web授权访问脚本

@@ -187,14 +187,14 @@ function boot_$soft_name()
 #     systemctl daemon-reload
 
     # ## 设置系统管理，开机启动
-    # echo_style_text "View the 'systemctl info'↓:"
+    # echo_style_text "[View] the 'systemctl info'↓:"
     # chkconfig ${TMP_$soft_upper_short_name_SETUP_NAME} on
 	# systemctl enable ${TMP_$soft_upper_short_name_SETUP_NAME}.service
 	# systemctl list-unit-files | grep ${TMP_$soft_upper_short_name_SETUP_NAME}
 	
 	# # 启动及状态检测
     # echo "${TMP_SPLITER2}"
-    # echo_style_text "View the 'service status'↓:"
+    # echo_style_text "[View] the 'service status'↓:"
     # systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service
 
     # # 等待启动
@@ -210,38 +210,38 @@ function boot_$soft_name()
 
     # 打印版本
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'version'↓:"
+    echo_style_text "[View] the 'version'↓:"
     bin/${TMP_$soft_upper_short_name_SETUP_NAME} -v
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} -V
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} --version
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} version
 	
     echo "${TMP_SPLITER2}"	
-    echo_style_text "View the 'help'↓:"
+    echo_style_text "[View] the 'help'↓:"
     bin/${TMP_$soft_upper_short_name_SETUP_NAME} -h
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} -H
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} --help
     # bin/${TMP_$soft_upper_short_name_SETUP_NAME} help
 
 	# 等待执行完毕 产生端口
-    echo_style_text "View the 'booting port'↓:"
+    echo_style_text "[View] the 'booting port'↓:"
     exec_sleep_until_not_empty "Booting soft of <$soft_name> to port '${TMP_$soft_upper_short_name_SETUP_PORT}', hold on please" "lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}" 180 3
 	lsof -i:${TMP_$soft_upper_short_name_SETUP_PORT}
 
 	# 授权iptables端口访问
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
+    echo_style_text "[View] echo the 'port'(<${TMP_$soft_upper_short_name_SETUP_PORT}>) to iptables:↓"
 	echo_soft_port ${TMP_$soft_upper_short_name_SETUP_PORT}
     
 	# 授权开机启动
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'supervisor startup conf'↓:"
+    echo_style_text "[View] echo the 'supervisor startup conf'↓:"
 	# echo_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "/usr/bin" "systemctl start ${TMP_$soft_upper_short_name_SETUP_NAME}.service" "" "999" "" "" false 0
 	echo_startup_supervisor_config "${TMP_$soft_upper_short_name_SETUP_NAME}" "${TMP_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_$soft_upper_short_name_SETUP_NAME} start"
 
     # 生成web授权访问脚本
     echo "${TMP_SPLITER2}"
-    echo_style_text "View echo the 'web service init script'↓:"
+    echo_style_text "[View] echo the 'web service init script'↓:"
     # echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
