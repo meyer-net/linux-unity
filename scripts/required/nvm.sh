@@ -132,7 +132,7 @@ function boot_nvm()
     # 结束
     echo "${TMP_SPLITER2}"
     echo_style_text "Setup <nvm> over"
-    exec_sleep 10 "Boot <nvm> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <nvm> over, please checking the setup log, this will stay %s secs to exit"
 	
 	return $?
 }
@@ -328,7 +328,7 @@ function exec_step_nvm()
 	reconf_nvm 
 
     # 结束
-    exec_sleep 30 "Install <nvm> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <nvm> over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }

@@ -279,6 +279,9 @@ function boot_check_dc_library_mysql() {
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] echo the 'port'(<${TMP_DC_MSQ_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_MSQ_SETUP_OPN_PORT"
+
+        # 结束
+        exec_sleep 10 "Boot <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
     fi
 }
 
@@ -376,7 +379,7 @@ function exec_step_dc_library_mysql() {
     reconf_dc_library_mysql
 
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }

@@ -101,7 +101,7 @@ EOF
     echo "     docker exec -it ${TMP_DC_PSQ_CONF_CTN_ID} sh -c 'bash /tmp/check_db_master.sh'"
     
     # 结束
-    exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> master over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> master over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }
@@ -213,7 +213,7 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_PSQ_CONF_CTN_ID}" "${TMP_DC_PSQ_CONF_BACKUP_MASTER_SH}" "/tmp/check_replicate.sh" "."
    
     # 结束
-    exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> slave over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Conf <${TMP_DC_PSQ_CONF_CTN_IMG_NAME}> slave over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }

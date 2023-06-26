@@ -226,6 +226,9 @@ function boot_check_dc_browserless_chrome() {
 
         # 生成web授权访问脚本
         echo_web_service_init_scripts "browserless_chrome${LOCAL_ID}" "browserless_chrome${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_BLC_SETUP_OPN_PORT} "${LOCAL_HOST}"
+
+        # 结束
+        exec_sleep 10 "Boot <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
     fi
 }
 
@@ -316,7 +319,7 @@ function exec_step_browserless_chrome() {
     reconf_dc_browserless_chrome
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }

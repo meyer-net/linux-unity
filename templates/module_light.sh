@@ -245,7 +245,7 @@ function boot_$soft_name()
     # echo_web_service_init_scripts "$soft_name${LOCAL_ID}" "$soft_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_$soft_upper_short_name_SETUP_PORT} "${LOCAL_HOST}"
 
     # 结束
-    exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <$soft_name> over, please checking the setup log, this will stay %s secs to exit"
 	
 	return $?
 }
@@ -324,6 +324,9 @@ function exec_step_$soft_name()
 	boot_$soft_name 
 
 	# reconf_$soft_name 
+    
+    # 结束
+    exec_sleep 30 "Install <$soft_name> over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }

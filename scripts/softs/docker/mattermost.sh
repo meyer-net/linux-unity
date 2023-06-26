@@ -206,6 +206,9 @@ function conf_dc_rely_mattermost() {
 function boot_check_dc_mattermost() {
     cd ${TMP_DC_CPL_MTTM_SETUP_DIR}
 
+    # 当前启动名称
+    local TMP_DC_MTTM_SETUP_CTN_CURRENT_NAME=${1}
+
     # 当前启动端口
     local TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT=${2}
 
@@ -229,6 +232,9 @@ function boot_check_dc_mattermost() {
                 
                 # 生成web授权访问脚本
                 echo_web_service_init_scripts "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
+                
+                # 结束
+                exec_sleep 10 "Boot <${TMP_DC_MTTM_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay %s secs to exit"
             fi
         }
 
@@ -698,7 +704,7 @@ function deploy_compose_dc_mattermost() {
     echo_startup_supervisor_config "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_CPL_MTTM_SETUP_VER}" "${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}" "docker-compose -p ${TMP_DC_MTTM_SETUP_REPO%%/*} up -d" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 30 "Deploy <${TMP_DC_MTTM_SETUP_REPO}> over, please checking the deploy log, this will stay 30 secs to exit"
+    exec_sleep 30 "Deploy <${TMP_DC_MTTM_SETUP_REPO}> over, please checking the deploy log, this will stay %s secs to exit"
 
     return $?
 }

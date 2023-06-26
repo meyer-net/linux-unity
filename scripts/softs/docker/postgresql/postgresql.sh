@@ -253,7 +253,10 @@ function boot_check_dc_library_postgres() {
         echo_soft_port "TMP_DC_PSQ_SETUP_OPN_PORT"
         
         # 生成web授权访问脚本
-        # echo_web_service_init_scripts "library_postgres${LOCAL_ID}" "library_postgres${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PSQ_SETUP_OPN_PORT} "${LOCAL_HOST}"
+        echo_web_service_init_scripts "library_postgres${LOCAL_ID}" "library_postgres${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PSQ_SETUP_OPN_PORT} "${LOCAL_HOST}"
+        
+        # 结束
+        exec_sleep 10 "Boot <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
     fi
     
     # 授权开机启动
@@ -352,7 +355,7 @@ function exec_step_dc_library_postgres() {
     reconf_dc_library_postgres
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }

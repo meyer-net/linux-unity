@@ -302,7 +302,7 @@ function boot_miniconda()
     condabin/conda info
 
     # 结束
-    exec_sleep 10 "Install <miniconda> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <miniconda> over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }
@@ -378,7 +378,7 @@ function exec_step_miniconda()
 	# reconf_miniconda 
 
     # 结束
-    exec_sleep 30 "Install <conda> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <conda> over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }

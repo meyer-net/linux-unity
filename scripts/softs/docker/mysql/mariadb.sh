@@ -266,6 +266,9 @@ function boot_check_dc_library_mariadb() {
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] echo the 'port'(<${TMP_DC_MDB_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_MDB_SETUP_OPN_PORT"
+
+        # 结束
+        exec_sleep 10 "Boot <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
     fi
 }
 
@@ -371,7 +374,7 @@ function exec_step_dc_library_mariadb() {
     reconf_dc_library_mariadb
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }

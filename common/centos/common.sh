@@ -3853,7 +3853,7 @@ function bind_exchange_port() {
 function exec_sleep()
 {
 	local _TMP_EXEC_SLEEP_TIMES=${1}
-	local _TMP_EXEC_SLEEP_ECHO="${2}"
+	local _TMP_EXEC_SLEEP_ECHO=$(printf "${2}" "${1}")
 
 	function _TMP_EXEC_SLEEP_NORMAL_FUNC() {
 		echo_style_text "${_TMP_EXEC_SLEEP_ECHO}"

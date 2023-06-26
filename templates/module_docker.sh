@@ -271,7 +271,7 @@ function boot_check_dc_$setup_name() {
     echo_startup_supervisor_config "${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}" "${TMP_DC_$soft_upper_short_name_SETUP_DIR}" "bin/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME} start"
     
     # 结束
-    exec_sleep 10 "Install <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Boot <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 }
 
 ##########################################################################################################
@@ -362,6 +362,9 @@ function exec_step_dc_$setup_name() {
     boot_check_dc_$setup_name
 
     reconf_dc_$setup_name
+    
+    # 结束
+    exec_sleep 30 "Install <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }

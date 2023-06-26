@@ -81,7 +81,7 @@ EOF
     docker_bash_channel_echo_exec "${TMP_DC_MSQ_CONF_CTN_ID}" "${TMP_DC_MSQ_CONF_SET_MASTER_SQL}" "/tmp/set_db_master.sh" "."
     
     # 结束
-    exec_sleep 10 "Conf <library/mysql> master over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Conf <library/mysql> master over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }
@@ -167,7 +167,7 @@ EOF
     echo_startup_supervisor_config "mysql_slave_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_HOST##*.}_${TMP_DC_MSQ_CONF_DB_SLAVE_MASTER_PORT}" "${SUPERVISOR_DATA_DIR}" "docker exec -i ${TMP_DC_MSQ_CONF_CTN_ID} sh -c \"sleep 30 && echo 'start slave; show slave status\\\G;' | ${TMP_DC_MSQ_CONF_CMD_MARK} -uroot -p'${TMP_DC_MSQ_CONF_DB_PASSWD}' -P${TMP_DC_MSQ_CONF_SOFT_INN_PORT}\"" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay 10 secs to exit"
+    exec_sleep 10 "Conf <library/mysql> slave over, please checking the setup log, this will stay %s secs to exit"
 
 	return $?
 }

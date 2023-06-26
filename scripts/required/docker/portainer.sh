@@ -175,6 +175,9 @@ function boot_check_dc_portainer() {
 
         # 生成web授权访问脚本
         echo_web_service_init_scripts "portainer${LOCAL_ID}" "portainer${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PTN_SETUP_OPN_PORT} "${LOCAL_HOST}"
+
+        # 结束
+        exec_sleep 10 "Boot <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
     fi
 }
 
@@ -266,7 +269,7 @@ function exec_step_portainer() {
     reconf_dc_portainer
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay 30 secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
     return $?
 }
