@@ -314,7 +314,7 @@ function boot_playwright()
     su_bash_env_conda_channel_exec "playwright -h" "${TMP_PLR_SETUP_ENV}"
 
     # 结束
-    exec_sleep 10 "Boot <playwright> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 10 "Boot <playwright> over, please checking the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }
@@ -400,7 +400,7 @@ function exec_step_playwright()
 	# reconf_playwright 
 
     # 结束
-    exec_sleep 30 "Install <playwright> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <playwright> over, please checking the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }

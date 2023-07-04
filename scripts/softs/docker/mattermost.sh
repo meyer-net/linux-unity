@@ -14,6 +14,8 @@
 #------------------------------------------------
 # 涵盖：mattermost、postgresql等服务
 #------------------------------------------------
+# source scripts/softs/docker/mattermost.sh
+#------------------------------------------------
 # Debug：
 # docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
 # docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker rm
@@ -82,7 +84,7 @@ function setup_dc_rely_mattermost() {
             docker container inspect ${TMP_DC_MTTM_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
             
             # 修改权限 & 查看列表
-            sudo chown -R 2000:2000 ${1}
+            sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${1}
             ls -lia ${1}
             echo
         }
@@ -234,7 +236,7 @@ function boot_check_dc_mattermost() {
                 echo_web_service_init_scripts "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
                 
                 # 结束
-                exec_sleep 10 "Boot <${TMP_DC_MTTM_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+                exec_sleep 10 "Boot <${TMP_DC_MTTM_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
             fi
         }
 
@@ -274,11 +276,21 @@ function exec_step_dc_rely_mattermost() {
         local TMP_DC_MTTM_SETUP_RELY_CTN_ARGS=${6}
         ## 8065
         local TMP_DC_MTTM_SETUP_RELY_CTN_PORT=$(echo "${6}" | grep -oP "(?<=-p )\d+(?=:\d+)" | awk 'NR==1')
+        
         ## /mattermost
         local TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(echo "${6}" | grep -oP "(?<=--workdir\=)[^\s]+")
         if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" ]; then
             TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${TMP_DC_MTTM_SETUP_RELY_CTN_ID})
         fi
+
+        # 默认取进入时的目录
+        if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" ]; then
+            TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(docker_bash_channel_exec "${2}" "pwd")
+        fi
+
+        # 获取授权用户的UID/GID
+        local TMP_DC_MTTM_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
+        local TMP_DC_MTTM_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
         
         ## v7.1
         local TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER=$(echo "${4}" | grep -oP "(?<=v).+")
@@ -381,12 +393,12 @@ function formal_adjust_cps_dc_mattermost() {
     ## !!! 特殊需求，预先创建对应需要的目录。否则会出现错误：
     ## Error: failed to load configuration: could not create config file: open /mattermost/config/config.json: permission denied
     ## /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost:/mattermost/config:/mattermost/config
-    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
-    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
-    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
 
     # 授权写入
-    sudo chown -R 2000:2000 ${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost 
+    # sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost 
 
     return $?
 }
@@ -594,7 +606,7 @@ function formal_cpl_dc_mattermost() {
         echo_style_text "[View] the 'compile migrate'↓:"
         
         # 修改权限 & 查看列表
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${1}
         ls -lia ${1}
         echo
     }
@@ -704,7 +716,7 @@ function deploy_compose_dc_mattermost() {
     echo_startup_supervisor_config "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_CPL_MTTM_SETUP_VER}" "${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}" "docker-compose -p ${TMP_DC_MTTM_SETUP_REPO%%/*} up -d" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 30 "Deploy <${TMP_DC_MTTM_SETUP_REPO}> over, please checking the deploy log, this will stay %s secs to exit"
+    exec_sleep 30 "Deploy <${TMP_DC_MTTM_SETUP_REPO}> over, please checking the deploy log, this will stay [%s] secs to exit"
 
     return $?
 }

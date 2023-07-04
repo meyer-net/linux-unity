@@ -9,29 +9,39 @@
 #------------------------------------------------
 # 安装版本：
 #------------------------------------------------
+# source scripts/softs/docker/$image_project.sh
+#------------------------------------------------
 # Debug：
-# docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker stop
-# docker ps -a --no-trunc | awk '{if($2~"$image_name"){print $1}}' | xargs docker rm
-# docker images | awk '{if($1~"$image_name"){print $3}}' | xargs docker rmi
+# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker stop
+# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker rm
+# docker images | awk '{if($1~"$image_from"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/conf/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
+# rm -rf /mountdisk/repo/backup/opt/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$setup_name*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
-# 安装标题：$title_name
-# 软件名称：$image_name
+# 安装标题：$soft_title
+# 镜像仓库：$image_from
+# 镜像名称：$image_project
+# 运行命令：$image_cmd
+# 镜像用户：$image_user
 # 软件端口：$soft_port
+# 软件标记：$soft_mark
 # 软件大写分组与简称：$soft_upper_short_name
 # 软件安装名称：$setup_name
-# 软件GIT仓储名称：${docker_prefix}
-# 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
+local TMP_DC_$soft_upper_short_name_DISPLAY_TITLE="$soft_title"
+local TMP_DC_$soft_upper_short_name_SETUP_IMG_FROM="$image_from"
+local TMP_DC_$soft_upper_short_name_SETUP_IMG_PRJT="$image_project"
+local TMP_DC_$soft_upper_short_name_SETUP_IMG_REPO="${TMP_DC_$soft_upper_short_name_SETUP_IMG_FROM}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_PRJT}"
+local TMP_DC_$soft_upper_short_name_SETUP_IMG_USER="$image_user"
 local TMP_DC_$soft_upper_short_name_SETUP_INN_PORT=$soft_port
 local TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT=1${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}
 
 ##########################################################################################################
 
-# 1-配置环境
+# 3-1：配置环境
 function set_env_dc_$setup_name() {
-    echo_style_wrap_text "Starting 'configuare install envs', hold on please"
+    echo_style_wrap_text "Starting 'configuare' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> 'install' [envs], hold on please"
 
     cd ${__DIR}
 
@@ -40,20 +50,23 @@ function set_env_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 2-安装软件
+# 3-2：安装软件
 function setup_dc_$setup_name() {
-    echo_style_wrap_text "Starting 'install', hold on please"
+    echo_style_wrap_text "Starting 'install' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     function _setup_dc_$setup_name_cp_source() {
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] the 'workingdir copy'↓:"
 
         # 拷贝应用目录
-        # docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1} >& /dev/null
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
         
+        # 删除重复目录(无效，此时还未定义新的挂载目录)
+        # docker container inspect ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
+        
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
         
         # 查看拷贝列表
         ls -lia ${1}
@@ -76,11 +89,11 @@ function setup_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 3-规格化软件目录格式
+# 3-3：规格化软件目录格式
 function formal_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'formal dirs', hold on please"
+    echo_style_wrap_text "Starting 'formal' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> 'dirs', hold on please"
 
     # 开始标准化
     ## 还原 & 创建 & 迁移
@@ -94,10 +107,11 @@ function formal_dc_$setup_name() {
         ## /mountdisk/logs/docker_apps/$setup_name/imgver111111/app
         # mkdir -pv ${1}/app
         # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/root/.local/share/${TMP_DC_$soft_upper_short_name_SETUP_IMG_PRJT}/logs ${1}/app >& /dev/null
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_LOGS_MARK} ${1}/app >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
     
         # 查看拷贝列表
         ls -lia ${1}/app
@@ -116,7 +130,7 @@ function formal_dc_$setup_name() {
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${1} >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
         
         # 查看拷贝列表
         ls -lia ${1}
@@ -136,10 +150,11 @@ function formal_dc_$setup_name() {
         # 拷贝配置目录
         ## /mountdisk/conf/docker_apps/$setup_name/imgver111111/app
         # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_CONF_MARK} ${1}/app >& /dev/null
+        # docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/home/${TMP_DC_$soft_upper_short_name_SETUP_IMG_USER}/.config ${1}/app >& /dev/null
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
 
         # 查看拷贝列表
         ls -lia ${1}/app
@@ -183,7 +198,6 @@ function formal_dc_$setup_name() {
 
     # 预实验部分        
     ## 目录调整完修改启动参数
-    ## 修改启动参数
     # local TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP="/tmp/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}"
     # soft_path_restore_confirm_create "${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_CTN_TMP}:/tmp"
@@ -191,13 +205,14 @@ function formal_dc_$setup_name() {
     # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}
     # ${TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/var/log/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
+    # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:/root/.local/share/${TMP_DC_$soft_upper_short_name_SETUP_IMG_PRJT}/logs
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/app:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_LOGS_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_DATA_DIR}:/var/lib/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}"
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/app:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_CONF_MARK}
     # ${TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/app:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK}
     echo "${TMP_SPLITER2}"
-    echo_style_text "Starting 'inspect change', hold on please"
+    echo_style_text "Starting 'inspect change' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     # if [ $(echo "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER%.*} <= 5.7" | bc) == 1 ]; then
@@ -213,11 +228,11 @@ function formal_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 4-设置软件
+# 3-4：设置软件
 function conf_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'configuration', hold on please"
+    echo_style_wrap_text "Starting 'configuration' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     # 开始配置
     # docker_bash_channel_exec "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}" "sed -i \"s@os.tmpdir()@\'\/usr\/src\/app\'@g\" src/utils.js" "t" "root" "$work_dir"
@@ -227,11 +242,11 @@ function conf_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 5-测试软件
+# 3-5：测试软件
 function test_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
     
-    echo_style_wrap_text "Starting 'test', hold on please"
+    echo_style_wrap_text "Starting 'test' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     # 实验部分
     ## 1：检测启停
@@ -243,12 +258,12 @@ function test_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 6-启动后检测脚本
+# 3-6：启动后检测脚本
 function boot_check_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
     # 实验部分
-    echo_style_wrap_text "Starting 'boot check', hold on please"
+    echo_style_wrap_text "Starting 'boot check' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     if [ -n "${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}" ]; then
         echo_style_text "[View] the 'container visit'↓:"
@@ -276,38 +291,37 @@ function boot_check_dc_$setup_name() {
 
 ##########################################################################################################
 
-# 7-1 下载扩展/驱动/插件
+# 3-7-1：下载扩展/驱动/插件
 function down_ext_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'download exts', hold on please"
+    echo_style_wrap_text "Starting 'download' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> 'exts', hold on please"
 
     return $?
 }
 
-# 7-2 安装与配置扩展/驱动/插件
+# 3-7-2：安装与配置扩展/驱动/插件
 function setup_ext_dc_$setup_name() {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 
-    echo_style_wrap_text "Starting 'install exts', hold on please"
+    echo_style_wrap_text "Starting 'install' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}> 'exts', hold on please"
 
     return $?
 }
 
 ##########################################################################################################
 
-# 8-重新配置（有些软件安装完后需要重新配置）
+# 3-8：重新配置（有些软件安装完后需要重新配置）
 function reconf_dc_$setup_name()
 {
     cd ${TMP_DC_$soft_upper_short_name_SETUP_DIR}
 	
-    echo_style_wrap_text "Starting 'reconf', hold on please"
+    echo_style_wrap_text "Starting 'reconf' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
 	return $?
 }
 
 ##########################################################################################################
-
 # x3-执行步骤
 #    参数1：启动后的进程ID
 #    参数2：最终启动端口
@@ -325,9 +339,21 @@ function exec_step_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_CMD="${4}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS="${5}"
     local TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR="$(echo "${5}" | grep -oP "(?<=--workdir\=)[^\s]+")"
+    if [ -z "${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID})
+    fi
+
+    # 默认取进入时的目录
+    if [ -z "${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd")
+    fi
     
+    # 获取授权用户的UID/GID
+    local TMP_DC_$soft_upper_short_name_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_$soft_upper_short_name_SETUP_IMG_USER}")
+    local TMP_DC_$soft_upper_short_name_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_$soft_upper_short_name_SETUP_IMG_USER}")
+
     # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
-    local TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" '$soft_name -V | grep -oP "(?<=Distrib ).+(?=,)"')
+    local TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" '$image_cmd -V | grep -oP "(?<=Distrib ).+(?=,)"')
 
     ## 统一编排到的路径
     local TMP_DC_$soft_upper_short_name_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
@@ -336,7 +362,7 @@ function exec_step_dc_$setup_name() {
     local TMP_DC_$soft_upper_short_name_SETUP_LNK_CONF_DIR=${DOCKER_APP_CONF_DIR}/${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_CTN_VER}
 
     ## 统一标记名称(存在于安装目录的真实名称)
-    local TMP_DC_$soft_upper_short_name_SETUP_APP_MARK="chrome"
+    local TMP_DC_$soft_upper_short_name_SETUP_APP_MARK="$soft_mark"
 
     ## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_DC_$soft_upper_short_name_SETUP_WORK_DIR=${TMP_DC_$soft_upper_short_name_SETUP_DIR}/${DEPLOY_WORK_MARK}
@@ -372,7 +398,7 @@ function exec_step_dc_$setup_name() {
 ##########################################################################################################
 
 # x2-简略启动，获取初始化软件（形成启动后才可抽取目录信息）
-#    参数1：镜像名称，例 $image_name
+#    参数1：镜像名称，例 $image_project
 #    参数2：镜像版本，例 latest
 #    参数3：启动命令，例 /bin/sh
 #    参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
@@ -392,14 +418,15 @@ function boot_build_dc_$setup_name() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>:[${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}], hold on please"
 
     # 设置密码
-    local TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'mysql' 'db' "${TMP_DC_$soft_upper_short_name_SETUP_SOFT_VER}")" "Please sure your 'mysql' <database password>" "y")
+    local TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD=$(console_input "$(rand_passwd 'mysql' 'db' "${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER}")" "Please sure your 'mysql' <database password>" "y")
     
     ## 标准启动参数
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
+    # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_USER="--user $(id -u):$(id -g)"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_USER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
     echo_style_text "<Container> 'pre' args && cmd↓:"
@@ -434,7 +461,7 @@ function check_setup_dc_$setup_name() {
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
 
     # 重装/更新/安装
-    soft_docker_check_choice_upgrade_action "${1}" "boot_build_dc_$setup_name"
+    soft_docker_check_choice_upgrade_action "${TMP_DC_$soft_upper_short_name_SETUP_IMG_REPO}" "boot_build_dc_$setup_name"
 
     return $?
 }
@@ -442,4 +469,4 @@ function check_setup_dc_$setup_name() {
 ##########################################################################################################
 
 # 安装主体
-soft_setup_basic "$image_name" "check_setup_dc_$setup_name"
+soft_setup_basic "${TMP_DC_$soft_upper_short_name_DISPLAY_TITLE}" "check_setup_dc_$setup_name"

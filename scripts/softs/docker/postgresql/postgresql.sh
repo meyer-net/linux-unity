@@ -17,6 +17,7 @@
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/conf/library_postgres* && rm -rf /mountdisk/repo/backup/opt/docker/logs/library_postgres*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
+local TMP_DC_PSQ_SETUP_IMG_USER="postgres"
 local TMP_DC_PSQ_SETUP_INN_PORT=5432
 local TMP_DC_PSQ_SETUP_OPN_PORT=1${TMP_DC_PSQ_SETUP_INN_PORT}
 
@@ -45,7 +46,7 @@ function setup_dc_library_postgres() {
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/usr/lib/${TMP_DC_PSQ_DEPLOY_APP_MARK} ${1} >& /dev/null
     
         # 修改权限 & 查看列表
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_PSQ_SETUP_CTN_UID}:${TMP_DC_PSQ_SETUP_CTN_GID} ${1}
         ls -lia ${1}
     }
 
@@ -80,7 +81,7 @@ function formal_dc_library_postgres() {
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/var/log/${TMP_DC_PSQ_DEPLOY_APP_MARK} ${1}/app >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_PSQ_SETUP_CTN_UID}:${TMP_DC_PSQ_SETUP_CTN_GID} ${1}
     
         # 查看列表
         ls -lia ${1}/app
@@ -99,7 +100,7 @@ function formal_dc_library_postgres() {
         # docker_bash_channel_exec "${TMP_DC_PSQ_SETUP_CTN_ID}" "pg_ctl stop -D /var/lib/${TMP_DC_PSQ_DEPLOY_APP_MARK}/data -s -m fast && rm -rf /var/lib/${TMP_DC_PSQ_DEPLOY_APP_MARK}/data"
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_PSQ_SETUP_CTN_UID}:${TMP_DC_PSQ_SETUP_CTN_GID} ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -121,7 +122,7 @@ function formal_dc_library_postgres() {
         docker cp -a ${TMP_DC_PSQ_SETUP_CTN_ID}:/etc/${TMP_DC_PSQ_DEPLOY_APP_MARK} ${1}/app >& /dev/null
 
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_PSQ_SETUP_CTN_UID}:${TMP_DC_PSQ_SETUP_CTN_GID} ${1}
         
         ls -lia ${1}/app
     
@@ -256,7 +257,7 @@ function boot_check_dc_library_postgres() {
         echo_web_service_init_scripts "library_postgres${LOCAL_ID}" "library_postgres${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PSQ_SETUP_OPN_PORT} "${LOCAL_HOST}"
         
         # 结束
-        exec_sleep 10 "Boot <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+        exec_sleep 10 "Boot <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
     fi
     
     # 授权开机启动
@@ -316,6 +317,10 @@ function exec_step_dc_library_postgres() {
     local TMP_DC_PSQ_SETUP_CTN_VER="${3}"
     local TMP_DC_PSQ_SETUP_CTN_CMD="${4}"
     local TMP_DC_PSQ_SETUP_CTN_ARGS="${5}"
+
+    # 获取授权用户的UID/GID
+    local TMP_DC_PSQ_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_PSQ_SETUP_IMG_USER}")
+    local TMP_DC_PSQ_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_PSQ_SETUP_IMG_USER}")
     
     # 软件内部标识版本（$3已返回该版本号，仅测试选择15.3的场景）
     local TMP_DC_PSQ_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" 'psql --version | grep -oP "(?<=\) ).+(?= \(Debian)"')
@@ -355,7 +360,7 @@ function exec_step_dc_library_postgres() {
     reconf_dc_library_postgres
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_PSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

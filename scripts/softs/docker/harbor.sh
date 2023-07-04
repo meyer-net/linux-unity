@@ -12,6 +12,8 @@
 #------------------------------------------------
 # 涵盖：redis、postgresql等服务
 #------------------------------------------------
+# source scripts/softs/docker/harbor.sh
+#------------------------------------------------
 # Debug：
 # docker ps -a -f name="goharbor" | awk 'NR>1{print $1}' | xargs docker stop
 # docker ps -a -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
@@ -218,7 +220,7 @@ function boot_check_dc_harbor() {
                 echo_web_service_init_scripts "${TMP_DC_CPL_HB_SETUP_MARK_REPO}_${TMP_DC_HB_SETUP_RELY_IMG_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_HB_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
 
                 # 结束
-                exec_sleep 10 "Boot <${TMP_DC_HB_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+                exec_sleep 10 "Boot <${TMP_DC_HB_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
             fi
         }
 
@@ -465,7 +467,7 @@ function exec_resolve_compose_dc_harbor_loop()
         local TMP_DC_CPS_HB_MAIN_VER="$(echo "$(yq '.services.core.image' docker-compose.yml)" | cut -d':' -f2)"
 
         ## 有脚本的场景
-        soft_docker_compose_check_upgrade_action "${TMP_DC_MTTM_SETUP_REPO}*" "${TMP_DC_CPS_HB_MAIN_VER}" "_exec_deploy_compose_dc_harbor" "_exec_resolve_compose_dc_harbor"
+        soft_docker_compose_check_upgrade_action "${TMP_DC_HB_SETUP_REPO}*" "${TMP_DC_CPS_HB_MAIN_VER}" "_exec_deploy_compose_dc_harbor" "_exec_resolve_compose_dc_harbor"
 
         return $?
     fi
@@ -613,7 +615,7 @@ function deploy_compose_dc_harbor() {
     echo_startup_supervisor_config "${TMP_DC_CPL_HB_SETUP_MARK_REPO}_${TMP_DC_CPL_HB_SETUP_VER}" "${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR}" "docker-compose up -d" "" 999 "" "docker" "false" "0"
     
     # 结束
-    exec_sleep 30 "Deploy <${TMP_DC_HB_SETUP_REPO}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Deploy <${TMP_DC_HB_SETUP_REPO}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

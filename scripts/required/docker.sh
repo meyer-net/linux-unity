@@ -417,7 +417,7 @@ function boot_docker()
     docker system df
 
     # 结束
-    exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay %s secs to exit"
+    exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }
@@ -504,7 +504,7 @@ function exec_step_docker()
 	# reconf_docker 
 
     # 结束
-    exec_sleep 30 "Install <docker> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <docker> over, please checking the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }

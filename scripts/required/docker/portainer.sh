@@ -44,12 +44,8 @@ function setup_dc_portainer() {
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_PTN_SETUP_CTN_ID}:${TMP_DC_PTN_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
-        
-        # 删除重复目录
-        docker container inspect ${TMP_DC_PTN_SETUP_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_PTN_SETUP_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
-    
+            
         # 修改权限 & 查看列表
-        sudo chown -R 2000:2000 ${1}
         ls -lia ${1}
     }
 
@@ -177,7 +173,7 @@ function boot_check_dc_portainer() {
         echo_web_service_init_scripts "portainer${LOCAL_ID}" "portainer${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_PTN_SETUP_OPN_PORT} "${LOCAL_HOST}"
 
         # 结束
-        exec_sleep 10 "Boot <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+        exec_sleep 10 "Boot <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
     fi
 }
 
@@ -232,6 +228,14 @@ function exec_step_portainer() {
     local TMP_DC_PTN_SETUP_CTN_CMD="${4}"
     local TMP_DC_PTN_SETUP_CTN_ARGS="${5}"
     local TMP_DC_PTN_SETUP_CTN_WORK_DIR="$(echo "${5}" | grep -oP "(?<=--workdir\=)[^\s]+")"
+    if [ -z "${TMP_DC_PTN_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_PTN_SETUP_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${1})
+    fi
+
+    # 默认取进入时的目录
+    if [ -z "${TMP_DC_PTN_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_PTN_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd")
+    fi
 
     # 统一编排到的路径
     local TMP_DC_PTN_CURRENT_DIR=$(pwd)
@@ -269,7 +273,7 @@ function exec_step_portainer() {
     reconf_dc_portainer
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_PTN_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

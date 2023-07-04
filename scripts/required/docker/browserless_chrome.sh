@@ -16,6 +16,7 @@
 # rm -rf /opt/docker_apps/browserless_chrome* && rm -rf /mountdisk/conf/docker_apps/browserless_chrome* && rm -rf /mountdisk/logs/docker_apps/browserless_chrome* && rm -rf /mountdisk/data/docker_apps/browserless_chrome* && rm -rf /opt/docker/data/apps/browserless_chrome* && rm -rf /opt/docker/conf/browserless_chrome* && rm -rf /opt/docker/logs/browserless_chrome* && rm -rf /mountdisk/repo/migrate/clean/browserless_chrome*
 # docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
+local TMP_DC_BLC_SETUP_IMG_USER="blessuser"
 local TMP_DC_BLC_SETUP_INN_PORT=3000
 local TMP_DC_BLC_SETUP_OPN_PORT=1${TMP_DC_BLC_SETUP_INN_PORT}
 
@@ -41,12 +42,9 @@ function setup_dc_browserless_chrome() {
 
         # 拷贝应用目录
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:${TMP_DC_BLC_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
-        
-        # 删除重复目录
-        docker container inspect ${TMP_DC_BLC_SETUP_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_BLC_SETUP_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
-    
+            
         # 修改权限 & 查看列表
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_BLC_SETUP_CTN_UID}:${TMP_DC_BLC_SETUP_CTN_GID} ${1}
         ls -lia ${1}
     }
 
@@ -86,7 +84,7 @@ function formal_dc_browserless_chrome() {
         docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:${TMP_DC_BLC_SETUP_CTN_WORK_DIR}/${TMP_DC_BLC_DEPLOY_DATA_MARK} ${1} >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_BLC_SETUP_CTN_UID}:${TMP_DC_BLC_SETUP_CTN_GID} ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -110,7 +108,7 @@ function formal_dc_browserless_chrome() {
     #     docker cp -a ${TMP_DC_BLC_SETUP_CTN_ID}:/etc/${TMP_DC_BLC_DEPLOY_APP_MARK} ${1}/app >& /dev/null
         
     #     # 授权
-    #     sudo chown -R 2000:2000 ${1}
+    #     sudo chown -R ${TMP_DC_BLC_SETUP_CTN_UID}:${TMP_DC_BLC_SETUP_CTN_GID} ${1}
 
     #     ls -lia ${1}
     
@@ -228,7 +226,7 @@ function boot_check_dc_browserless_chrome() {
         echo_web_service_init_scripts "browserless_chrome${LOCAL_ID}" "browserless_chrome${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_BLC_SETUP_OPN_PORT} "${LOCAL_HOST}"
 
         # 结束
-        exec_sleep 10 "Boot <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+        exec_sleep 10 "Boot <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
     fi
 }
 
@@ -281,6 +279,18 @@ function exec_step_browserless_chrome() {
     local TMP_DC_BLC_SETUP_CTN_CMD="${4}"
     local TMP_DC_BLC_SETUP_CTN_ARGS="${5}"
     local TMP_DC_BLC_SETUP_CTN_WORK_DIR="$(echo "${5}" | grep -oP "(?<=--workdir\=)[^\s]+")"
+    if [ -z "${TMP_DC_BLC_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_BLC_SETUP_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${1})
+    fi
+
+    # 默认取进入时的目录
+    if [ -z "${TMP_DC_BLC_SETUP_CTN_WORK_DIR}" ]; then
+        TMP_DC_BLC_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd")
+    fi
+
+    # 获取授权用户的UID/GID
+    local TMP_DC_BLC_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_BLC_SETUP_IMG_USER}")
+    local TMP_DC_BLC_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_BLC_SETUP_IMG_USER}")
 
     # 统一编排到的路径
     local TMP_DC_BLC_CURRENT_DIR=$(pwd)
@@ -319,7 +329,7 @@ function exec_step_browserless_chrome() {
     reconf_dc_browserless_chrome
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_BLC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

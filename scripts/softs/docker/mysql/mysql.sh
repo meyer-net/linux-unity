@@ -26,6 +26,7 @@
 # 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
+local TMP_DC_MSQ_SETUP_IMG_USER="mysql"
 local TMP_DC_MSQ_SETUP_INN_PORT=3306
 local TMP_DC_MSQ_SETUP_OPN_PORT=1${TMP_DC_MSQ_SETUP_INN_PORT}
 
@@ -83,7 +84,7 @@ function formal_dc_library_mysql() {
         fi
 
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_MSQ_SETUP_CTN_UID}:${TMP_DC_MSQ_SETUP_CTN_GID} ${1}
     
         # 查看列表
         ls -lia ${1}/app
@@ -100,7 +101,7 @@ function formal_dc_library_mysql() {
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/var/lib/${DEPLOY_DATA_MARK} ${1} >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_MSQ_SETUP_CTN_UID}:${TMP_DC_MSQ_SETUP_CTN_GID} ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -125,7 +126,7 @@ function formal_dc_library_mysql() {
         docker cp -a ${TMP_DC_MSQ_SETUP_CTN_ID}:/etc/my.cnf ${1}/app/my.cnf >& /dev/null
         
         # 授权
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_MSQ_SETUP_CTN_UID}:${TMP_DC_MSQ_SETUP_CTN_GID} ${1}
 
         ls -lia ${1}/app
     
@@ -281,7 +282,7 @@ function boot_check_dc_library_mysql() {
         echo_soft_port "TMP_DC_MSQ_SETUP_OPN_PORT"
 
         # 结束
-        exec_sleep 10 "Boot <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+        exec_sleep 10 "Boot <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
     fi
 }
 
@@ -335,6 +336,10 @@ function exec_step_dc_library_mysql() {
     local TMP_DC_MSQ_SETUP_CTN_VER="${3}"
     local TMP_DC_MSQ_SETUP_CTN_CMD="${4}"
     local TMP_DC_MSQ_SETUP_CTN_ARGS="${5}"
+
+    # 获取授权用户的UID/GID
+    local TMP_DC_MSQ_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_MSQ_SETUP_IMG_USER}")
+    local TMP_DC_MSQ_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_MSQ_SETUP_IMG_USER}")
     
     # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
     ## mysql  Ver 14.14 Distrib 5.7.42, for Linux (x86_64) using  EditLine wrapper
@@ -379,7 +384,7 @@ function exec_step_dc_library_mysql() {
     reconf_dc_library_mysql
 
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_MSQ_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

@@ -381,7 +381,7 @@ EOF
     echo_web_service_init_scripts "supervisor${LOCAL_ID}" "supervisor${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_SUP_SETUP_HTTP_PORT} "${LOCAL_HOST}"
     
     # 结束
-    exec_sleep 10 "Boot <supervisor> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 10 "Boot <supervisor> over, please checking the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }
@@ -469,7 +469,7 @@ function exec_step_supervisor()
 	# reconf_supervisor 
 
     # 结束
-    exec_sleep 30 "Install <supervisor> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <supervisor> over, please checking the setup log, this will stay [%s] secs to exit"
 
 	return $?
 }

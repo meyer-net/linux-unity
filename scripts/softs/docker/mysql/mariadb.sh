@@ -26,6 +26,7 @@
 # 软件GIT仓储名称：${docker_prefix}
 # 软件GIT仓储名称：${git_repo}
 #------------------------------------------------
+local TMP_DC_MDB_SETUP_IMG_USER="mariadb"
 local TMP_DC_MDB_SETUP_INN_PORT=3306
 local TMP_DC_MDB_SETUP_OPN_PORT=1${TMP_DC_MDB_SETUP_INN_PORT}
 
@@ -76,6 +77,9 @@ function formal_dc_library_mariadb() {
         ## /mountdisk/logs/docker_apps/library_mariadb/10.4.29/app
         # $(expr "${TMP_DC_MDB_SETUP_SOFT_VER%.*} <= 10.4" -eq 1)
         docker cp -a ${TMP_DC_MDB_SETUP_CTN_ID}:/var/log/mysql ${1}/app >& /dev/null
+
+        # 授权
+        sudo chown -R ${TMP_DC_MDB_SETUP_CTN_UID}:${TMP_DC_MDB_SETUP_CTN_GID} ${1}
     
         # 查看列表
         ls -lia ${1}/app
@@ -90,6 +94,9 @@ function formal_dc_library_mariadb() {
 
         # 拷贝日志目录
         docker cp -a ${TMP_DC_MDB_SETUP_CTN_ID}:/var/lib/${DEPLOY_DATA_MARK} ${1} >& /dev/null
+
+        # 授权
+        sudo chown -R ${TMP_DC_MDB_SETUP_CTN_UID}:${TMP_DC_MDB_SETUP_CTN_GID} ${1}
         
         # 查看列表
         ls -lia ${1}
@@ -118,6 +125,9 @@ function formal_dc_library_mariadb() {
             path_not_exists_create "${1}/app"
             docker cp -a ${TMP_DC_MDB_SETUP_CTN_ID}:/etc/my.cnf ${1}/app/my.cnf >& /dev/null
         fi
+
+        # 授权
+        sudo chown -R ${TMP_DC_MDB_SETUP_CTN_UID}:${TMP_DC_MDB_SETUP_CTN_GID} ${1}
 
         ls -lia ${1}/app
     
@@ -268,7 +278,7 @@ function boot_check_dc_library_mariadb() {
         echo_soft_port "TMP_DC_MDB_SETUP_OPN_PORT"
 
         # 结束
-        exec_sleep 10 "Boot <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+        exec_sleep 10 "Boot <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
     fi
 }
 
@@ -328,6 +338,10 @@ function exec_step_dc_library_mariadb() {
     if [ -z "$(docker_bash_channel_exec "${1}" 'which mysql')" ]; then
         TMP_DC_MDB_SETUP_CMD_MARK="mariadb"
     fi
+    
+    # 获取授权用户的UID/GID
+    local TMP_DC_MDB_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_MDB_SETUP_IMG_USER}")
+    local TMP_DC_MDB_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_MDB_SETUP_IMG_USER}")
 
     # 软件内部标识版本（$3已返回该版本号，仅测试选择10.4.29的场景）
     ## mysql  Ver 14.14 Distrib 10.4.29, for Linux (x86_64) using  EditLine wrapper
@@ -374,7 +388,7 @@ function exec_step_dc_library_mariadb() {
     reconf_dc_library_mariadb
     
     # 结束
-    exec_sleep 30 "Install <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
+    exec_sleep 30 "Install <${TMP_DC_MDB_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
     return $?
 }

@@ -14,6 +14,8 @@
 #------------------------------------------------
 # 涵盖：mysql、postgresql等服务
 #------------------------------------------------
+# source scripts/softs/docker/$soft_setup_name.sh
+#------------------------------------------------
 # Debug：
 # docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
 # docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker rm
@@ -63,8 +65,8 @@ local TMP_DC_$soft_upper_short_name_SETUP_OPN_HTTPS_PORT=12${TMP_DC_$soft_upper_
 ##########################################################################################################
 
 # 1-配置环境
-function set_env_dc_$soft_title() {
-    echo_style_wrap_text "Starting 'configuare deploy envs' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}>, hold on please"
+function set_env_dc_$soft_setup_name() {
+    echo_style_wrap_text "Starting 'configuare' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> 'deploy' [envs], hold on please"
 
     cd ${__DIR}
 
@@ -74,7 +76,7 @@ function set_env_dc_$soft_title() {
 ##########################################################################################################
 
 # x4-1-1：安装软件
-function setup_dc_rely_$soft_title() {
+function setup_dc_rely_$soft_setup_name() {
     cd ${TMP_DC_BLC_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}>, hold on please"
@@ -86,7 +88,7 @@ function setup_dc_rely_$soft_title() {
     if [[ -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" ]]; then
         # 工作
         ## /opt/docker_apps/$repo_mark_name/v$down_ver/rely/$img_from_repo_$repo_main_img_mark_name/v$img_ver/work
-        function _setup_dc_rely_$soft_title_cp_work() {
+        function _setup_dc_rely_$soft_setup_name_cp_work() {
             echo "${TMP_SPLITER2}"
             echo_style_text "[View] the 'workingdir copy rely'↓:"
 
@@ -97,13 +99,13 @@ function setup_dc_rely_$soft_title() {
             docker container inspect ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
             
             # 修改权限 & 查看列表
-            sudo chown -R 2000:2000 ${1}
+            sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID} ${1}
             ls -lia ${1}
             echo
         }
 
         # 创建安装目录(纯属为了规范)
-        soft_path_restore_confirm_pcreate "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_WORK_DIR}" "_setup_dc_rely_$soft_title_cp_work"
+        soft_path_restore_confirm_pcreate "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_WORK_DIR}" "_setup_dc_rely_$soft_setup_name_cp_work"
         
         ### 工作（真实目录存在依赖包内）
         #### /opt/docker_apps/$repo_mark_name/v$down_ver/work/rely/$img_from_repo_$repo_main_img_mark_name/v$img_ver -> /opt/docker_apps/$repo_mark_name/v$down_ver/rely/$img_from_repo_$repo_main_img_mark_name/v$img_ver/work
@@ -120,7 +122,7 @@ function setup_dc_rely_$soft_title() {
 }
 
 # x4-1-2：规格化软件目录格式
-function formal_dc_rely_$soft_title() {
+function formal_dc_rely_$soft_setup_name() {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'formal dirs rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}>, hold on please"
@@ -186,7 +188,7 @@ function formal_dc_rely_$soft_title() {
         ## 目录调整完修改启动参数
         ## 修改启动参数
         echo "${TMP_SPLITER2}"
-        echo_style_text "Starting 'inspect change rely', hold on please"
+        echo_style_text "Starting 'inspect change rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}>, hold on please"
 
         # 挂载目录(标记需挂载的磁盘，必须停止服务才能修改，否则会无效)
         cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
@@ -203,7 +205,7 @@ function formal_dc_rely_$soft_title() {
 ##########################################################################################################
 
 # x4-1-3：设置软件
-function conf_dc_rely_$soft_title() {
+function conf_dc_rely_$soft_setup_name() {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'configuration rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}>, hold on please"
@@ -218,7 +220,7 @@ function conf_dc_rely_$soft_title() {
 # x2-4 / x4-1-4：启动后检测脚本
 # 参数1：最终启动名称
 # 参数2：最终启动端口
-function boot_check_dc_$soft_title() {
+function boot_check_dc_$soft_setup_name() {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_DIR}
 
     # 当前启动名称
@@ -231,7 +233,7 @@ function boot_check_dc_$soft_title() {
     ## 有可能未创建容器，有容器的情况下才打印
     echo_style_wrap_text "Starting 'boot check' <${1}>, hold on please"
     if [ -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" ]; then
-        function _boot_check_dc_$soft_title()
+        function _boot_check_dc_$soft_setup_name()
         {
             TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_PORT=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_PORT:-${2}}" | awk 'NR==1')
             if [ -n "${TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_PORT}" ]; then
@@ -253,14 +255,14 @@ function boot_check_dc_$soft_title() {
             fi
         }
 
-        docker_container_print "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" "_boot_check_dc_$soft_title"
+        docker_container_print "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" "_boot_check_dc_$soft_setup_name"
     fi
 }
 
 ##########################################################################################################
 
 # x4-1：执行步骤
-function exec_step_dc_rely_$soft_title() {
+function exec_step_dc_rely_$soft_setup_name() {
     # 始终回归compose目录
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
@@ -271,7 +273,7 @@ function exec_step_dc_rely_$soft_title() {
     local TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_NODE}" | yq ".container_name")
     
     # 检索绑定查询到的容器信息(特殊使用时才会用到)
-    function _exec_step_dc_rely_$soft_title()
+    function _exec_step_dc_rely_$soft_setup_name()
     {
         # 定义检索参数
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_ID=${1}
@@ -289,11 +291,21 @@ function exec_step_dc_rely_$soft_title() {
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ARGS=${6}
         ## 8065
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT=$(echo "${6}" | grep -oP "(?<=-p )\d+(?=:\d+)" | awk 'NR==1')
+
         ## /$soft_setup_name
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR=$(echo "${6}" | grep -oP "(?<=--workdir\=)[^\s]+")
         if [ -z "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" ]; then
             TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID})
         fi
+
+        # 默认取进入时的目录
+        if [ -z "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" ]; then
+            TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR=$(docker_bash_channel_exec "${2}" "pwd")
+        fi
+
+        # 获取授权用户的UID/GID
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
         
         ## v$img_ver
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_VER=$(echo "${4}" | grep -oP "(?<=v).+")
@@ -338,19 +350,19 @@ function exec_step_dc_rely_$soft_title() {
         ## 标准启动参数
         local TMP_DC_$soft_upper_short_name_SETUP_ATT_MOUNTS=""
         
-        setup_dc_rely_$soft_title
+        setup_dc_rely_$soft_setup_name
 
-        formal_dc_rely_$soft_title
+        formal_dc_rely_$soft_setup_name
 
-        conf_dc_rely_$soft_title
+        conf_dc_rely_$soft_setup_name
         
-        boot_check_dc_$soft_title "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}" "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT}"
+        boot_check_dc_$soft_setup_name "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}" "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT}"
     }
     
     # 从容器中提取启动数据
     echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_IMG_FULL_NAME}>]('${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}'/'${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}'), hold on please"
     
-    docker_container_param_check_action "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}" "_exec_step_dc_rely_$soft_title"
+    docker_container_param_check_action "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}" "_exec_step_dc_rely_$soft_setup_name"
     
     return $?
 }
@@ -358,10 +370,10 @@ function exec_step_dc_rely_$soft_title() {
 ##########################################################################################################
 
 # x3-2：规格化软件目录格式
-function formal_adjust_cps_dc_$soft_title() {
+function formal_adjust_cps_dc_$soft_setup_name() {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
-    echo_style_wrap_text "Starting 'formal adjust compose dirs', hold on please"
+    echo_style_wrap_text "Starting 'formal adjust' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compose] 'dirs', hold on please"
 
     # 指定Docker的安装路径部分变量
     ## /opt/docker/logs/$repo_mark_name/v$soft_ver（/mountdisk/logs/docker_apps/$repo_mark_name/v$soft_ver）
@@ -397,16 +409,16 @@ function formal_adjust_cps_dc_$soft_title() {
     ## Error: failed to load configuration: could not create config file: open /xxx: permission denied
     
     # 授权写入
-    sudo chown -R 2000:2000 ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name 
+    # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID} ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name ${TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/$soft_setup_name 
 
     return $?
 }
 
 # x3-3：配置.env/compose.yml
-function conf_adjust_cps_dc_$soft_title() {
+function conf_adjust_cps_dc_$soft_setup_name() {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
-    echo_style_wrap_text "Starting 'configuration adjust compose.yml & .env', hold on please"
+    echo_style_wrap_text "Starting 'configuration adjust' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> 'compose.yml & .env', hold on please"
 	# 修改配置文件
     # 1：修改.env
     local TMP_DC_CPS_$soft_upper_short_name_PSQ_IMG_TAG=$(cat .env | grep -oP "(?<=^POSTGRES_IMAGE_TAG=).+")
@@ -418,7 +430,7 @@ function conf_adjust_cps_dc_$soft_title() {
 
     ## 1.1：判断本地存在则使用本地默认值，通过输入值来判断是否使用自定义的postgres
     ### 1.1-Y：配置变量参数
-    function _conf_cps_dc_$soft_title_custom_postgresql() {
+    function _conf_cps_dc_$soft_setup_name_custom_postgresql() {
         cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
         # 重新赋值更改过后的变量
@@ -437,7 +449,7 @@ function conf_adjust_cps_dc_$soft_title() {
     }
 
     ### 流程化选择，安装绑定参数变量
-    confirm_postgresql_setup_step_action "${TMP_DC_CPS_$soft_upper_short_name_PSQ_HOST}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_PORT}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_LOGIN_NAME}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_LOGIN_PASSWORD}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_MAIN_DB}" "_conf_cps_dc_$soft_title_custom_postgresql"
+    confirm_postgresql_setup_step_action "${TMP_DC_CPS_$soft_upper_short_name_PSQ_HOST}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_PORT}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_LOGIN_NAME}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_LOGIN_PASSWORD}" "${TMP_DC_CPS_$soft_upper_short_name_PSQ_MAIN_DB}" "_conf_cps_dc_$soft_setup_name_custom_postgresql"
 
     ### 1.1-N：配置变量参数
     file_content_not_exists_echo "^POSTGRES_HOST=.*" .env "POSTGRES_HOST=${TMP_DC_CPS_$soft_upper_short_name_PSQ_HOST}"
@@ -481,7 +493,7 @@ function conf_adjust_cps_dc_$soft_title() {
 #    参数4：（忽略）启动参数，例 --volume /etc/localtime:/etc/localtime
 #    参数5：（忽略）快照类型(还原时有效)，例 image/container/dockerfile
 #    参数6：（忽略）快照来源，例 snapshot/clean/hub/commit，默认snapshot
-function exec_resolve_compose_dc_$soft_title_loop()
+function exec_resolve_compose_dc_$soft_setup_name_loop()
 {
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
@@ -500,23 +512,23 @@ function exec_resolve_compose_dc_$soft_title_loop()
 
     if [[ -a docker-compose.yml ]]; then
         # 3-2：调整整体目录
-        formal_adjust_cps_dc_$soft_title
+        formal_adjust_cps_dc_$soft_setup_name
 
         # x3-3：配置.env/compose.yml
         ## 有环境文件的场景，需先执行拷贝
         path_not_exists_action ".env" "cp env.example .env"
-        conf_adjust_cps_dc_$soft_title
+        conf_adjust_cps_dc_$soft_setup_name
 
         ## compose安装后操作
         ### 参数1：镜像名称，例 $compose_from_repo/$repo_main_img_mark_name
         ### 参数2：镜像版本，例 $img_ver
         ### 参数3：启动命令，例 /bin/sh
         ### 参数4：启动参数，例 --volume /etc/localtime:/etc/localtime
-        function _exec_resolve_compose_dc_$soft_title()
+        function _exec_resolve_compose_dc_$soft_setup_name()
         {
             # 4-1：安装后操作
             cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
-            # yaml_split_action "$(cat docker-compose.yml | yq '.services')" "exec_step_dc_rely_$soft_title"
+            # yaml_split_action "$(cat docker-compose.yml | yq '.services')" "exec_step_dc_rely_$soft_setup_name"
 
             # 当前yaml节点image名称
             local TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_IMAGE=${1//library\//}
@@ -541,14 +553,14 @@ function exec_resolve_compose_dc_$soft_title_loop()
             # fi
             
             # 执行操作
-            exec_step_dc_rely_$soft_title
+            exec_step_dc_rely_$soft_setup_name
         }
                 
         # 执行部署
-        function _exec_deploy_compose_dc_$soft_title()
+        function _exec_deploy_compose_dc_$soft_setup_name()
         {
             # 执行compose安装
-            echo_style_wrap_text "Starting 'execute' [compose] 'deploy', hold on please"
+            echo_style_wrap_text "Starting 'execute' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compose] 'deploy', hold on please"
             
 
             # 移除并合并多余的docker-compose-*.yml，后者覆盖前者
@@ -576,7 +588,7 @@ function exec_resolve_compose_dc_$soft_title_loop()
         local TMP_DC_CPL_$soft_upper_short_name_COMPOSE_YML=$(env_file_format_echo ".env" "docker-compose.yml")
         local TMP_DC_CPL_$soft_upper_short_name_MAIN_VER="$(echo "${TMP_DC_CPL_$soft_upper_short_name_COMPOSE_YML}" | yq '.services.$repo_main_svr_key.image' | cut -d':' -f2)"
 
-        soft_docker_compose_check_upgrade_action "${TMP_DC_$soft_upper_short_name_SETUP_REPO}*" "${TMP_DC_CPL_$soft_upper_short_name_MAIN_VER}" "_exec_deploy_compose_dc_$soft_title" "_exec_resolve_compose_dc_$soft_title"
+        soft_docker_compose_check_upgrade_action "${TMP_DC_$soft_upper_short_name_SETUP_REPO}*" "${TMP_DC_CPL_$soft_upper_short_name_MAIN_VER}" "_exec_deploy_compose_dc_$soft_setup_name" "_exec_resolve_compose_dc_$soft_setup_name"
         return $?
     fi
 }
@@ -584,28 +596,28 @@ function exec_resolve_compose_dc_$soft_title_loop()
 ##########################################################################################################
 
 # x2-2：迁移compose
-function formal_cpl_dc_$soft_title() {
-    echo_style_wrap_text "Starting 'formal compile' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}>, hold on please"
+function formal_cpl_dc_$soft_setup_name() {
+    echo_style_wrap_text "Starting 'formal' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compile], hold on please"
 
     # 开始标准化
     ## 还原 & 创建 & 迁移    
-    function _formal_cpl_dc_$soft_title_cp_source() {
+    function _formal_cpl_dc_$soft_setup_name_cp_source() {
         echo_style_text "Starting 'compile migrate'↓:"
         # 拷贝应用目录
         cp -r ${TMP_DC_CPL_$soft_upper_short_name_EXTRA_DIR} ${1}
 
-        mkdir -pv ${1}/{plugins,bleve-indexes,client/plugins}
+        # mkdir -pv ${1}/{plugins,bleve-indexes,client/plugins}
 
         echo_style_text "[View] the 'compile migrate'↓:"
         
         # 修改权限 & 查看列表
-        sudo chown -R 2000:2000 ${1}
+        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID} ${1}
         ls -lia ${1}
         echo
     }
 
     # 创建安装目录(纯属为了规范)
-    soft_path_restore_confirm_pcreate ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR} "_formal_cpl_dc_$soft_title_cp_source"
+    soft_path_restore_confirm_pcreate ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR} "_formal_cpl_dc_$soft_setup_name_cp_source"
     
     # 进入compose目录
     cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
@@ -624,7 +636,7 @@ function formal_cpl_dc_$soft_title() {
 }
 
 # x2-3：修改编译配置，参考harbor.sh
-function conf_cpl_dc_$soft_title() {
+function conf_cpl_dc_$soft_setup_name() {
     echo_style_wrap_text "Starting 'configuration' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compile] 'attrs', hold on please"
 
 	# 修改配置文件
@@ -641,7 +653,7 @@ function conf_cpl_dc_$soft_title() {
 # 参数2：软件安装路径
 # 参数3：软件解压路径
 # 参数4：软件版本（取决于是否存在release版本号）
-function deploy_compose_dc_$soft_title() {
+function deploy_compose_dc_$soft_setup_name() {
 	# 变量覆盖特性，其它方法均可读取
 	## 执行传入参数
 	local TMP_DC_CPL_$soft_upper_short_name_SETUP_NAME=${1}
@@ -653,7 +665,7 @@ function deploy_compose_dc_$soft_title() {
     ### 已被全局 DEPLOY_XXX_MARK 替代
         
     # 安装依赖
-    set_env_dc_$soft_title
+    set_env_dc_$soft_setup_name
     
     # 开始编译
     cd ${TMP_DC_CPL_$soft_upper_short_name_EXTRA_DIR}
@@ -685,23 +697,23 @@ function deploy_compose_dc_$soft_title() {
     local TMP_DC_CPL_$soft_upper_short_name_SETUP_LNK_CONF_DIR=${DOCKER_APP_CONF_DIR}/${TMP_DC_CPL_$soft_upper_short_name_SETUP_MARK_REPO}/${TMP_DC_CPL_$soft_upper_short_name_SETUP_VER}
 
     # x2-2：目录迁移
-    formal_cpl_dc_$soft_title
+    formal_cpl_dc_$soft_setup_name
 
     # x2-3：修改配置
-    conf_cpl_dc_$soft_title
+    conf_cpl_dc_$soft_setup_name
     
     # 检测安装，生成docker-compose.yml
     ## 1：有预编译，且存在预制容器
     # echo_style_wrap_text "Starting 'execute' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compile] & 'build' [compose] 'yaml', hold on please"
-    # soft_docker_compile_check_upgrade_action "$compose_from_repo/prepare" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_VER}" "bash prepare --with-clair --with-chartmuseum" "exec_resolve_compose_dc_$soft_title_loop"
-    # soft_docker_compile_check_upgrade_action "$compose_from_repo/prepare" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_VER}" "bash prepare --with-trivy" "exec_resolve_compose_dc_$soft_title_loop"
+    # soft_docker_compile_check_upgrade_action "$compose_from_repo/prepare" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_VER}" "bash prepare --with-clair --with-chartmuseum" "exec_resolve_compose_dc_$soft_setup_name_loop"
+    # soft_docker_compile_check_upgrade_action "$compose_from_repo/prepare" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_VER}" "bash prepare --with-trivy" "exec_resolve_compose_dc_$soft_setup_name_loop"
     
     ## 2：无预编译(默认使用主镜像版本做参考)
     echo_style_wrap_text "Starting 'conf' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [compose] 'yaml' & 'execute' [rely loop], hold on please"
-    exec_resolve_compose_dc_$soft_title_loop
+    exec_resolve_compose_dc_$soft_setup_name_loop
 
     # x2-4/x4-4 检测浏览
-    boot_check_dc_$soft_title "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "${TMP_DC_$soft_upper_short_name_SETUP_OPN_HTTP_PORT}"
+    boot_check_dc_$soft_setup_name "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "${TMP_DC_$soft_upper_short_name_SETUP_OPN_HTTP_PORT}"
     
     # 授权开机启动
     echo_style_wrap_text "Starting 'echo' <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> [supervisor] 'startup conf', hold on please"
@@ -716,7 +728,7 @@ function deploy_compose_dc_$soft_title() {
 
 # x1：下载/安装/更新软件
 # 参数1：软件安装仓库
-function download_package_dc_$soft_title() {
+function download_package_dc_$soft_setup_name() {
 	# 当前路径（仅记录）
 	local TMP_DC_$soft_upper_short_name_CURRENT_DIR=$(pwd)
     
@@ -724,13 +736,13 @@ function download_package_dc_$soft_title() {
 
     # 选择及下载安装版本
     ## 1：离线下载方式
-    # soft_setup_docker_git_wget "${1}" "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "https://github.com/${TMP_DC_$soft_upper_short_name_SETUP_REPO}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "${TMP_DC_$soft_upper_short_name_DOWN_VER}" "deploy_compose_dc_$soft_title"
+    # soft_setup_docker_git_wget "${1}" "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "https://github.com/${TMP_DC_$soft_upper_short_name_SETUP_REPO}/releases/download/v%s/harbor-offline-installer-v%s.tgz" "${TMP_DC_$soft_upper_short_name_DOWN_VER}" "deploy_compose_dc_$soft_setup_name"
     ## 2：Git下载方式
-    soft_setup_docker_git "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "https://github.com/${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "deploy_compose_dc_$soft_title" "echo_style_text 'Deploy package <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> already installed'"
+    soft_setup_docker_git "${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "https://github.com/${TMP_DC_$soft_upper_short_name_SETUP_REPO}" "deploy_compose_dc_$soft_setup_name" "echo_style_text 'Deploy package <${TMP_DC_$soft_upper_short_name_SETUP_REPO}> already installed'"
     return $?
 }
 
 ##########################################################################################################
 
 # 安装主体
-soft_setup_basic "${TMP_DC_$soft_upper_short_name_DISPLAY_TITLE}" "download_package_dc_$soft_title"
+soft_setup_basic "${TMP_DC_$soft_upper_short_name_DISPLAY_TITLE}" "download_package_dc_$soft_setup_name"
