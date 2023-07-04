@@ -6210,24 +6210,7 @@ function docker_change_container_volume_migrate()
 		return
 	fi
 
-	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${2}"
-	# (废弃，因为移除会导致冗余的空文件夹)自动调整挂载目录层级，只认最顶级。剔除额外挂载
-	## 1：按长短顺序排序，
-	## 2：当前记录前缀是上一条的子集的情况下，直接移除
-	# echo_style_text "'|'Starting 'filter keep base dir' in 'current container'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_ID:0:12}])"
-	# echo_style_text "[Before]:"
-	# echo "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" | sed 's@ @\n@g'
-	# function _docker_change_container_volume_migrate_keep_base()
-	# {
-    #     local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR=$(echo "${1}" | cut -d':' -f2)
-	# 	# 删除末尾字符
-	# 	trim_str "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR" "/"
-	# 	item_change_remove_bind "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "^\S+:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/\S+$"
-	# }
-	# items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base"
-	# echo_style_text "[After]:"
-	# echo "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" | sed 's@ @\n@g'
-	
+	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${2}"	
 	# 自动调整挂载目录层级，只认最顶级。子集修改为软连接(主要避免重复挂载的情况以及在本机修改时，因为多重文件存在导致修改误判)
 	## 以coder-server案例为例，配置文件与日志均在workdir目录中，故挂载时可能被重复路径引用。此处保障以下三处路径一致：
 	### /opt/docker_apps/codercom_code-server/4.14.1/conf/app/
