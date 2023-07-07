@@ -148,8 +148,13 @@ function mkdirs()
     path_not_exists_create "${CURL_DIR}"
     # path_not_exists_create "${DOCKER_APP_SETUP_DIR}"
     path_not_exists_create "${WWW_DIR}"
+    path_not_exists_create "${WWW_BOOTS_DIR}"
+    path_not_exists_create "${WWW_INIT_DIR}"
+    path_not_exists_create "${WWW_LANG_DIR}"
     path_not_exists_create "${APP_DIR}"
-    path_not_exists_create "${BOOT_DIR}"
+    path_not_exists_create "${APP_BOOTS_DIR}"
+    path_not_exists_create "${APP_INIT_DIR}"
+    path_not_exists_create "${APP_LANG_DIR}"
     
     path_not_exists_create "${DATA_DIR}"
     path_not_exists_action "${LOGS_DIR}" "link_logs"
@@ -286,7 +291,7 @@ function share_dir_client()
     local _TMP_SHARE_DIR_CLT_SVR_DIR="${PRJ_DIR}"
     bind_if_input "_TMP_SHARE_DIR_CLT_SVR_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to mount from '${_TMP_SHARE_DIR_CLT_SVR_HOST}'"
 
-    local _TMP_SHARE_DIR_CLT_LCL_DIR="${HTML_DIR}"
+    local _TMP_SHARE_DIR_CLT_LCL_DIR="${WWW_LANG_HTML_DIR}"
     bind_if_input "_TMP_SHARE_DIR_CLT_LCL_DIR" "${FUNCNAME[0]} Please ender 'the dir' which u want to display on local from '${_TMP_SHARE_DIR_CLT_SVR_HOST}(${_TMP_SHARE_DIR_CLT_SVR_DIR})'"
 
     # mount -t nfs ${_TMP_SHARE_DIR_CLT_SVR_HOST}:${_TMP_SHARE_DIR_CLT_SVR_DIR} ${_TMP_SHARE_DIR_CLT_LCL_DIR}

@@ -383,9 +383,9 @@ function cp_nginx_starter()
 	local _TMP_CP_NGX_STT_RUNNING_DIR=${2}
 	local _TMP_CP_NGX_STT_RUNNING_PORT=${3}
 
-	local _TMP_CP_NGX_STT_CONTAINER_DIR=${NGINX_DIR}/${1}_${3}
+	local _TMP_CP_NGX_STT_CONTAINER_DIR=${WWW_BOOT_NGX_DIR}/${1}_${3}
 
-	mkdir -pv ${NGINX_DIR}
+	mkdir -pv ${WWW_BOOT_NGX_DIR}
 
 	echo "Copy '${__DIR}/templates/nginx/server' To '${_TMP_CP_NGX_STT_CONTAINER_DIR}'"
 	cp -r ${__DIR}/templates/nginx/server ${_TMP_CP_NGX_STT_CONTAINER_DIR}
@@ -422,9 +422,9 @@ function gen_nginx_starter()
     bind_if_input "_TMP_GEN_NGX_STT_BOOT_NAME" "NGX_CONF: Please ender application name"
 	set_if_empty "_TMP_GEN_NGX_STT_BOOT_NAME" "prj_${_TMP_GEN_NGX_STT_DATE}"
     
-    local _TMP_GEN_NGX_STT_NGX_BOOT_PATH="${NGINX_DIR}/${_TMP_GEN_NGX_STT_BOOT_NAME}"
+    local _TMP_GEN_NGX_STT_NGX_BOOT_PATH="${WWW_BOOT_NGX_DIR}/${_TMP_GEN_NGX_STT_BOOT_NAME}"
     bind_if_input "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "NGX_CONF: Please ender application path"
-	set_if_empty "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "${NGINX_DIR}"
+	set_if_empty "_TMP_GEN_NGX_STT_NGX_BOOT_PATH" "${WWW_BOOT_NGX_DIR}"
     
     bind_if_input "_TMP_GEN_NGX_STT_BOOT_PORT" "Please ender application port Like '8080'"
 	set_if_empty "_TMP_GEN_NGX_STT_BOOT_PORT" "${_TMP_GEN_NGX_STT_NGX_CONF_PORT}"
@@ -6231,7 +6231,7 @@ function docker_change_container_volume_migrate()
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR=$(echo "${1}" | cut -d':' -f2)
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR/\/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}\//}
 			
-			echo_style_text "'*'[Checked] 'mount dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in base dir([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}' as base"
+			echo_style_text "'!'[Checked] 'mount dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in base dir([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}' as base"
 			rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}
 
 			# /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config
@@ -8254,7 +8254,7 @@ function docker_image_boot_print()
 
 		if [ -a "${_TMP_DOCKER_IMG_BOOT_PRINT_NONE_PATH}.init.depend.sh" ]; then
 			# 启动等待一次
-			docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
+			docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}]) to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
 
 			echo "${TMP_SPLITER2}"
 			echo_style_text "[View] the 'update dependency exec'↓:"
@@ -8292,7 +8292,7 @@ function docker_image_boot_print()
         _TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT=$(docker port ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} | cut -d':' -f2 | awk 'NR==1')
     fi
 
-	docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}])' to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
+	docker_container_boot_wait "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}" "Booting the image <${1}:[${_TMP_DOCKER_IMG_BOOT_PRINT_VER}]>([${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}]) to port '${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_OPN_PORT}', wait for a moment"
 	
 	# 启动状态异常则不往下走
 	# "State": {
