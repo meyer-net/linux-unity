@@ -232,6 +232,7 @@ function formal_dc_codercom_code-server() {
         git clone https://github.com/Kong/kong ${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}/kong
         git clone https://github.com/matomo-org/matomo ${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}/matomo
         git clone https://github.com/tiangolo/fastapi ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi
+        git clone https://github.com/microsoft/playwright-python ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/playwright
         git clone https://github.com/apache/beam ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/beam
         git clone https://github.com/jeecgboot/jeecg-boot ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/jeecg-boot
         git clone https://github.com/ohmyzsh/ohmyzsh ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/ohmyzsh
