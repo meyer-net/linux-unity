@@ -22,6 +22,8 @@ readonly __DIR __FILE __CONF
 # 初始基本参数启动目录
 function func_test() {
     kill_deleted
+
+    source scripts/softs/docker/harbor.sh
 }
 
 ##########################################################################################################

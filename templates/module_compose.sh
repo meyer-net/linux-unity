@@ -18,7 +18,7 @@
 #------------------------------------------------
 # Debug：
 # docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
-# docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker rm
+# docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # docker images | awk '{if($1~"$img_from_repo/"){print $3}}' | xargs docker rmi && docker images | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /opt/docker/data/apps/$compose_from_repo* && rm -rf /opt/docker/conf/$compose_from_repo* && rm -rf /opt/docker/logs/$compose_from_repo* && rm -rf /mountdisk/repo/migrate/clean/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/$compose_from_repo.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$compose_from_repo*
@@ -96,7 +96,7 @@ function setup_dc_rely_$soft_setup_name() {
             docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR} ${1} >& /dev/null
 
             # 删除重复目录
-            docker container inspect ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
+            # docker container inspect ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
             
             # 修改权限 & 查看列表
             sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID} ${1}
@@ -194,7 +194,6 @@ function formal_dc_rely_$soft_setup_name() {
         cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_COMPOSE_DIR}
 
         ## docker_container_hostconfig_binds_echo 覆盖不到全部，有特殊复制直接在流程中拷贝出来并指定映射关系。
-        trim_str "TMP_DC_$soft_upper_short_name_SETUP_ATT_MOUNTS"
         docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" "${TMP_DC_$soft_upper_short_name_SETUP_ATT_MOUNTS} $(docker_container_hostconfig_binds_echo "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}")"
         # docker_change_container_volume_migrate "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" "$(docker_container_hostconfig_binds_echo "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}")" "" $([[ -z "${TMP_DC_$soft_upper_short_name_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
@@ -304,6 +303,7 @@ function exec_step_dc_rely_$soft_setup_name() {
         fi
 
         # 获取授权用户的UID/GID
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER=$(docker_bash_channel_exec "${2}" "whoami")
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
         
@@ -611,7 +611,6 @@ function formal_cpl_dc_$soft_setup_name() {
         echo_style_text "[View] the 'compile migrate'↓:"
         
         # 修改权限 & 查看列表
-        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID} ${1}
         ls -lia ${1}
         echo
     }

@@ -18,7 +18,7 @@
 #------------------------------------------------
 # Debug：
 # docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
-# docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker rm
+# docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # docker images | awk '{if($1~"mattermost/"){print $3}}' | xargs docker rmi && docker images | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/mattermost* && rm -rf /mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/data/docker_apps/mattermost* && rm -rf /opt/docker/data/apps/mattermost* && rm -rf /opt/docker/conf/mattermost* && rm -rf /opt/docker/logs/mattermost* && rm -rf /mountdisk/repo/migrate/clean/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/mattermost.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/conf/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/logs/mattermost*
@@ -69,8 +69,8 @@ function setup_dc_rely_mattermost() {
     ## /opt/docker_apps/mattermost_docker/v2.4/work/rely/mattermost_mattermost-enterprise-edition/v7.1
     local TMP_DC_MTTM_SETUP_WORK_RELY_SERVICE_DIR=${TMP_DC_CPL_MTTM_SETUP_WORK_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}
 
-    # 有容器，且有workdir的情况
-    if [[ -n "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" ]]; then
+    # 有容器，且有workdir的情况，且workdir不是根目录的情况
+    if [[ -n "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" && "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" != "/" ]]; then
         # 工作
         ## /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work
         function _setup_dc_rely_mattermost_cp_work() {
@@ -79,9 +79,6 @@ function setup_dc_rely_mattermost() {
 
             # 拷贝应用目录
             docker cp -a ${TMP_DC_MTTM_SETUP_RELY_CTN_ID}:${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR} ${1} >& /dev/null
-
-            # 删除重复目录
-            docker container inspect ${TMP_DC_MTTM_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
             
             # 修改权限 & 查看列表
             sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${1}
@@ -179,7 +176,6 @@ function formal_dc_rely_mattermost() {
         cd ${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}
 
         ## docker_container_hostconfig_binds_echo 覆盖不到全部，有特殊复制直接在流程中拷贝出来并指定映射关系。
-        trim_str "TMP_DC_MTTM_SETUP_ATT_MOUNTS"
         docker_change_container_volume_migrate "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" "${TMP_DC_MTTM_SETUP_ATT_MOUNTS} $(docker_container_hostconfig_binds_echo "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}")"
         # docker_change_container_volume_migrate "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" "$(docker_container_hostconfig_binds_echo "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}")" "" $([[ -z "${TMP_DC_MTTM_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
@@ -289,6 +285,10 @@ function exec_step_dc_rely_mattermost() {
         fi
 
         # 获取授权用户的UID/GID
+        local TMP_DC_MTTM_SETUP_RELY_IMG_USER=$(docker_bash_channel_exec "${2}" "whoami")
+        if [ "${TMP_DC_MTTM_SETUP_RELY_IMG_NAME}" == "library/postgres" ]; then
+            TMP_DC_MTTM_SETUP_RELY_IMG_USER="postgres"
+        fi
         local TMP_DC_MTTM_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
         local TMP_DC_MTTM_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
         
@@ -393,12 +393,12 @@ function formal_adjust_cps_dc_mattermost() {
     ## !!! 特殊需求，预先创建对应需要的目录。否则会出现错误：
     ## Error: failed to load configuration: could not create config file: open /mattermost/config/config.json: permission denied
     ## /mountdisk/conf/docker_apps/mattermost_docker/v2.4/compose/mattermost:/mattermost/config:/mattermost/config
-    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
-    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
-    # path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
+    path_not_exists_create "${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost"
 
-    # 授权写入
-    # sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost 
+    # 授权匿名写入
+    sudo chown -R 2000:2000 ${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR} ${TMP_DC_CPL_MTTM_SETUP_LNK_LOGS_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost ${TMP_DC_CPL_MTTM_SETUP_LNK_CONF_DIR}/${DEPLOY_COMPOSE_MARK}/mattermost 
 
     return $?
 }
@@ -606,7 +606,6 @@ function formal_cpl_dc_mattermost() {
         echo_style_text "[View] the 'compile migrate'↓:"
         
         # 修改权限 & 查看列表
-        sudo chown -R ${TMP_DC_MTTM_SETUP_RELY_CTN_UID}:${TMP_DC_MTTM_SETUP_RELY_CTN_GID} ${1}
         ls -lia ${1}
         echo
     }

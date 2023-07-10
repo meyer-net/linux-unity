@@ -70,9 +70,6 @@ function setup_dc_rely_harbor() {
 
             # 拷贝应用目录
             docker cp -a ${TMP_DC_HB_SETUP_RELY_CTN_ID}:${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR} ${1} >& /dev/null
-                
-            # 删除重复目录
-            docker container inspect ${TMP_DC_HB_SETUP_RELY_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
         
             # 修改权限 & 查看列表
             # sudo chown -R 2000:2000 ${1}
@@ -376,7 +373,18 @@ function conf_adjust_cps_dc_harbor() {
     ## !!!由于原始脚本限定在install.sh中执行了prepare，所以此处在预编译完成后且安装前将其禁用
     sed -i "s@^./prepare@#./prepare@g" install.sh
 
-    # 2：修改docker-compose.yml（担心network在本机环境下产生冲突，此处不传递）
+    # 2：修改docker-compose.yml(新增初始目录挂载支援)
+    function _conf_adjust_cps_dc_harbor_support_empty_certs()
+    {
+        # 必须创建一个目录，否则会出现错误 ls: /harbor_cust_cert: No such file or directory
+        if [[ "${3}" == "chartmuseum" || "${3}" == "clair" || "${3}" == "registryctl" || "${3}" == "registry" ]]; then
+            mkdir -pv common/harbor_cust_cert
+            yq -i ".services.${3}.volumes = .services.${3}.volumes + [\"./common/harbor_cust_cert:/harbor_cust_cert:rw,z\"]" docker-compose.yml
+        fi
+    }
+    yaml_split_action "$(cat docker-compose.yml | yq '.services')" "_conf_adjust_cps_dc_harbor_support_empty_certs"
+
+    # 3：修改docker-compose.yml（担心network在本机环境下产生冲突，此处不传递）
     docker_compose_yml_formal_exec "${TMP_DC_CPL_HB_SETUP_NAME%%/*}"
 
     return $?
@@ -431,7 +439,7 @@ function exec_resolve_compose_dc_harbor_loop()
             # 在yaml中找不到配置的情况，直接放弃
             if [ -z "${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}" ]; then
                 echo "${TMP_SPLITER2}"
-                echo_style_text "<Error>: Cannot found 'key' from 'image'(<${TMP_DC_HB_SETUP_RELY_SERVICE_IMAGE}:${2}>) in compose.yml, execute step return"
+                echo_style_text "'Warning': Cannot found 'key' from 'image'(<${TMP_DC_HB_SETUP_RELY_SERVICE_IMAGE}:${2}>) in compose.yml, execute step return"
                 return
             fi
             

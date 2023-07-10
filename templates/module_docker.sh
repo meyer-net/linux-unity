@@ -13,7 +13,7 @@
 #------------------------------------------------
 # Debug：
 # docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker stop
-# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker rm
+# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # docker images | awk '{if($1~"$image_from"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/conf/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$setup_name*

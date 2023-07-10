@@ -168,6 +168,7 @@ function formal_dc_codercom_code-server() {
         local TMP_DC_CS_SETUP_PRJ_APP_GO_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/go
         local TMP_DC_CS_SETUP_PRJ_APP_SH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/shell
         local TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/lua
+        local TMP_DC_CS_SETUP_PRJ_APP_JV_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/java
         ################################################################################################
         # 应用网站自启动服务器目录
         path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_NGX_DIR}"
@@ -207,6 +208,7 @@ function formal_dc_codercom_code-server() {
         path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}"
         path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR}"
         path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}"
+        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_JV_DIR}"
         ################################################################################################
         # 目录格式化
         # /mountdisk/svr_sync/projects/www/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/www
@@ -235,10 +237,12 @@ function formal_dc_codercom_code-server() {
         git clone https://github.com/microsoft/playwright-python ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/playwright
         git clone https://github.com/apache/beam ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/beam
         git clone https://github.com/jeecgboot/jeecg-boot ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/jeecg-boot
+
         git clone https://github.com/ohmyzsh/ohmyzsh ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/ohmyzsh
         git clone https://github.com/binpash/try ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/try
         git clone https://github.com/gohugoio/hugo ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/hugo
         git clone https://github.com/beego/beego ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/beego
+        git clone https://github.com/microsoft/playwright-java ${TMP_DC_CS_SETUP_PRJ_APP_JV_DIR}/playwright
         ################################################################################################
         
         # 授权

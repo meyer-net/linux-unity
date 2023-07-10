@@ -3508,8 +3508,13 @@ function docker_bash_channel_exec()
 	local _TMP_DOCKER_BASH_CHANNEL_EXEC_RUNLIKE=$(su_bash_env_conda_channel_exec "runlike ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID}" | grep -oP '(?<=--volume=)[^ ]+(?=\s)' | cut -d':' -f1 | egrep "^/var/run/docker.sock$")
 	
 	if [ -z "${_TMP_DOCKER_BASH_CHANNEL_EXEC_RUNLIKE}" ]; then
+		local _TMP_DOCKER_BASH_CHANNEL_EXEC_USER_ARGS=
 		# 尝试进入
-		docker exec -u ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER} -i${3} ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID} sh -c "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}"
+		if [ "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}" != "whoami" ]; then
+			_TMP_DOCKER_BASH_CHANNEL_EXEC_USER_ARGS="-u ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER}"
+		fi
+
+		docker exec ${_TMP_DOCKER_BASH_CHANNEL_EXEC_USER_ARGS} -i${3} ${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID} sh -c "${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}"
 		return $?
 	else
 		echo_style_text "'|👉' Docker channel script(<${_TMP_DOCKER_BASH_CHANNEL_EXEC_SCRIPTS}>) exec stop, 'container'([${_TMP_DOCKER_BASH_CHANNEL_EXEC_CTN_ID:0:12}]) was connected to 'docker.sock'"
@@ -5827,6 +5832,7 @@ function docker_container_mounts_echo()
 # 参数1：容器ID变量值或名，用于检测
 # 参数2：查询到卷后执行脚本
 # 参数3：原始行
+#       参数1：原始行
 #       参数2：本地路径，例 /mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose
 #       参数3：镜像路径，例 /var/log/docker
 #       参数4：读写模式，例 rw,z
@@ -5862,12 +5868,14 @@ function docker_container_hostconfig_binds_action()
 #     docker_container_hostconfig_binds_echo "ctnid1111111"
 function docker_container_hostconfig_binds_echo() 
 {
-	# function _docker_container_hostconfig_binds_echo()
-	# {
-	# 	echo "${1}"
-	# }
+	function _docker_container_hostconfig_binds_echo()
+	{
+		if [ -n "${1}" ]; then
+			echo "${1}"
+		fi
+	}
 
-	docker_container_hostconfig_binds_action "${1}" "echo '%s'"
+	docker_container_hostconfig_binds_action "${1}" "_docker_container_hostconfig_binds_echo"
     return $?
 }
 
@@ -6023,7 +6031,7 @@ function docker_change_container_inspect_wrap()
 	# 挂载可能产生等待
 	local _TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT=$(su_bash_env_conda_channel_exec "runlike ${1}" | grep -oP "(?<=-p )\d+(?=:\d+)" | awk 'NR==1')
 	if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" ]; then
-		exec_sleep_until_not_empty "Starting wait reboot over conf change" "lsof -i:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" 180 3
+		exec_sleep_until_not_empty "Starting wait [reboot] over 'inspect conf change'" "lsof -i:${_TMP_DOCKER_CHANGE_CONTAINER_INSPECT_WRAP_PORT}" 180 3
 	fi
 
     return $?
@@ -6211,6 +6219,7 @@ function docker_change_container_volume_migrate()
 	fi
 
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${2}"	
+	trim_str "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS"
 	# 自动调整挂载目录层级，只认最顶级。子集修改为软连接(主要避免重复挂载的情况以及在本机修改时，因为多重文件存在导致修改误判)
 	## 以coder-server案例为例，配置文件与日志均在workdir目录中，故挂载时可能被重复路径引用。此处保障以下三处路径一致：
 	### /opt/docker_apps/codercom_code-server/4.14.1/conf/app/
@@ -6221,31 +6230,63 @@ function docker_change_container_volume_migrate()
 	echo "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" | sed 's@ @\n@g'
 	function _docker_change_container_volume_migrate_keep_base()
 	{
+		# /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work:/mattermost:rw,z
+		## /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR=$(echo "${1}" | cut -d':' -f1)
+		## /mattermost
         local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR=$(echo "${1}" | cut -d':' -f2)
 		# 删除末尾字符
 		trim_str "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR" "/"
 		function _docker_change_container_volume_migrate_keep_base_convert_link()
 		{
+			# /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost:/mattermost/data:rw
+			## /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR=$(echo "${1}" | cut -d':' -f1)
+			## /mattermost/data
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR=$(echo "${1}" | cut -d':' -f2)
+			## /data
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR/\/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}\//}
 			
-			echo_style_text "'!'[Checked] 'mount dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in base dir([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}' as base"
-			rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}
+			## 获取文件夹所有者
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS=$(ls -l $(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}) | awk "{if(\$9==\"${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR##*/}\"){print \$3\":\"\$4}}")
 
-			# /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config
-			path_not_exists_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}"
+			# 1：将根目录作为主链接 !!! 此处只能如此，采用2的话，软链接在容器内会将内容拷贝至容器再操作
+			echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}' as 'real'"
+			## 完成如下两种链接，因可能为备份的盘，此处做swap处理
+			### /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config
+			### /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost -> /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work/data
+			path_swap_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
+			
+			## 2：将挂载目录作为主链接
+			# echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}' as 'real'"
+			# rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}
+
+			# ## 完成如下两种链接
+			# ### /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config -> /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app
+			# ### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work/data -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
+			# path_not_exists_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
+			
+			## 同步授权
+			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS}" ]; then
+				chown -R ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS} ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}
+				chown -R ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS} ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}
+			fi
 
 			# 重新赋值变量
 			_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS="${3}"
 		}
 
-		# item_change_match_action "^\S+:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/\S+$" "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base_convert_link"
+		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_TMP="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}"
 		item_change_remove_action "^\S+:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/\S+$" "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base_convert_link"
+		if [ "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" != "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_TMP}" ]; then
+			echo_style_text "'!'[After combine](</${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/>)↓:"
+			ls -lia ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}
+		fi
 	}
+	
 	items_split_action "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base"
-	echo_style_text "[After]:"
+	echo_style_text "[Final]:"
 	echo "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" | sed 's@ @\n@g'
 		
 	local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_HIS_VOLUME_NAME_ARR=()
@@ -7413,6 +7454,7 @@ EOF
 		# 运行时才能拷贝并提取依赖文件
 		if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
 			# 拷贝依赖提取脚本至容器
+			## !!! Error response from daemon: container rootfs is marked read-only
 			docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:/tmp
 			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
 			rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
@@ -8115,6 +8157,11 @@ function docker_container_print()
             echo_style_text "[View] the 'container update'↓:"
             # docker exec -u root -w /tmp -it ${_TMP_DOCKER_CTN_PRINT_CTN_ID} sh -c "apt-get update"
 			local _TMP_DOCKER_CTN_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cat /etc/issue" "t")
+			# 控制读写
+			##1 ERROR: Unable to lock database: Read-only file system
+			##1 ERROR: Failed to open apk database: Read-only file system
+			##2 Error response from daemon: container rootfs is marked read-only
+			docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "mount -o remount rw /"
 			if [[ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
 				docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apt-get update" "t"
 			else

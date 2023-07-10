@@ -298,6 +298,11 @@ function test_docker()
 
     echo_style_wrap_text "Starting 'restore' <docker> snapshot, hold on please"
     
+    ## 1：检测启停
+    systemctl stop docker.service
+    systemctl start docker.service
+    
+    ## 2：还原已有的docker快照
     # 普通快照目录    
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
     local TMP_DOCKER_SETUP_SNAP_IMG_NAMES=""
@@ -311,8 +316,7 @@ function test_docker()
     if [ -a "${TMP_DOCKER_SETUP_CLEAN_DIR}" ]; then
         TMP_DOCKER_SETUP_CLEAN_IMG_NAMES=$(ls ${TMP_DOCKER_SETUP_CLEAN_DIR})
     fi
-    
-    # 还原已有的docker快照
+
     ## 输出容器列表（browserless_chrome）
     local TMP_DOCKER_SETUP_IMG_NAMES=$(echo "${TMP_DOCKER_SETUP_SNAP_IMG_NAMES} ${TMP_DOCKER_SETUP_CLEAN_IMG_NAMES}" | sed 's@ @\n@g' | awk '$1=$1' | sort -rV | uniq)
 
