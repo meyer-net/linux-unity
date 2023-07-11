@@ -3762,7 +3762,7 @@ function kill_deleted()
 	## 1：找到overlay2种占用最多的文件
 	### find /mountdisk -type f -size +100M -print0 | xargs -0 du -m | sort -nr 
 	## 2：找到对应的文件解除挂载
-	### umount /mountdisk/data/docker/overlay2/{}/merged && rm -rf /mountdisk/data/docker/overlay2/{}/merged
+	### umount /mountdisk/data/docker/overlay2/{}/merged && rm -rf /mountdisk/data/docker/overlay2/{}
 	# docker部分资源占用参考：https://blog.csdn.net/Entity_G/article/details/112801239
 
 	return $?
@@ -7257,7 +7257,6 @@ function docker_snap_commit()
 				fi
 				
 				# 重新计算提交信息
-				
 				echo_style_text "[View] the 'container snap tags' <${3}>([${4}])↓:"
 				local _TMP_DOCKER_SNAP_COMMIT_SNAP_TAGS=$(curl -s -H "Content-Type: application/json" "${_TMP_DOCKER_SNAP_COMMIT_INSECURE_REGISTRY}/api/repositories/${_TMP_DOCKER_SNAP_COMMIT_IMG_NAME}/tags")
 				echo "${_TMP_DOCKER_SNAP_COMMIT_SNAP_TAGS}"
@@ -7406,7 +7405,8 @@ function docker_snap_create_action()
 		echo_style_text "Starting gen 'update container & install dependency' script"
 		## 管道运行出现的错误太多，故改为脚本形式操作（EOF带双引号时可以不进行转义）
 		# tee ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh <<EOF
-		cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh << 'EOF'
+		# cat > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh << 'EOF'
+		local _TMP_DOCKER_SNAP_CREATE_INIT_EXTRACT_SCRIPT=$(cat <<'EOF'
 #!/bin/sh
 
 func_backup_current_image_init_script()
@@ -7446,7 +7446,7 @@ func_backup_current_image_init_script()
 
 func_backup_current_image_init_script
 EOF
-
+)
 		# 更新并安装容器依赖（应用到bc命令时需要，参考上述脚本。注意安装bc操作可能会覆盖了初始化段落）
 		# docker exec -u root -it ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "apt-get update && apt-get -y -qq install bc"
 
@@ -7455,15 +7455,24 @@ EOF
 		if [ "${_TMP_DOCKER_SNAP_CREATE_BOOT_STATUS}" == "running" ]; then
 			# 拷贝依赖提取脚本至容器
 			## !!! Error response from daemon: container rootfs is marked read-only
-			docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:/tmp
-			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
-			rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+			# docker cp ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh ${_TMP_DOCKER_SNAP_CREATE_CTN_ID}:/tmp
+			# ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+			# rm -rf ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.extract.sh
+
+			docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "cat << 'EOF' | tee -a /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh
+${_TMP_DOCKER_SNAP_CREATE_INIT_EXTRACT_SCRIPT}
+EOF" "d" "root"
+			echo_style_text "'|'[Container exec]↓:"
+			docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "ls -lia /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root"
 			
 			# 执行提取脚本，获得原始提取操作命令，并清理二进制报错
 			echo "#!/bin/sh" > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 			# docker exec -u root -i ${_TMP_DOCKER_SNAP_CREATE_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
-			docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+			docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "(test -f /bin/bash && bash /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh || sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh) && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
+			# docker_bash_channel_exec "${_TMP_DOCKER_SNAP_CREATE_CTN_ID}" "sh /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh && rm -rf /tmp/${_TMP_DOCKER_SNAP_CREATE_SNAP_VER}.init.extract.sh" "" "root" >> ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp
 			grep -v "^tail: cannot open" ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh.tmp > ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
+			
+			echo_style_text "'|'[Local output]↓:"
 			ls -lia ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
 			echo "[-]"
 			cat ${_TMP_DOCKER_SNAP_CREATE_FILE_NONE_PATH}.init.depend.sh
@@ -7519,6 +7528,7 @@ EOF
 					fi
 				fi
 			}
+
 			items_split_action "_TMP_DOCKER_SNAP_CREATE_VOLUMES" "_docker_snap_create_action_volume_path_restore"
 		fi
 		
@@ -8161,14 +8171,15 @@ function docker_container_print()
 			##1 ERROR: Unable to lock database: Read-only file system
 			##1 ERROR: Failed to open apk database: Read-only file system
 			##2 Error response from daemon: container rootfs is marked read-only
-			docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "mount -o remount rw /"
+			## 临时重新挂载
+			docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "mount -o remount,rw -o /" "d" "root"
 			if [[ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
 				docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apt-get update" "t"
 			else
 				if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
-					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
-					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "tdnf -y update" "t"
-					echo_style_text "'Photon' system, do nothing"
+					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "tdnf -y update" "t"
+					# echo_style_text "'Photon' system, do nothing"
 				elif [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
 					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apk update" "t"
 				else
@@ -8308,14 +8319,16 @@ function docker_image_boot_print()
 			docker cp ${_TMP_DOCKER_IMG_BOOT_PRINT_NONE_PATH}.init.depend.sh ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}:/tmp
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "apt-get update"
 			# docker exec -u root -it ${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID} sh -c "sh /tmp/${_TMP_DOCKER_IMG_BOOT_PRINT_VER_SRC}.init.depend.sh"
+			## 临时重新挂载
+			docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "mount -o remount,rw -o /" "d" "root"
 			local _TMP_DOCKER_IMG_BOOT_PRINT_ISSUE=$(docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "cat /etc/issue" "t")
 			if [[ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Ubuntu/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" || "${_TMP_DOCKER_CTN_PRINT_ISSUE//Debian/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]]; then
 				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update && apt-get -y install procps vim" "t"
 			else
 				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
-					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
-					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
-					echo_style_text "'Photon' system, do nothing"
+					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
+					# echo_style_text "'Photon' system, do nothing"
 				elif [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
 					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apk update" "t"
 				else

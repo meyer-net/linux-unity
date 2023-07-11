@@ -15,13 +15,13 @@
 # source scripts/softs/docker/harbor.sh
 #------------------------------------------------
 # Debug：
-# docker ps -a -f name="goharbor" | awk 'NR>1{print $1}' | xargs docker stop
-# docker ps -a -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
-# docker images | awk '{if($1~"goharbor/"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/goharbor* && rm -rf /mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/data/docker_apps/goharbor* && rm -rf /opt/docker/data/apps/goharbor* && rm -rf /opt/docker/conf/goharbor* && rm -rf /opt/docker/logs/goharbor* && rm -rf /mountdisk/repo/migrate/clean/goharbor_harbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor_harbor && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/goharbor_harbor.conf && rm -rf /home/docker/.harbor
+# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs docker stop
+# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# di | awk '{if($1~"goharbor/"){print $3}}' | xargs docker rmi
+# rm -rf /opt/docker_apps/goharbor* && rm -rf /mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/data/docker_apps/goharbor* && rm -rf /opt/docker/data/apps/goharbor* && rm -rf /opt/docker/conf/goharbor* && rm -rf /opt/docker/logs/goharbor* && rm -rf /mountdisk/repo/migrate/clean/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/goharbor*.conf && rm -rf /home/docker/.harbor
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/conf/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/logs/goharbor*
-# docker volume ls | awk '{print $2}' | xargs docker volume rm
-# docker volume ls | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs dvr
+# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 安装标题：$title_name
 # 软件名称：goharbor/harbor
@@ -60,8 +60,8 @@ function setup_dc_rely_harbor() {
 	## /opt/docker_apps/goharbor_harbor/v1.10.0/work/rely/goharbor_registry-photon/v1.10.17
 	local TMP_DC_HB_SETUP_WORK_RELY_SERVICE_DIR=${TMP_DC_CPL_HB_SETUP_WORK_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_HB_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_HB_SETUP_RELY_IMG_VER}
 
-    # 有容器，且有workdir的情况
-    if [[ -n "${TMP_DC_HB_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR}" ]]; then
+    # 有容器，且有workdir的情况，且workdir不是根目录的情况
+    if [[ -n "${TMP_DC_HB_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR}" && "${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR}" != "/"  ]]; then
         # 工作
         ## /opt/docker_apps/goharbor_harbor/v1.10.0/rely/goharbor_registry-photon/v1.10.17/work
         function _setup_dc_rely_harbor_cp_work() {
@@ -72,7 +72,7 @@ function setup_dc_rely_harbor() {
             docker cp -a ${TMP_DC_HB_SETUP_RELY_CTN_ID}:${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR} ${1} >& /dev/null
         
             # 修改权限 & 查看列表
-            # sudo chown -R 2000:2000 ${1}
+            sudo chown -R ${TMP_DC_HB_SETUP_RELY_CTN_UID}:${TMP_DC_HB_SETUP_RELY_CTN_GID} ${1}
             ls -lia ${1}
             echo
         }
@@ -264,6 +264,20 @@ function exec_step_dc_rely_harbor() {
             TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${TMP_DC_HB_SETUP_RELY_CTN_ID})
         fi
 
+        # 默认取进入时的目录
+        if [ -z "${TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR}" ]; then
+            TMP_DC_HB_SETUP_RELY_CTN_WORK_DIR=$(docker_bash_channel_exec "${2}" "pwd")
+        fi
+
+        # 获取授权用户的UID/GID
+        local TMP_DC_HB_SETUP_RELY_CTN_USER="$(echo "${6}" | grep -oP "(?<=--user\=)[^\s]+")"
+        if [ -z "${TMP_DC_HB_SETUP_RELY_CTN_USER}" ]; then
+            TMP_DC_HB_SETUP_RELY_CTN_USER=$(docker_bash_channel_exec "${2}" "whoami")
+        fi
+        
+        local TMP_DC_HB_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_HB_SETUP_RELY_CTN_USER}")
+        local TMP_DC_HB_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_HB_SETUP_RELY_CTN_USER}")
+
         # 统一编排到的路径(需注意日志与配置部分，注意会有多层结构，即不止compose)
         ## !!!-1 路径由 habor.yml决定了logs根目录位置：/mountdisk/logs/docker_apps/goharbor_harbor/v1.10.0/compose
         ## !!!-2 路径由 habor.yml决定了data根目录位置：/mountdisk/data/docker_apps/goharbor_harbor/v1.10.0/compose
@@ -314,7 +328,7 @@ function exec_step_dc_rely_harbor() {
     }
 
     # 从容器中提取启动数据
-    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_HB_SETUP_SERVICE_IMG_FULL_NAME}>]('${TMP_DC_HB_SETUP_SERVICE_CTN_NAME}'/'${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}'), hold on please"
+    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_HB_SETUP_SERVICE_IMG_FULL_NAME}>('${TMP_DC_HB_SETUP_SERVICE_CTN_NAME}'/'${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}'), hold on please"
     docker_container_param_check_action "${TMP_DC_HB_SETUP_SERVICE_CTN_NAME}" "_exec_step_dc_rely_harbor"
     
     return $?
@@ -357,9 +371,6 @@ function formal_adjust_cps_dc_harbor() {
     ### /opt/docker/conf/goharbor_harbor/v1.10.0 -> /mountdisk/conf/docker_apps/goharbor_harbor/v1.10.0
     path_not_exists_link "${TMP_DC_CPL_SETUP_HB_DC_CONF_DIR}" "" "${TMP_DC_CPL_HB_SETUP_LNK_CONF_DIR}"
     
-    # 授权 (按需设置，此处修改权限会出现没权限的问题)
-    # sudo chown -R 2000:2000 ${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR} ${TMP_DC_CPL_HB_SETUP_LNK_LOGS_DIR} ${TMP_DC_CPL_HB_SETUP_LNK_DATA_DIR} ${TMP_DC_CPL_HB_SETUP_LNK_CONF_DIR}
-
     return $?
 }
 
@@ -498,7 +509,6 @@ function formal_cpl_dc_harbor() {
         echo_style_text "[View] the 'compile migrate'↓:"
     
         # 修改权限 & 查看列表
-        # sudo chown -R 2000:2000 ${1}
         ls -lia ${1}
 		echo
     }

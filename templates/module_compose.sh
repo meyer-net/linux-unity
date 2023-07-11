@@ -17,13 +17,13 @@
 # source scripts/softs/docker/$soft_setup_name.sh
 #------------------------------------------------
 # Debug：
-# docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
-# docker ps -a -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
-# docker images | awk '{if($1~"$img_from_repo/"){print $3}}' | xargs docker rmi && docker images | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /opt/docker/data/apps/$compose_from_repo* && rm -rf /opt/docker/conf/$compose_from_repo* && rm -rf /opt/docker/logs/$compose_from_repo* && rm -rf /mountdisk/repo/migrate/clean/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/$compose_from_repo.conf
+# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
+# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# di | awk '{if($1~"$img_from_repo/"){print $3}}' | xargs docker rmi
+# rm -rf /opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /opt/docker/data/apps/$compose_from_repo* && rm -rf /opt/docker/conf/$compose_from_repo* && rm -rf /opt/docker/logs/$compose_from_repo* && rm -rf /mountdisk/repo/migrate/clean/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/$compose_from_repo*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$compose_from_repo*
-# docker volume ls | awk '{print $2}' | xargs docker volume rm
-# docker volume ls | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs dv rm
+# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 软件安装标题：$soft_title
 #      例：mattermost
@@ -84,8 +84,8 @@ function setup_dc_rely_$soft_setup_name() {
     ## /opt/docker_apps/$repo_mark_name/v$down_ver/work/rely/$img_from_repo_$repo_main_img_mark_name/v$img_ver
     local TMP_DC_$soft_upper_short_name_SETUP_WORK_RELY_SERVICE_DIR=${TMP_DC_CPL_$soft_upper_short_name_SETUP_WORK_DIR}/${DEPLOY_RELY_MARK}/${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_NAME}/${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_VER}
 
-    # 有容器，且有workdir的情况
-    if [[ -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" ]]; then
+    # 有容器，且有workdir的情况，且workdir不是根目录的情况
+    if [[ -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" && -n "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" && "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_WORK_DIR}" != "/" ]]; then
         # 工作
         ## /opt/docker_apps/$repo_mark_name/v$down_ver/rely/$img_from_repo_$repo_main_img_mark_name/v$img_ver/work
         function _setup_dc_rely_$soft_setup_name_cp_work() {
@@ -303,9 +303,13 @@ function exec_step_dc_rely_$soft_setup_name() {
         fi
 
         # 获取授权用户的UID/GID
-        local TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER=$(docker_bash_channel_exec "${2}" "whoami")
-        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
-        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_USER}")
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_USER=$(echo "${6}" | grep -oP "(?<=--user\=)[^\s]+")
+        if [ -z "${TMP_DC_$soft_upper_short_SETUP_RELY_CTN_USER}" ]; then
+            TMP_DC_$soft_upper_short_SETUP_RELY_CTN_USER=$(docker_bash_channel_exec "${2}" "whoami")
+        fi
+        
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_USER}")
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_USER}")
         
         ## v$img_ver
         local TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_VER=$(echo "${4}" | grep -oP "(?<=v).+")
@@ -360,7 +364,7 @@ function exec_step_dc_rely_$soft_setup_name() {
     }
     
     # 从容器中提取启动数据
-    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_IMG_FULL_NAME}>]('${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}'/'${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}'), hold on please"
+    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_IMG_FULL_NAME}>('${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}'/'${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}'), hold on please"
     
     docker_container_param_check_action "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_CTN_NAME}" "_exec_step_dc_rely_$soft_setup_name"
     

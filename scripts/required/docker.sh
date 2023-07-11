@@ -464,8 +464,19 @@ function setup_ext_docker()
 function reconf_docker()
 {
 	cd ${TMP_DOCKER_SETUP_DIR}
-
+  
     echo_style_wrap_text "Starting 're-configuration' <docker>, hold on please"
+    alias di='docker images'
+    alias dv='docker volume'
+    alias dvl='docker volume ls'
+    alias dvr='docker volume rm'
+    alias dp='docker ps'
+    alias dpa='docker ps -a'
+    alias dpan='docker ps -a --no-trunc'
+    alias de='docker exec'
+    alias ds='docker stop'
+    alias dr='docker rm'
+    alias dri='docker rmi'
 
 	return $?
 }

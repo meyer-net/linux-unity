@@ -17,13 +17,13 @@
 # source scripts/softs/docker/mattermost.sh
 #------------------------------------------------
 # Debug：
-# docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
-# docker ps -a -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
-# docker images | awk '{if($1~"mattermost/"){print $3}}' | xargs docker rmi && docker images | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
-# rm -rf /opt/docker_apps/mattermost* && rm -rf /mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/data/docker_apps/mattermost* && rm -rf /opt/docker/data/apps/mattermost* && rm -rf /opt/docker/conf/mattermost* && rm -rf /opt/docker/logs/mattermost* && rm -rf /mountdisk/repo/migrate/clean/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/mattermost.conf
+# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
+# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# di | awk '{if($1~"mattermost/"){print $3}}' | xargs docker rmi && di | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
+# rm -rf /opt/docker_apps/mattermost* && rm -rf /mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/data/docker_apps/mattermost* && rm -rf /opt/docker/data/apps/mattermost* && rm -rf /opt/docker/conf/mattermost* && rm -rf /opt/docker/logs/mattermost* && rm -rf /mountdisk/repo/migrate/clean/mattermost* && rm -rf /mountdisk/repo/migrate/clean/library_postgres && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/mattermost*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/conf/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/logs/mattermost*
-# docker volume ls | awk '{print $2}' | xargs docker volume rm
-# docker volume ls | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs dvr
+# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 安装标题：$title_name
 # Compose仓库名称：mattermost/docker
@@ -285,12 +285,14 @@ function exec_step_dc_rely_mattermost() {
         fi
 
         # 获取授权用户的UID/GID
-        local TMP_DC_MTTM_SETUP_RELY_IMG_USER=$(docker_bash_channel_exec "${2}" "whoami")
-        if [ "${TMP_DC_MTTM_SETUP_RELY_IMG_NAME}" == "library/postgres" ]; then
-            TMP_DC_MTTM_SETUP_RELY_IMG_USER="postgres"
+        local TMP_DC_MTTM_SETUP_RELY_CTN_USER=$(echo "${6}" | grep -oP "(?<=--user\=)[^\s]+")
+        if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_USER}" ]; then
+            TMP_DC_MTTM_SETUP_RELY_CTN_USER=$(docker_bash_channel_exec "${2}" "whoami")
+        elif [ "${TMP_DC_MTTM_SETUP_RELY_IMG_NAME}" == "library/postgres" ]; then
+            TMP_DC_MTTM_SETUP_RELY_CTN_USER="postgres"
         fi
-        local TMP_DC_MTTM_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
-        local TMP_DC_MTTM_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_MTTM_SETUP_RELY_IMG_USER}")
+        local TMP_DC_MTTM_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_MTTM_SETUP_RELY_CTN_USER}")
+        local TMP_DC_MTTM_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_MTTM_SETUP_RELY_CTN_USER}")
         
         ## v7.1
         local TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER=$(echo "${4}" | grep -oP "(?<=v).+")
@@ -345,7 +347,7 @@ function exec_step_dc_rely_mattermost() {
     }
     
     # 从容器中提取启动数据
-    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_MTTM_SETUP_RELY_SERVICE_IMG_FULL_NAME}>]('${TMP_DC_MTTM_SETUP_RELY_SERVICE_CTN_NAME}'/'${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}'), hold on please"
+    echo_style_wrap_text "Starting 'execute step rely' <${TMP_DC_MTTM_SETUP_RELY_SERVICE_IMG_FULL_NAME}>('${TMP_DC_MTTM_SETUP_RELY_SERVICE_CTN_NAME}'/'${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}'), hold on please"
     
     docker_container_param_check_action "${TMP_DC_MTTM_SETUP_RELY_SERVICE_CTN_NAME}" "_exec_step_dc_rely_mattermost"
     
@@ -678,7 +680,7 @@ function deploy_compose_dc_mattermost() {
     ### /opt/docker_apps/mattermost_docker/v2.4/
     local TMP_DC_CPL_MTTM_SETUP_DIR=${2}/${TMP_DC_CPL_MTTM_SETUP_VER}
     ### 2：链接与根版本对不上需自定义路径
-    # local TMP_DC_CPL_MTTM_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_CPL_HB_SETUP_MARK_REPO}/${TMP_DC_CPL_MTTM_SETUP_VER}
+    # local TMP_DC_CPL_MTTM_SETUP_DIR=${DOCKER_APP_SETUP_DIR}/${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}/${TMP_DC_CPL_MTTM_SETUP_VER}
     ### /opt/docker_apps/mattermost_docker/v2.4/compose
     local TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR=${TMP_DC_CPL_MTTM_SETUP_DIR}/${DEPLOY_COMPOSE_MARK}
     
