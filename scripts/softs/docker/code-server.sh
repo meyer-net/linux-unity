@@ -832,7 +832,7 @@ function boot_build_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_CS_SETUP_OPN_PORT}:${TMP_DC_CS_SETUP_INN_PORT}"
     local TMP_DC_CS_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_CS_SETUP_PRE_ARG_ENVS="--hostname=sandbox.${TMP_DC_CS_SETUP_IMG_USER} --env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_CS_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_CS_SETUP_GUI_PASSWD} --env=SUDO_PASSWORD=${TMP_DC_CS_SETUP_SUDO_PASSWD}"
-    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup /run/docker.sock:/var/run/docker.sock $(which docker):/usr/bin/docker $(which docker-compose):/usr/bin/docker-compose"
+    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup --volume=/run/docker.sock:/var/run/docker.sock --volume=$(which docker):/usr/bin/docker --volume=$(which docker-compose):/usr/bin/docker-compose"
     local TMP_DC_CS_SETUP_PRE_ARGS="--name=${TMP_DC_CS_SETUP_IMG_MARK_NAME}_${TMP_DC_CS_SETUP_IMG_VER} ${TMP_DC_CS_SETUP_PRE_ARG_PORTS} ${TMP_DC_CS_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_CS_SETUP_PRE_ARG_ENVS} ${TMP_DC_CS_SETUP_PRE_ARG_MOUNTS}"
 
     # !!! 默认包含用户（可能内部相关文件夹未指定该用户，从而引发permission错误）

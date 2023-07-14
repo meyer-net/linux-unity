@@ -466,17 +466,18 @@ function reconf_docker()
 	cd ${TMP_DOCKER_SETUP_DIR}
   
     echo_style_wrap_text "Starting 're-configuration' <docker>, hold on please"
-    alias di='docker images'
-    alias dv='docker volume'
-    alias dvl='docker volume ls'
-    alias dvr='docker volume rm'
-    alias dp='docker ps'
-    alias dpa='docker ps -a'
-    alias dpan='docker ps -a --no-trunc'
-    alias de='docker exec'
-    alias ds='docker stop'
-    alias dr='docker rm'
-    alias dri='docker rmi'
+    file_content_not_exists_echo "^alias di=.*" "~/.bashrc" "alias di='docker images'"
+    file_content_not_exists_echo "^alias dv=.*" "~/.bashrc" "alias dv='docker volume'"
+    file_content_not_exists_echo "^alias dvl=.*" "~/.bashrc" "alias dvl='docker volume ls'"
+    file_content_not_exists_echo "^alias dvr=.*" "~/.bashrc" "alias dvr='docker volume rm'"
+    file_content_not_exists_echo "^alias dp=.*" "~/.bashrc" "alias dp='docker ps'"
+    file_content_not_exists_echo "^alias dpa=.*" "~/.bashrc" "alias dpa='docker ps -a'"
+    file_content_not_exists_echo "^alias dpan=.*" "~/.bashrc" "alias dpan='docker ps -a --no-trunc'"
+    file_content_not_exists_echo "^alias de=.*" "~/.bashrc" "alias de='docker exec'"
+    file_content_not_exists_echo "^alias ds=.*" "~/.bashrc" "alias ds='docker stop'"
+    file_content_not_exists_echo "^alias dr=.*" "~/.bashrc" "alias dr='docker rm'"
+    file_content_not_exists_echo "^alias dri=.*" "~/.bashrc" "alias dri='docker rmi'"
+    source ~/.bashrc
 
 	return $?
 }
