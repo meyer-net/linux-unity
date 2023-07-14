@@ -6234,9 +6234,13 @@ function docker_change_container_volume_migrate()
 		## /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR=$(echo "${1}" | cut -d':' -f1)
 		## /mattermost
-        local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR=$(echo "${1}" | cut -d':' -f2)
+        local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR=$(echo "${1}" | cut -d':' -f2)		
+		## mattermost
+        local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_MID_DIR="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}"
+		
 		# 删除末尾字符
-		trim_str "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR" "/"
+		trim_str "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_MID_DIR" "/"
+
 		function _docker_change_container_volume_migrate_keep_base_convert_link()
 		{
 			# /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost:/mattermost/data:rw
@@ -6245,28 +6249,48 @@ function docker_change_container_volume_migrate()
 			## /mattermost/data
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR=$(echo "${1}" | cut -d':' -f2)
 			## /data
-			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR/\/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}\//}
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR/\/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_MID_DIR}\//}
 			
 			## 获取文件夹所有者
+			## /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost/data
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR=${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}
+			## mattermost:mattermost
 			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS=$(ls -l $(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}) | awk "{if(\$9==\"${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR##*/}\"){print \$3\":\"\$4}}")
 
+			## !!!废弃，父层已判断该逻辑
+			## 如果容器内的目录在上层目录之下时
+			### 例如：已挂载父级 _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR -> /home/coder/.local/share/code-server
+			### 但是子集也被挂载 _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR -> /home/coder/.local/share/code-server/coder-logs
+			# if [ -n "$(echo "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}" | awk -v h="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/" '$0 ~ h {print "MATCH"}')" ]; then
+			
+			## 获取本地的真实链接，再进行swap，谨防被挂载进容器，本地修改不生效的问题
+			
+			local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}"
+			bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR"
+
 			# 1：将根目录作为主链接 !!! 此处只能如此，采用2的话，软链接在容器内会将内容拷贝至容器再操作
-			echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}' as 'real'"
+			# !Checked container dir(/home/coder/.local/share/code-server/coder-logs) already exists in parent mounted dir(/home/coder/.local/share/code-server), this will swap to /mountdisk/data/docker_apps/codercom_code-server/f947063c3d26/coder-logs as real
+			echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' [in] 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'swap' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}' as 'real'"
+			if [ "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}" != "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" ]; then
+				echo_style_text "'?'[Checked] 'local dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}>) is 'symlink' [to] 'trueth'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}]), this will 'change' to it as 'real'"
+				# 删除原始软链接
+				rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}
+			fi
+
 			## 完成如下两种链接，因可能为备份的盘，此处做swap处理
 			### /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config
 			### /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost -> /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work/data
-			path_swap_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
-			
+			path_swap_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
+		
 			## 2：将挂载目录作为主链接
-			# echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'remove & link' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}' as 'real'"
-			# rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_REL_DIR}
+			# echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'swap' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}' as 'real'"
+			# rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}
 
 			# ## 完成如下两种链接
 			# ### /mountdisk/data/docker_apps/codercom_code-server/4.14.1/.config -> /mountdisk/conf/docker_apps/codercom_code-server/4.14.1/app
 			# ### /opt/docker_apps/mattermost_docker/v2.4/rely/mattermost_mattermost-enterprise-edition/v7.1/work/data -> /mountdisk/data/docker_apps/mattermost_docker/v2.4/compose/mattermost
 			# path_not_exists_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" "" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
-			
+
 			## 同步授权
 			if [ -n "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS}" ]; then
 				chown -R ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHOWNS} ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}
@@ -6278,9 +6302,9 @@ function docker_change_container_volume_migrate()
 		}
 
 		local _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_TMP="${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}"
-		item_change_remove_action "^\S+:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/\S+$" "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base_convert_link"
+		item_change_remove_action "^\S+:/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_MID_DIR}/\S+$" "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS" "_docker_change_container_volume_migrate_keep_base_convert_link"
 		if [ "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS}" != "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_TMP}" ]; then
-			echo_style_text "'!'[After combine](</${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}/>)↓:"
+			echo_style_text "'!'[After combine](</${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_MID_DIR}/>)↓:"
 			ls -lia ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_DIR}
 		fi
 	}
@@ -6311,7 +6335,7 @@ function docker_change_container_volume_migrate()
 		# fi
 		
 		# 谨防读取的路径为相对路径，而非绝对路径
-		if [[ -f ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]]; then
+		if [[ -f ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} || -S ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]]; then
 			_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(cd $(dirname ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL});pwd)/${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL##*/}
 			# 暂时忽略文件类型的挂载，因其会变成 _data -> 指向文件
 			echo_style_text "'|👉' Checked 'volume'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL}>:[${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_MOUNT}]) is file, formal return"
@@ -6319,8 +6343,10 @@ function docker_change_container_volume_migrate()
 		else
 			# 目录存在，或非挂载卷的情况
 			if [ -a ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL} ]; then
-				_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(cd ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL};pwd)
+				# _TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL=$(cd ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL};pwd)
+				bind_symlink_link_path "_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_CTN_BIND_LOCAL"
 			fi
+			
 		fi
 
 		# 转换为真实链接
@@ -6560,7 +6586,10 @@ function docker_compose_yml_formal_exec()
         
         ## 3：调整容器挂载卷 volumes
         yq -i ".services.${3}.volumes = [\"/etc/localtime:/etc/localtime:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
-
+		yq -i ".services.${3}.volumes = [\"$(which yq):/usr/bin/yq:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+		yq -i ".services.${3}.volumes = [\"$(which gum):/usr/bin/gum:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+		yq -i ".services.${3}.volumes = [\"$(which pup):/usr/bin/pup:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+		
         ## 4：调整容器环境 env
         if [ -z "$(echo "${1}" | yq ".environment | select(has(\"TZ\"))")" ]; then
 			echo "${1}" | yq ".environment.TZ" &>/dev/null

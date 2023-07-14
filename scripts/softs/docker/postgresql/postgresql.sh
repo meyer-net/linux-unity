@@ -391,26 +391,26 @@ function boot_build_dc_library_postgres() {
     local TMP_DC_PSQ_SETUP_DB_PASSWD=$(console_input "$(rand_simple_passwd 'psql' 'db' "${TMP_DC_PSQ_SETUP_IMG_VER}")" "Please sure your 'postgresql' <database password>" "y")
     
     ## 标准启动参数
-    local TMP_DC_PSQ_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro"
+    local TMP_DC_PSQ_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
     local TMP_DC_PSQ_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_PSQ_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_PSQ_SETUP_OPN_PORT}:${TMP_DC_PSQ_SETUP_INN_PORT}"
     local TMP_DC_PSQ_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_PSQ_SETUP_OPN_PORT} --env=POSTGRES_PASSWORD=${TMP_DC_PSQ_SETUP_DB_PASSWD}"
     local TMP_DC_PSQ_SETUP_PRE_ARGS="--name=${TMP_DC_PSQ_SETUP_IMG_MARK_NAME}_${TMP_DC_PSQ_SETUP_IMG_VER} ${TMP_DC_PSQ_SETUP_PRE_ARG_PORTS} ${TMP_DC_PSQ_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_PSQ_SETUP_PRE_ARG_ENVS} ${TMP_DC_PSQ_SETUP_PRE_ARG_MOUNTS}"
 
     # 参数覆盖, 镜像参数覆盖启动设定
-    echo_style_text "<Container> 'pre' args && cmd↓:"
+    echo_style_text "[Container] 'pre' args && cmd↓:"
     echo "Args：${TMP_DC_PSQ_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_PSQ_SETUP_CTN_ARG_CMD:-None}"
     
     echo "${TMP_SPLITER3}"
-    echo_style_text "<Container> 'ctn' args && cmd↓:"
+    echo_style_text "[Container] 'ctn' args && cmd↓:"
     echo "Args：${TMP_DC_PSQ_SETUP_CTN_ARGS:-None}"
     echo "Cmd：${TMP_DC_PSQ_SETUP_CTN_ARG_CMD:-None}"
     
     echo "${TMP_SPLITER3}"
     echo_style_text "Starting 'combine container' <${TMP_DC_PSQ_SETUP_IMG_NAME}>:[${TMP_DC_PSQ_SETUP_IMG_VER}] boot args, hold on please"
     docker_image_args_combine_bind "TMP_DC_PSQ_SETUP_PRE_ARGS" "TMP_DC_PSQ_SETUP_CTN_ARGS"
-    echo_style_text "<Container> 'combine' args && cmd↓:"
+    echo_style_text "[Container] 'combine' args && cmd↓:"
     echo "Args：${TMP_DC_PSQ_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_PSQ_SETUP_CTN_ARG_CMD:-None}"
 

@@ -103,8 +103,10 @@ fi
 DEPLOY_COMPOSE_MARK="compose"
 # 依赖标记
 DEPLOY_RELY_MARK="rely"
-# 工作目录标记
+# 工作目录标记(用于应用安装)
 DEPLOY_WORK_MARK="work"
+# 工作目录标记(用于工作空间)
+DEPLOY_WORKSPACE_MARK="workspace"
 # 日志标记
 DEPLOY_LOGS_MARK="logs"
 # 数据标记

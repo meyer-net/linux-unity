@@ -160,7 +160,7 @@ function formal_dc_rely_harbor() {
         cd ${TMP_DC_CPL_HB_SETUP_COMPOSE_DIR}
 
         ## docker_container_hostconfig_binds_echo 覆盖不到全部，有特殊复制直接在流程中拷贝出来并指定映射关系。
-        trim_str "TMP_DC_HB_SETUP_ATT_MOUNTS"
+        # trim_str "TMP_DC_HB_SETUP_ATT_MOUNTS"
         docker_change_container_volume_migrate "${TMP_DC_HB_SETUP_RELY_CTN_ID}" "${TMP_DC_HB_SETUP_ATT_MOUNTS} $(docker_container_hostconfig_binds_echo "${TMP_DC_HB_SETUP_RELY_CTN_ID}")"
         # docker_change_container_volume_migrate "${TMP_DC_HB_SETUP_RELY_CTN_ID}" "$(docker_container_hostconfig_binds_echo "${TMP_DC_HB_SETUP_RELY_CTN_ID}")" "" $([[ -z "${TMP_DC_HB_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
@@ -450,7 +450,7 @@ function exec_resolve_compose_dc_harbor_loop()
             # 在yaml中找不到配置的情况，直接放弃
             if [ -z "${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}" ]; then
                 echo "${TMP_SPLITER2}"
-                echo_style_text "'Warning': Cannot found 'key' from 'image'(<${TMP_DC_HB_SETUP_RELY_SERVICE_IMAGE}:${2}>) in compose.yml, execute step return"
+                echo_style_text "[Warning]: Cannot found 'key' from 'image'(<${TMP_DC_HB_SETUP_RELY_SERVICE_IMAGE}:${2}>) in [compose.yml], execute step return"
                 return
             fi
             

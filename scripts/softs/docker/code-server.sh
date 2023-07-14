@@ -12,12 +12,14 @@
 # source scripts/softs/docker/code-server.sh
 #------------------------------------------------
 # Debug：
-# docker ps -a --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker stop
-# docker ps -a --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker rm
-# docker images | awk '{if($1~"codercom"){print $3}}' | xargs docker rmi
+# dpa --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker stop
+# dpa --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker rm
+# di | awk '{if($1~"codercom"){print $3}}' | xargs dri
 # rm -rf /opt/docker_apps/codercom_code-server* && rm -rf /mountdisk/conf/docker_apps/codercom_code-server* && rm -rf /mountdisk/logs/docker_apps/codercom_code-server* && rm -rf /mountdisk/data/docker_apps/codercom_code-server* && rm -rf /opt/docker/data/apps/codercom_code-server* && rm -rf /opt/docker/conf/codercom_code-server* && rm -rf /opt/docker/logs/codercom_code-server* && rm -rf /mountdisk/repo/migrate/clean/codercom_code-server* && rm -rf /mountdisk/svr_sync/coder
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/conf/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/logs/codercom_code-server*
-# docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
+# rm -rf /mountdisk/conf/conda && mv /opt/conda/etc /mountdisk/conf/conda && ln -sf /mountdisk/conf/conda /opt/conda/etc && chown -R root:root /mountdisk/conf/conda /opt/conda && rm -rf /mountdisk/data/conda/envs/basic && mv /opt/conda/envs /mountdisk/data/conda/envs/basic && ln -sf /mountdisk/data/conda/envs/basic /opt/conda/envs && rm -rf /mountdisk/data/conda/pkgs/basic && mv /opt/conda/pkgs /mountdisk/data/conda/pkgs/basic && ln -sf /mountdisk/data/conda/pkgs/basic /opt/conda/pkgs && chown -R root:root /mountdisk/data/conda
+# ls -lia /opt/conda/ && ls -lia /mountdisk/conf/conda && ls -lia /mountdisk/data/conda/envs/basic && ls -lia /mountdisk/data/conda/pkgs/basic
+# dvl | awk 'NR>1{print $2}' | xargs dvr
 #------------------------------------------------
 local TMP_DC_CS_DISPLAY_TITLE="Code-Server"
 local TMP_DC_CS_SETUP_IMG_FROM="codercom"
@@ -33,11 +35,19 @@ local TMP_DC_CS_SETUP_OPN_PORT=1024
 function set_env_dc_codercom_code-server() {
     echo_style_wrap_text "Starting 'configuare' <${TMP_DC_CS_SETUP_IMG_NAME}> 'install' [envs], hold on please"
 
-    cd ${__DIR}
     # docker exec -u root -it 38f sh -c "apt-get -y install jq"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y iproute2" "t" "root"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y vim" "t" "root"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install jq" "t" "root"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y update"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install iproute2"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install vim"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install wget"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install jq"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install lsof"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install zip"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install unzip"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install rsync"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install tmux"
+
+    cd ${__DIR}
 
     return $?
 }
@@ -65,10 +75,232 @@ function setup_dc_codercom_code-server() {
     # 创建安装目录(纯属为了规范)
     ## 1：存在working dir
     soft_path_restore_confirm_pcreate "${TMP_DC_CS_SETUP_WORK_DIR}" "_setup_dc_codercom_code-server_cp_source"
+    
+    # 创建工作目录
+    ## 1：手动创建关联workspace dir
+    echo "${TMP_SPLITER2}"
+    echo_style_text "[View] the 'workspace initialize'↓:"
+    ## /mountdisk/svr_sync/coder
+    path_not_exists_create "${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}"
+    ## /opt/docker_apps/codercom_code-server/4.14.1/workspace -> /mountdisk/svr_sync/coder
+    path_not_exists_link "${TMP_DC_CS_SETUP_WORKSPACE_DIR}" "" "${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}"
 
     cd ${TMP_DC_CS_SETUP_DIR}
 
     # 开始安装
+    ################################################################################################
+    # 应用网站项目目录
+    local TMP_DC_CS_SETUP_PRJ_WWW_DIR=${TMP_DC_CS_SETUP_WORKSPACE_DIR}/projects/www
+    # 应用网站自启动目录
+    local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/boots
+    # 应用网站自启动服务器目录
+    local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_NGX_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/nginx
+    local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_ORT_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/openresty
+    local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_CDY_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/caddy
+    local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DOC_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/docker
+    # 应用网站初始化目录
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/init
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MSQ_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mysql
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MDB_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mariadb
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_PSQ_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/postgresql
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MGDB_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mongodb
+    local TMP_DC_CS_SETUP_PRJ_WWW_INIT_CH_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/clickhouse
+    # 应用网站项目语种对应目录
+    local TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/lang
+    local TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/lua
+    local TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/php
+    local TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/python
+    local TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/java
+    local TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/html
+
+    # 应用项目目录
+    local TMP_DC_CS_SETUP_PRJ_APP_DIR=${TMP_DC_CS_SETUP_WORKSPACE_DIR}/projects/app
+    # 应用项目自启动目录
+    local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/boots
+    # 应用项目自启动服务器目录
+    local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_CDA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/conda
+    local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_SUP_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/supervisor
+    local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DOC_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/docker
+    # 应用项目自启动目录
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/init
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_MSQ_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mysql
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_MDB_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mariadb
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_PSQ_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/postgresql
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_MGDB_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mongodb
+    local TMP_DC_CS_SETUP_PRJ_APP_INIT_CH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/clickhouse
+    # 应用项目语种对应目录
+    local TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/lang
+    local TMP_DC_CS_SETUP_PRJ_APP_PY_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/python
+    local TMP_DC_CS_SETUP_PRJ_APP_GO_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/go
+    local TMP_DC_CS_SETUP_PRJ_APP_SH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/shell
+    local TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/lua
+    local TMP_DC_CS_SETUP_PRJ_APP_JV_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/java
+    
+    # 工具-画图目录
+    local TMP_DC_CS_SETUP_DRAWS_DIR=${TMP_DC_CS_SETUP_WORKSPACE_DIR}/projects/draws
+    ################################################################################################
+    # 应用网站自启动服务器目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_NGX_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_ORT_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_CDY_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DOC_DIR}"
+
+    # 应用网站初始化目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MSQ_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MDB_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_PSQ_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MGDB_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_CH_DIR}"
+
+    # 应用网站项目语种对应目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}"
+
+    # 应用项目自启动服务器目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_CDA_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_SUP_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DOC_DIR}"
+
+    # 应用项目初始化目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MSQ_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MDB_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_PSQ_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MGDB_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_CH_DIR}"
+
+    # 应用项目语种对应目录
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_PY_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}"
+    path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_JV_DIR}"
+
+    # 工具-画图
+    path_not_exists_create "${TMP_DC_CS_SETUP_DRAWS_DIR}"
+    ################################################################################################
+    # 目录格式化
+    # /mountdisk/svr_sync/projects/www/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/www
+    path_not_exists_link "${PRJ_DIR}/www/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_DIR}"
+    # /mountdisk/svr_sync/wwwroot/boots/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/www/boots
+    path_not_exists_link "${WWW_BOOTS_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}"
+    # /mountdisk/svr_sync/wwwroot/init/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/www/init
+    path_not_exists_link "${WWW_INIT_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}"
+    # /mountdisk/svr_sync/wwwroot/lang/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/www/lang
+    path_not_exists_link "${WWW_LANG_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}"
+
+    # /mountdisk/svr_sync/projects/app/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app
+    path_not_exists_link "${PRJ_DIR}/app/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_DIR}"
+    # /mountdisk/svr_sync/applications/boots/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app/boots
+    path_not_exists_link "${APP_BOOTS_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}"
+    # /mountdisk/svr_sync/applications/init/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app/init
+    path_not_exists_link "${APP_INIT_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}"
+    # /mountdisk/svr_sync/applications/lang/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app/lang
+    path_not_exists_link "${APP_LANG_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}"    
+    ################################################################################################
+    # 示例项目下载
+    git clone https://github.com/dillonzq/LoveIt ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/loveit
+    git clone https://github.com/h5bp/html5-boilerplate ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/h5-boilerplate
+    git clone https://github.com/PanJiaChen/vue-element-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/vue-ele-admin
+    git clone https://github.com/zuiidea/antd-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/antd-admin
+
+    git clone https://github.com/Kong/kong ${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}/kong
+    git clone https://github.com/matomo-org/matomo ${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}/matomo
+    # git clone https://github.com/tiangolo/fastapi ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi
+    # 手动创建fastapi依赖项目
+    mkdir -pv ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/requirements.txt<<EOF
+fastapi==0.100.0
+uvicorn[standard] >=0.12.0,<0.23.0
+EOF
+
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/setup.py<<EOF
+"""Script to recursively install.
+
+Usage:
+  From root directory, execute
+  'python setup.py install'.
+"""
+import os
+
+from setuptools import setup, find_packages
+
+def _process_requirements(requirements_path):
+    requires = []
+    with open(requirements_path, encoding="utf-8") as file:
+        packages = file.read().strip().split('\n')
+        for pkg in packages:
+            if pkg.startswith('git+ssh'):
+                return_code = os.system('pip install {}'.format(pkg))
+                assert return_code == 0, 'error, status_code is: {}, exit!'.format(return_code)
+            else:
+                requires.append(pkg)
+    return requires
+
+setup(
+    name='foo',
+    version='1.0.0',
+    author='meyer-net',
+    description="just setup",
+    packages=find_packages(),
+    install_requires=_process_requirements('requirements.txt')
+)
+EOF
+
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/main.py<<EOF
+"""Script to test.
+
+Usage:
+  From root directory, execute
+  'python main.py'.
+"""
+#!/usr/bin/env python
+
+from typing import Union
+
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class Item(BaseModel):
+    """Class representing a person"""
+    name: str
+    price: float
+    is_offer: Union[bool, None] = None
+
+@app.get("/")
+def read_root():
+    """Function printing python version."""
+    return {"Hello": "World"}
+
+@app.get("/items/{item_id}")
+def read_item(item_id: int, q: Union[str, None] = None):
+    """Function printing python version."""
+    return {"item_id": item_id, "q": q}
+
+@app.put("/items/{item_id}")
+def update_item(item_id: int, item: Item):
+    """Function printing python version."""
+    return {"item_name": item.name, "item_id": item_id}
+EOF
+
+    git clone https://github.com/apache/beam ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/beam
+    git clone https://github.com/jeecgboot/jeecg-boot ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/jeecg-boot
+    git clone https://github.com/halo-dev/halo ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/halo
+
+    git clone https://github.com/ohmyzsh/ohmyzsh ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/ohmyzsh
+    git clone https://github.com/binpash/try ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/try
+    git clone https://github.com/gohugoio/hugo ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/hugo
+    git clone https://github.com/beego/beego ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/beego
+    ################################################################################################
+    echo > ${TMP_DC_CS_SETUP_DRAWS_DIR}/empty.dio
+    
+    # 授权
+    sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}
 
     return $?
 }
@@ -114,142 +346,13 @@ function formal_dc_codercom_code-server() {
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] the 'data copy'↓:"
 
-        # 拷贝日志目录
+        # 拷贝日志目录 Using user-data-dir (~/.local/share/code-server == /home/coder/.local/share/code-server)
         # mkdir -pv ${1}
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR} ${SYNC_DIR}/ >& /dev/null
+        # docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR} ${SYNC_DIR}/ >& /dev/null
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT} ${1} >& /dev/null
         
-        # 指定一个workdir
-        # /mountdisk/data/docker_apps/codercom_code-server/4.14.1 -> /mountdisk/svr_sync/coder
-        path_not_exists_link "${1}" "" "${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}"
-
-        ################################################################################################
-        # 应用网站项目目录
-        local TMP_DC_CS_SETUP_PRJ_WWW_DIR=${1}/projects/www
-        # 应用网站自启动目录
-        local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/boots
-        # 应用网站自启动服务器目录
-        local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_NGX_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/nginx
-        local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_ORT_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/openresty
-        local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_CDY_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/caddy
-        local TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DOC_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}/docker
-        # 应用网站初始化目录
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/init
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MSQ_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mysql
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MDB_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mariadb
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_PSQ_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/postgresql
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_MGDB_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/mongodb
-        local TMP_DC_CS_SETUP_PRJ_WWW_INIT_CH_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}/clickhouse
-        # 应用网站项目语种对应目录
-        local TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_DIR}/lang
-        local TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/lua
-        local TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/php
-        local TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/python
-        local TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/java
-        local TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR=${TMP_DC_CS_SETUP_PRJ_WWW_LANG_DIR}/html
-
-        # 应用项目目录
-        local TMP_DC_CS_SETUP_PRJ_APP_DIR=${1}/projects/app
-        # 应用项目自启动目录
-        local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/boots
-        # 应用项目自启动服务器目录
-        local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_CDA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/conda
-        local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_SUP_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/supervisor
-        local TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DOC_DIR=${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}/docker
-        # 应用项目自启动目录
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/init
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_MSQ_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mysql
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_MDB_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mariadb
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_PSQ_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/postgresql
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_MGDB_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/mongodb
-        local TMP_DC_CS_SETUP_PRJ_APP_INIT_CH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}/clickhouse
-        # 应用项目语种对应目录
-        local TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR=${TMP_DC_CS_SETUP_PRJ_APP_DIR}/lang
-        local TMP_DC_CS_SETUP_PRJ_APP_PY_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/python
-        local TMP_DC_CS_SETUP_PRJ_APP_GO_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/go
-        local TMP_DC_CS_SETUP_PRJ_APP_SH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/shell
-        local TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/lua
-        local TMP_DC_CS_SETUP_PRJ_APP_JV_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/java
-        ################################################################################################
-        # 应用网站自启动服务器目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_NGX_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_ORT_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_CDY_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DOC_DIR}"
-
-        # 应用网站初始化目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MSQ_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MDB_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_PSQ_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_MGDB_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_CH_DIR}"
-
-        # 应用网站项目语种对应目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}"
-
-        # 应用项目自启动服务器目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_CDA_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_SUP_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DOC_DIR}"
-
-        # 应用项目初始化目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MSQ_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MDB_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_PSQ_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_MGDB_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_INIT_CH_DIR}"
-
-        # 应用项目语种对应目录
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_PY_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}"
-        path_not_exists_create "${TMP_DC_CS_SETUP_PRJ_APP_JV_DIR}"
-        ################################################################################################
-        # 目录格式化
-        # /mountdisk/svr_sync/projects/www/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/www
-        path_not_exists_link "${PRJ_DIR}/www/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_DIR}"
-        # /mountdisk/svr_sync/wwwroot/boots/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/www/boots
-        path_not_exists_link "${WWW_BOOTS_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_BOOTS_DIR}"
-        # /mountdisk/svr_sync/wwwroot/init/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/www/init
-        path_not_exists_link "${WWW_INIT_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_WWW_INIT_DIR}"
-
-        # /mountdisk/svr_sync/projects/app/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/app
-        path_not_exists_link "${PRJ_DIR}/app/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_DIR}"
-        # /mountdisk/svr_sync/applications/boots/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/app/boots
-        path_not_exists_link "${APP_BOOTS_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_BOOTS_DIR}"
-        # /mountdisk/svr_sync/applications/init/coder -> /mountdisk/data/docker_apps/codercom_code-server/4.14.1/projects/app/init
-        path_not_exists_link "${APP_INIT_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}"
-        ################################################################################################
-        # 示例项目下载
-        git clone https://github.com/dillonzq/LoveIt ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/LoveIt
-        git clone https://github.com/h5bp/html5-boilerplate ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/html5-boilerplate
-        git clone https://github.com/PanJiaChen/vue-element-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/vue-element-admin
-        git clone https://github.com/zuiidea/antd-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/antd-admin
-
-        git clone https://github.com/Kong/kong ${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}/kong
-        git clone https://github.com/matomo-org/matomo ${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}/matomo
-        git clone https://github.com/tiangolo/fastapi ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi
-        git clone https://github.com/microsoft/playwright-python ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/playwright
-        git clone https://github.com/apache/beam ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/beam
-        git clone https://github.com/jeecgboot/jeecg-boot ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/jeecg-boot
-        git clone https://github.com/halo-dev/halo ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/halo
-
-        git clone https://github.com/ohmyzsh/ohmyzsh ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/ohmyzsh
-        git clone https://github.com/binpash/try ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/try
-        git clone https://github.com/gohugoio/hugo ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/hugo
-        git clone https://github.com/beego/beego ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/beego
-        git clone https://github.com/microsoft/playwright-java ${TMP_DC_CS_SETUP_PRJ_APP_JV_DIR}/playwright
-        ################################################################################################
-        
-        # 授权
-        sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}
-
-        # 查看拷贝列表
+        # 授权 & 查看拷贝列表
+        sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}
         ls -lia ${1}/
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_CS_SETUP_LNK_DATA_DIR}" "_formal_dc_codercom_code-server_cp_data"
@@ -269,7 +372,7 @@ function formal_dc_codercom_code-server() {
 
         # 1：拷贝配置目录
         ## /mountdisk/conf/docker_apps/codercom_code-server/imgver111111/app
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config/${TMP_DC_CS_SETUP_IMG_PRJT} ${1}/app >& /dev/null
 
         # 2：添加python环境
         ## /home/coder/env
@@ -321,7 +424,15 @@ function formal_dc_codercom_code-server() {
     echo_style_text "Starting 'inspect change' <${TMP_DC_CS_SETUP_IMG_NAME}>, hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
-    docker_change_container_volume_migrate "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/app:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/workspace:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_DATA_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}:rw,z ${TMP_DC_CS_SETUP_LNK_CONF_DIR}/app:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config" "" $([[ -z "${TMP_DC_CS_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    # docker_change_container_volume_migrate "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/app:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/workspace:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_DATA_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}:rw,z ${TMP_DC_CS_SETUP_LNK_CONF_DIR}/app:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config" "" $([[ -z "${TMP_DC_CS_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
+    local TMP_DC_CS_SETUP_CDA_ENVS_DIR=${CONDA_HOME}/envs
+    bind_symlink_link_path "TMP_DC_CS_SETUP_CDA_ENVS_DIR"
+    local TMP_DC_CS_SETUP_CDA_PKGS_DIR=${CONDA_HOME}/pkgs
+    bind_symlink_link_path "TMP_DC_CS_SETUP_CDA_PKGS_DIR"
+    local TMP_DC_CS_SETUP_CDA_CONF_DIR=${CONDA_HOME}/etc
+    bind_symlink_link_path "TMP_DC_CS_SETUP_CDA_CONF_DIR"
+
+    docker_change_container_volume_migrate "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/app:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_DATA_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}:rw,z ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/workspace:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}/projects:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/projects:rw,z ${TMP_DC_CS_SETUP_LNK_CONF_DIR}/app:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config/${TMP_DC_CS_SETUP_IMG_PRJT} ${CONDA_HOME}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${TMP_DC_CS_SETUP_CDA_ENVS_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/envs:rw,z ${TMP_DC_CS_SETUP_CDA_PKGS_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/pkgs:rw,z ${TMP_DC_CS_SETUP_CDA_CONF_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/etc:rw,z" "" $([[ -z "${TMP_DC_CS_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     
     return $?
 }
@@ -395,7 +506,51 @@ function down_ext_dc_codercom_code-server() {
     cd ${TMP_DC_CS_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'download' <${TMP_DC_CS_SETUP_IMG_NAME}> 'exts', hold on please"
+    
+    # 安装python环境插件
+    echo_style_text "'|'Starting 'download ext' - [pip], hold on please"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install python"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install python3-pip"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip --version" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip install --upgrade pip" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip install --upgrade setuptools" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip install playwright==1.30.0" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "python3 --version" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    
+    # 静默安装 conda
+    echo_style_text "'|'Starting 'download ext' - [conda], hold on please"
+    ## ??? 检测外部conda是否存在
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'wget --quiet https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p $HOME/.local/share/conda && rm Miniconda3-latest-Linux-x86_64.sh' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    
+    # 输出环境变量
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BIN_SH=$(cat <<EOF
 
+# set PATH so it includes custom private bin if it exists
+# if [ -d "\$HOME/.local/share/conda/bin" ] ; then
+#     PATH="\$HOME/.local/share/conda/bin:\$PATH"
+# fi
+if [ -d "\$HOME/.local/share/conda/condabin" ] ; then
+    PATH="\$HOME/.local/share/conda/condabin:\$PATH"
+fi
+EOF
+)
+
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "echo '${TMP_DC_CS_SETUP_SUPPORT_CONDA_BIN_SH}' >> .profile" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ln -sf ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv ${TMP_DC_CS_SETUP_CTN_WORK_DIR} && touch environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia ${CONDA_HOME}/envs | awk 'NR>4{print \$NF}' | xargs {} -I echo {} >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+
+    # 给fastapi-demo添加环境
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 \${HOME}/projects/www/lang/python/fastapi-demo/.conda && echo \${HOME}/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    
+    # 调整基本配置
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda update -y conda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels microsoft' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels conda-forge' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels bioconda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --set auto_activate_base false' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+   
     return $?
 }
 
@@ -404,8 +559,10 @@ function setup_ext_dc_codercom_code-server() {
     cd ${TMP_DC_CS_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install' <${TMP_DC_CS_SETUP_IMG_NAME}> 'exts', hold on please"
+
     # 通用
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension natizyskunk.sftp" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension xyz.local-history" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-ceintl.vscode-language-pack-zh-hans" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # JAVA
@@ -414,16 +571,27 @@ function setup_ext_dc_codercom_code-server() {
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension vscjava.vscode-java-debug" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension vscjava.vscode-maven" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension vscjava.vscode-java-pack" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension redhat.vscode-rsp-ui" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension esbenp.prettier-vscode" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension vscjava.vscode-spring-boot-dashboard" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension vscjava.vscode-spring-initializr" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension pivotal.vscode-boot-dev-pack" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # PYTHON
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension magicstack.magicpython" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-python.python" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-pyright.pyright" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-python.anaconda-extension-pack" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-python.pylint" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension njpwerner.autodocstring" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension kevinrose.vsc-python-indent" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension almenon.arepl" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+
+    # PHP
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension devsense.phptools-vscode" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # JAVASCRIPT
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension dbaeumer.vscode-eslint" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension eg2.vscode-npm-script" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # SHELL
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension foxundermoon.shell-format" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -434,6 +602,8 @@ function setup_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension juanblanco.solidity" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension yzhang.markdown-all-in-one" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension shd101wyy.markdown-preview-enhanced" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension redhat.vscode-yaml" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # !!!docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension sumneko.lua" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     
     # GIT
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension knisterpeter.vscode-github" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -452,10 +622,11 @@ function setup_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension dez64ru.macos-modern-theme" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 辅助工具
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension xyz.local-history" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension esbenp.prettier-vscode" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension hediet.vscode-drawio" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension mutable-ai.mutable-ai" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension kiteco.kite" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-office" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension dendron.dendron-paste-image" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     return $?
 }
@@ -471,12 +642,14 @@ function reconf_dc_codercom_code-server()
     
     # 开始配置
     ## 修改默认主题颜色
-    local TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH="${TMP_DC_CS_SETUP_LNK_DATA_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/User/settings.json"
+    # local TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH="${TMP_DC_CS_SETUP_LNK_DATA_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/User/settings.json"
+    local TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH="${TMP_DC_CS_SETUP_LNK_DATA_DIR}/User/settings.json"
     if [ ! -f ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH} ]; then
         echo "{}" > ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
     fi
     
     local TMP_DC_CS_SETUP_USER_SETTINGS_JSON=$(cat ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH})
+
     # /home/coder/.local/share/code-server/User/settings.json
     # jq '."workbench.colorTheme"="Visual Studio Dark"' ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."workbench.colorTheme"' '"Material"'
@@ -498,6 +671,8 @@ function reconf_dc_codercom_code-server()
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."[typescriptreact]"."editor.formatOnSave"' "false"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."[html]"."editor.formatOnSave"' "false"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."[vue]"."editor.formatOnSave"' "false"
+
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."[shellscript]"."editor.defaultFormatter"' '"foxundermoon.shell-format"'
 
     ## javascript
     ### 让函数(名)和后面的括号之间加个空格
@@ -522,26 +697,30 @@ function reconf_dc_codercom_code-server()
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."javascript.validate.enable"' "false"
 
     ### java
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."rsp-ui.rsp.java.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/8\""
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."spring-boot.ls.java.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/8\""
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."rsp-ui.rsp.java.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17\""
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."spring-boot.ls.java.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17\""
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."java.import.gradle.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest\""
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."maven.terminal.customEnv"' "[{\"environmentVariable\": \"JAVA_HOME\", \"value\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/8\"}]"
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."maven.terminal.customEnv"' "[{\"environmentVariable\": \"JAVA_HOME\", \"value\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17\"}]"
 
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."bash"' "{\"path\": \"bash\"}"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."zsh"' "{\"path\": \"zsh\"}"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."fish"' "{\"path\": \"fish\"}"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."tmux"' "{\"path\": \"tmux\", \"icon\": \"terminal-tmux\"}"
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."pwsh"' "{\"path\": \"pwsh\", \"icon\": \"terminal-powershell\"}"
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."JavaSE-1.8"' "{\"overrideName\": true, \"path\": \"bash\", \"args\": [\"--rcfile\", \"~/.bashrc_jdkauto\"], \"env\": {\"PATH\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/8/bin:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/maven/latest/bin:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest/bin:\${env:PATH}\", \"JAVA_HOME\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/8\"}}"
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."terminal.integrated.profiles.linux"."JavaSE-17"' "{\"overrideName\": true, \"path\": \"bash\", \"args\": [\"--rcfile\", \"~/.bashrc_jdkauto\"], \"env\": {\"PATH\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17/bin:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/maven/latest/bin:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/gradle/latest/bin:\${env:PATH}\", \"JAVA_HOME\": \"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17\"}}"
 
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."java.debug.settings.hotCodeReplace"' '"auto"'
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."boot-java.rewrite.reconcile"' 'true'
-    
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."boot-java.rewrite.reconcile"' "true"
+
     echo "${TMP_DC_CS_SETUP_USER_SETTINGS_JSON}" | jq > ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
 
     # 授权
     sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
     
+    # 调整系统配置
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "echo 'fs.inotify.max_user_watches=524288' >> /etc/sysctl.conf"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "sysctl -p"
+
 	return $?
 }
 
@@ -591,6 +770,7 @@ function exec_step_dc_codercom_code-server() {
 
     ## 安装后的真实路径（此处依据实际路径名称修改）
     local TMP_DC_CS_SETUP_WORK_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_WORK_MARK}
+    local TMP_DC_CS_SETUP_WORKSPACE_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_WORKSPACE_MARK}
     local TMP_DC_CS_SETUP_LOGS_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_LOGS_MARK}
     local TMP_DC_CS_SETUP_DATA_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_DATA_MARK}
     local TMP_DC_CS_SETUP_CONF_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_CONF_MARK}
@@ -607,7 +787,7 @@ function exec_step_dc_codercom_code-server() {
 
     test_dc_codercom_code-server
 
-    # down_ext_dc_codercom_code-server
+    down_ext_dc_codercom_code-server
     setup_ext_dc_codercom_code-server
 
     boot_check_dc_codercom_code-server
@@ -644,35 +824,34 @@ function boot_build_dc_codercom_code-server() {
 
     # 设置密码
     ## 面板密码
-    local TMP_DC_CS_SETUP_GUI_PASSWD=$(console_input "$(rand_simple_passwd 'cs.gui' 'db' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'gui' <access password>" "y")
+    local TMP_DC_CS_SETUP_GUI_PASSWD=$(console_input "$(rand_simple_passwd 'cs.gui' 'ide' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'ide gui' <access password>" "y")
     ## SUDO密码
-    local TMP_DC_CS_SETUP_SUDO_PASSWD=$(console_input "$(rand_passwd 'cs.sudo' 'db' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'sudo' <terminal password>" "y")
+    local TMP_DC_CS_SETUP_SUDO_PASSWD=$(console_input "$(rand_passwd 'cs.sudo' 'ide' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'ide sudo' <terminal password>" "y")
     
     ## 标准启动参数
-    # local TMP_DC_CS_SETUP_PRE_ARG_USER="--user $(id -u):$(id -g)"
     local TMP_DC_CS_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_CS_SETUP_OPN_PORT}:${TMP_DC_CS_SETUP_INN_PORT}"
     local TMP_DC_CS_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
-    local TMP_DC_CS_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_CS_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_CS_SETUP_GUI_PASSWD} --env=SUDO_PASSWORD=${TMP_DC_CS_SETUP_SUDO_PASSWD}"
-    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro"
-    local TMP_DC_CS_SETUP_PRE_ARGS="--name=${TMP_DC_CS_SETUP_IMG_MARK_NAME}_${TMP_DC_CS_SETUP_IMG_VER} ${TMP_DC_CS_SETUP_PRE_ARG_USER} ${TMP_DC_CS_SETUP_PRE_ARG_PORTS} ${TMP_DC_CS_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_CS_SETUP_PRE_ARG_ENVS} ${TMP_DC_CS_SETUP_PRE_ARG_MOUNTS}"
+    local TMP_DC_CS_SETUP_PRE_ARG_ENVS="--hostname=sandbox.${TMP_DC_CS_SETUP_IMG_USER} --env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_CS_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_CS_SETUP_GUI_PASSWD} --env=SUDO_PASSWORD=${TMP_DC_CS_SETUP_SUDO_PASSWD}"
+    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup /run/docker.sock:/var/run/docker.sock $(which docker):/usr/bin/docker $(which docker-compose):/usr/bin/docker-compose"
+    local TMP_DC_CS_SETUP_PRE_ARGS="--name=${TMP_DC_CS_SETUP_IMG_MARK_NAME}_${TMP_DC_CS_SETUP_IMG_VER} ${TMP_DC_CS_SETUP_PRE_ARG_PORTS} ${TMP_DC_CS_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_CS_SETUP_PRE_ARG_ENVS} ${TMP_DC_CS_SETUP_PRE_ARG_MOUNTS}"
 
     # !!! 默认包含用户（可能内部相关文件夹未指定该用户，从而引发permission错误）
     # --env=USER=coder
 
     # 参数覆盖, 镜像参数覆盖启动设定
-    echo_style_text "<Container> 'pre' args && cmd↓:"
+    echo_style_text "[Container] 'pre' args && cmd↓:"
     echo "Args：${TMP_DC_CS_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_CS_SETUP_CTN_ARG_CMD:-None}"
     
     echo "${TMP_SPLITER3}"
-    echo_style_text "<Container> 'ctn' args && cmd↓:"
+    echo_style_text "[Container] 'ctn' args && cmd↓:"
     echo "Args：${TMP_DC_CS_SETUP_CTN_ARGS:-None}"
     echo "Cmd：${TMP_DC_CS_SETUP_CTN_ARG_CMD:-None}"
     
     echo "${TMP_SPLITER3}"
     echo_style_text "Starting 'combine container' <${TMP_DC_CS_SETUP_IMG_NAME}>:[${TMP_DC_CS_SETUP_IMG_VER}] boot args, hold on please"
     docker_image_args_combine_bind "TMP_DC_CS_SETUP_PRE_ARGS" "TMP_DC_CS_SETUP_CTN_ARGS"
-    echo_style_text "<Container> 'combine' args && cmd↓:"
+    echo_style_text "[Container] 'combine' args && cmd↓:"
     echo "Args：${TMP_DC_CS_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_CS_SETUP_CTN_ARG_CMD:-None}"
 

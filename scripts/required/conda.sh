@@ -215,9 +215,9 @@ function conf_miniconda()
     # 同步环境变量
     ## ~/.bashrc 中存在，故不启用，仅记录
 	## 环境变量或软连接
-	# echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
     # echo_etc_profile 'PATH=$CONDA_HOME/bin:$PATH'
-	# echo_etc_profile 'export CONDA_HOME'
+	echo_etc_profile 'export CONDA_HOME'
 
     # 重新加载profile文件
 	source /etc/profile

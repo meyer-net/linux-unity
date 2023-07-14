@@ -55,6 +55,7 @@ function setup_requriements()
     soft_${SYS_SETUP_COMMAND}_check_setup "zip"
     soft_${SYS_SETUP_COMMAND}_check_setup "unzip"
     soft_${SYS_SETUP_COMMAND}_check_setup "rsync"
+    soft_${SYS_SETUP_COMMAND}_check_setup "tmux"
 
     # 0.10.0开始的版本未有amd64的rpm
     soft_cmd_check_confirm_git_action "gum" "charmbracelet/gum" "https://github.com/charmbracelet/gum/releases/download/v%s/gum_%s_linux_amd64.rpm" "0.9.0" "rpm -ivh gum_%s_linux_amd64.rpm"
