@@ -538,8 +538,8 @@ EOF
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "echo '${TMP_DC_CS_SETUP_SUPPORT_CONDA_BIN_SH}' >> .profile" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ln -sf ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv ${TMP_DC_CS_SETUP_CTN_WORK_DIR} && touch environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia ${CONDA_HOME}/envs | awk 'NR>4{print \$NF}' | xargs {} -I echo {} >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv .conda && touch .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"\${HOME}/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 给fastapi-demo添加环境
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 \${HOME}/projects/www/lang/python/fastapi-demo/.conda && echo \${HOME}/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
