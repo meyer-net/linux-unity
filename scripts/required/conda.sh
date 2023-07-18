@@ -196,12 +196,13 @@ function conf_miniconda()
     echo_style_wrap_text "Starting 'configuration' <miniconda>, hold on please"
 
     # 同步新增的bashrc内容
+    local TMP_MCD_SETUP_HOME_CONDA=$(su - conda -c "pwd")
     function _conf_miniconda_append_rc()
     {
         local TMP_MCD_SETUP_BASHRC_LINE_START=$(cat ~/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
-        tail -n +${TMP_MCD_SETUP_BASHRC_LINE_START} ~/.bashrc >> /home/conda/.bashrc
+        tail -n +${TMP_MCD_SETUP_BASHRC_LINE_START} ~/.bashrc >> ${TMP_MCD_SETUP_HOME_CONDA}/.bashrc
     }
-    file_content_not_exists_action "^# >>> conda initialize >>>$" "~/.bashrc" "_conf_miniconda_append_rc"
+    file_content_not_exists_action "^# >>> conda initialize >>>$" "${TMP_MCD_SETUP_HOME_CONDA}/.bashrc" "_conf_miniconda_append_rc"
 
     # 授权
 	chown -R conda:root ${TMP_MCD_SETUP_DIR}
@@ -215,12 +216,12 @@ function conf_miniconda()
     # 同步环境变量
     ## ~/.bashrc 中存在，故不启用，仅记录
 	## 环境变量或软连接
-	echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
+	# echo_etc_profile "CONDA_HOME=${TMP_MCD_SETUP_DIR}"
     # echo_etc_profile 'PATH=$CONDA_HOME/bin:$PATH'
-	echo_etc_profile 'export CONDA_HOME'
+	# echo_etc_profile 'export CONDA_HOME'
 
     # 重新加载profile文件
-	source /etc/profile
+	# source /etc/profile
 
     # 开始配置
     ## 生成 ~/.condarc配置文件

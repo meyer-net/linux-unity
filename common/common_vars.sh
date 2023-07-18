@@ -178,7 +178,14 @@ APP_LANG_SH_DIR=${APP_LANG_DIR}/shell
 DOCKER_DIR=${DATA_DIR}/docker
 JAVA_HOME=${SETUP_DIR}/java
 MYCAT_DIR=${SETUP_DIR}/mycat
-CONDA_HOME=${SETUP_DIR}/conda
+
+CONDA_WHEREIS=$(whereis conda | awk '{print $2}')
+if [ -n "${CONDA_WHEREIS}" ]; then
+    CONDA_HOME=$(echo "${CONDA_WHEREIS}" | xargs dirname | xargs dirname)
+fi
+if [ -z "${CONDA_HOME}" ]; then
+    CONDA_HOME=${SETUP_DIR}/conda
+fi
 PLAYWRIGHT_HOME=${CONDA_APP_SETUP_DIR}/playwright
 PLAYWRIGHT_SCRIPTS_DIR=${PLAYWRIGHT_HOME}/scripts
 PY_ENV="pyenv37"

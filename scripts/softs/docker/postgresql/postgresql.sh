@@ -391,7 +391,7 @@ function boot_build_dc_library_postgres() {
     local TMP_DC_PSQ_SETUP_DB_PASSWD=$(console_input "$(rand_simple_passwd 'psql' 'db' "${TMP_DC_PSQ_SETUP_IMG_VER}")" "Please sure your 'postgresql' <database password>" "y")
     
     ## 标准启动参数
-    local TMP_DC_PSQ_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
+    local TMP_DC_PSQ_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which jq):/usr/bin/jq --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
     local TMP_DC_PSQ_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_PSQ_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_PSQ_SETUP_OPN_PORT}:${TMP_DC_PSQ_SETUP_INN_PORT}"
     local TMP_DC_PSQ_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_PSQ_SETUP_OPN_PORT} --env=POSTGRES_PASSWORD=${TMP_DC_PSQ_SETUP_DB_PASSWD}"

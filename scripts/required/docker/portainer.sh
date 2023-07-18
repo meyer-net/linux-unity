@@ -301,7 +301,7 @@ function boot_build_dc_portainer() {
     echo_style_wrap_text "Starting 'build container' <${TMP_DC_PTN_SETUP_IMG_NAME}>:[${TMP_DC_PTN_SETUP_IMG_VER}], hold on please"
     
     # 标准启动参数
-    local TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
+    local TMP_DC_PTN_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=/var/run/docker.sock:/var/run/docker.sock --volume=$(which jq):/usr/bin/jq --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
     local TMP_DC_PTN_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_PTN_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_PTN_SETUP_OPN_PORT}:${TMP_DC_PTN_SETUP_INN_PORT}"
     local TMP_DC_PTN_SETUP_PRE_ARG_ENVS=""

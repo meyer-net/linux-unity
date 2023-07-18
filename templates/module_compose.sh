@@ -18,12 +18,12 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"$img_from_repo/"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /opt/docker/data/apps/$compose_from_repo* && rm -rf /opt/docker/conf/$compose_from_repo* && rm -rf /opt/docker/logs/$compose_from_repo* && rm -rf /mountdisk/repo/migrate/clean/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/$compose_from_repo*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$compose_from_repo*
 # dvl | awk '{print $2}' | xargs dv rm
-# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 软件安装标题：$soft_title
 #      例：mattermost

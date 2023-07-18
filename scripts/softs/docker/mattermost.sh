@@ -18,12 +18,12 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"mattermost/"){print $3}}' | xargs docker rmi && di | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/mattermost* && rm -rf /mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/data/docker_apps/mattermost* && rm -rf /opt/docker/data/apps/mattermost* && rm -rf /opt/docker/conf/mattermost* && rm -rf /opt/docker/logs/mattermost* && rm -rf /mountdisk/repo/migrate/clean/mattermost* && rm -rf /mountdisk/repo/migrate/clean/library_postgres && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/mattermost*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/conf/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/logs/mattermost*
-# dvl | awk '{print $2}' | xargs dvr
-# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs docker volume rm
+# dvl | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 安装标题：$title_name
 # Compose仓库名称：mattermost/docker

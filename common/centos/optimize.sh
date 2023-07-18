@@ -186,7 +186,7 @@ EOF
 			echo 
 		}
 
-		confirm_y_action "Y" "([${FUNCNAME[0]}]) System find there is 'ssh port' is <22> 'defult', please sure if u want to <change>" "_change_ssh_port"
+		confirm_y_action "Y" "([${FUNCNAME[0]}]) Sys current 'ssh port' is <22> 'defult', please sure if u want to <change>" "_change_ssh_port"
 	fi
 
 	function _change_root_passwd()
@@ -221,6 +221,9 @@ EOF
 	confirm_y_action "N" "([${FUNCNAME[0]}]) User of 'oshit' created, please sure the password u want to set" "_change_oshit_passwd"
 
 	systemctl restart sshd.service
+
+	# 临时解禁
+	iptables -F
 
     return $?
 }

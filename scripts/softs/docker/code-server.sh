@@ -14,12 +14,12 @@
 # Debug：
 # dpa --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker stop
 # dpa --no-trunc | awk '{if($2~"codercom"){print $1}}' | xargs docker rm
-# di | awk '{if($1~"codercom"){print $3}}' | xargs dri
+# di | awk '{if($1~"codercom"){print $3}}' | xargs docker rmi
 # rm -rf /mountdisk/conf/conda && mv /opt/conda/etc /mountdisk/conf/conda && ln -sf /mountdisk/conf/conda /opt/conda/etc && chown -R root:root /mountdisk/conf/conda /opt/conda && rm -rf /mountdisk/data/conda/envs/basic && mv /opt/conda/envs /mountdisk/data/conda/envs/basic && ln -sf /mountdisk/data/conda/envs/basic /opt/conda/envs && rm -rf /mountdisk/data/conda/pkgs/basic && mv /opt/conda/pkgs /mountdisk/data/conda/pkgs/basic && ln -sf /mountdisk/data/conda/pkgs/basic /opt/conda/pkgs && chown -R root:root /mountdisk/data/conda
 # rm -rf /opt/docker_apps/codercom_code-server* && rm -rf /mountdisk/conf/docker_apps/codercom_code-server* && rm -rf /mountdisk/logs/docker_apps/codercom_code-server* && rm -rf /mountdisk/data/docker_apps/codercom_code-server* && rm -rf /opt/docker/data/apps/codercom_code-server* && rm -rf /opt/docker/conf/codercom_code-server* && rm -rf /opt/docker/logs/codercom_code-server* && rm -rf /mountdisk/repo/migrate/clean/codercom_code-server* && rm -rf /mountdisk/svr_sync/coder
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/conf/codercom_code-server* && rm -rf /mountdisk/repo/backup/opt/docker/logs/codercom_code-server*
 # ls -lia /opt/conda/ && ls -lia /mountdisk/conf/conda && ls -lia /mountdisk/data/conda/envs/basic && ls -lia /mountdisk/data/conda/pkgs/basic
-# dvl | awk 'NR>1{print $2}' | xargs dvr
+# dvl | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 local TMP_DC_CS_DISPLAY_TITLE="Code-Server"
 local TMP_DC_CS_SETUP_IMG_FROM="codercom"
@@ -37,14 +37,23 @@ function set_env_dc_codercom_code-server() {
 
     # docker exec -u root -it 38f sh -c "apt-get -y install jq"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y update"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install iproute2"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install vim"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install wget"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install jq"
+    # echo "${TMP_SPLITER3}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install jq"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install lsof"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install zip"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install unzip"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install rsync"
+    echo "${TMP_SPLITER3}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install tmux"
 
     cd ${__DIR}
@@ -202,14 +211,16 @@ function setup_dc_codercom_code-server() {
     path_not_exists_link "${APP_LANG_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}"    
     ################################################################################################
     # 示例项目下载
-    git clone https://github.com/dillonzq/LoveIt ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/loveit
-    git clone https://github.com/h5bp/html5-boilerplate ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/h5-boilerplate
-    git clone https://github.com/PanJiaChen/vue-element-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/vue-ele-admin
-    git clone https://github.com/zuiidea/antd-admin ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR}/antd-admin
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR} && \
+    git clone https://github.com/dillonzq/LoveIt && \
+    git clone https://github.com/h5bp/html5-boilerplate && \
+    git clone https://github.com/PanJiaChen/vue-element-admin && \
+    git clone https://github.com/zuiidea/antd-admin && \
+    git clone https://github.com/bigskysoftware/htmx"
 
-    git clone https://github.com/Kong/kong ${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR}/kong
-    git clone https://github.com/matomo-org/matomo ${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR}/matomo
-    # git clone https://github.com/tiangolo/fastapi ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_LUA_DIR} && git clone https://github.com/Kong/kong"
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_PHP_DIR} && git clone https://github.com/matomo-org/matomo"
+
     # 手动创建fastapi依赖项目
     mkdir -pv ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo
     cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/requirements.txt<<EOF
@@ -288,14 +299,48 @@ def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 EOF
 
-    git clone https://github.com/apache/beam ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/beam
-    git clone https://github.com/jeecgboot/jeecg-boot ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/jeecg-boot
-    git clone https://github.com/halo-dev/halo ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR}/halo
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/README.md<<EOF
+<!--
+    Licensed to the Apache Software Foundation (ASF) under one
+    or more contributor license agreements.  See the NOTICE file
+    distributed with this work for additional information
+    regarding copyright ownership.  The ASF licenses this file
+    to you under the Apache License, Version 2.0 (the
+    "License"); you may not use this file except in compliance
+    with the License.  You may obtain a copy of the License at
 
-    git clone https://github.com/ohmyzsh/ohmyzsh ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/ohmyzsh
-    git clone https://github.com/binpash/try ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR}/try
-    git clone https://github.com/gohugoio/hugo ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/hugo
-    git clone https://github.com/beego/beego ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR}/beego
+      http://www.apache.org/licenses/LICENSE-2.0
+
+    Unless required by applicable law or agreed to in writing,
+    software distributed under the License is distributed on an
+    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+    KIND, either express or implied.  See the License for the
+    specific language governing permissions and limitations
+    under the License.
+-->
+
+# FastAPI Demo
+ReadMe 打不开预览是正常的，请使用带https的域名打开。
+本项目仅仅只是测试环境用。
+
+## Contact Us
+meyer.cheng
+
+EOF
+
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR} && git clone https://github.com/apache/beam"
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR} && \
+    git clone https://github.com/jeecgboot/jeecg-boot && \
+    git clone https://github.com/halo-dev/halo"
+
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR} && \
+    git clone https://github.com/ohmyzsh/ohmyzsh && \
+    git clone https://github.com/binpash/try"
+
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_APP_GO_DIR} && \
+    git clone https://github.com/gohugoio/hugo && \
+    git clone https://github.com/beego/beego && \
+    git clone https://github.com/gorilla/mux"
     ################################################################################################
     echo > ${TMP_DC_CS_SETUP_DRAWS_DIR}/empty.dio
     
@@ -518,28 +563,41 @@ function down_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "python3 --version" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     
     # 静默安装 conda
+    echo_style_text "${TMP_SPLITER2}"
     echo_style_text "'|'Starting 'download ext' - [conda], hold on please"
     ## ??? 检测外部conda是否存在
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'wget --quiet https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p $HOME/.local/share/conda && rm Miniconda3-latest-Linux-x86_64.sh' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    
-    # 输出环境变量
-    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BIN_SH=$(cat <<EOF
 
-# set PATH so it includes custom private bin if it exists
-# if [ -d "\$HOME/.local/share/conda/bin" ] ; then
-#     PATH="\$HOME/.local/share/conda/bin:\$PATH"
-# fi
-if [ -d "\$HOME/.local/share/conda/condabin" ] ; then
-    PATH="\$HOME/.local/share/conda/condabin:\$PATH"
-fi
+
+    # 同步新增的bashrc内容
+    ## 提取行号参考：https://blog.csdn.net/Jerry_1126/article/details/85800485
+    local TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA=$(su - conda -c "pwd")
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# <<< conda initialize <<<$" | cut -d':' -f1)
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | sed -n "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START},${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END}p" | sed "s@${CONDA_HOME}@\$HOME/.local/share/conda@g")
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH=$(cat <<EOF
+cat >> .bashrc <<${EOF_TAG}
+
+${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC}
+${EOF_TAG}
+
+mkdir .conda
+cat >> .conda/environments.txt <<${EOF_TAG}
+$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.conda/environments.txt | sed "s@${CONDA_HOME}@\$HOME/.local/share/conda@g")
+${EOF_TAG}
+
+cat >> .condarc <<${EOF_TAG}
+$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.condarc)
+${EOF_TAG}
 EOF
 )
 
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "echo '${TMP_DC_CS_SETUP_SUPPORT_CONDA_BIN_SH}' >> .profile" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # 输出环境变量
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH}" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ln -sf ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv .conda && touch .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"\${HOME}/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv .conda && touch .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"\${HOME}/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 给fastapi-demo添加环境
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 \${HOME}/projects/www/lang/python/fastapi-demo/.conda && echo \${HOME}/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -832,7 +890,7 @@ function boot_build_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_CS_SETUP_OPN_PORT}:${TMP_DC_CS_SETUP_INN_PORT}"
     local TMP_DC_CS_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
     local TMP_DC_CS_SETUP_PRE_ARG_ENVS="--hostname=sandbox.${TMP_DC_CS_SETUP_IMG_USER} --env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_CS_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_CS_SETUP_GUI_PASSWD} --env=SUDO_PASSWORD=${TMP_DC_CS_SETUP_SUDO_PASSWD}"
-    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup --volume=/run/docker.sock:/var/run/docker.sock --volume=$(which docker):/usr/bin/docker --volume=$(which docker-compose):/usr/bin/docker-compose"
+    local TMP_DC_CS_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which jq):/usr/bin/jq --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup --volume=/run/docker.sock:/var/run/docker.sock --volume=$(which docker):/usr/bin/docker --volume=$(which docker-compose):/usr/bin/docker-compose"
     local TMP_DC_CS_SETUP_PRE_ARGS="--name=${TMP_DC_CS_SETUP_IMG_MARK_NAME}_${TMP_DC_CS_SETUP_IMG_VER} ${TMP_DC_CS_SETUP_PRE_ARG_PORTS} ${TMP_DC_CS_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_CS_SETUP_PRE_ARG_ENVS} ${TMP_DC_CS_SETUP_PRE_ARG_MOUNTS}"
 
     # !!! 默认包含用户（可能内部相关文件夹未指定该用户，从而引发permission错误）

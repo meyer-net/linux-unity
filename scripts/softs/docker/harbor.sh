@@ -5,7 +5,7 @@
 #      author: meyer.cheng
 #------------------------------------------------
 # 相关参考：
-#		  
+#		  修改IP需手动更改：/mountdisk/conf/docker_apps/goharbor_harbor/v1.10.0/compose/registry/config.yml
 #------------------------------------------------
 # 安装镜像版本：v1.10.0(--with-clair --with-chartmuseum) v2.8.0(--with-trivy)
 # 依赖镜像版本：v1.10.17
@@ -16,12 +16,12 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"goharbor/"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/goharbor* && rm -rf /mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/data/docker_apps/goharbor* && rm -rf /opt/docker/data/apps/goharbor* && rm -rf /opt/docker/conf/goharbor* && rm -rf /opt/docker/logs/goharbor* && rm -rf /mountdisk/repo/migrate/clean/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/goharbor*.conf && rm -rf /home/docker/.harbor
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/conf/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/logs/goharbor*
-# dvl | awk '{print $2}' | xargs dvr
-# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs docker volume rm
+# dvl | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 安装标题：$title_name
 # 软件名称：goharbor/harbor
@@ -317,6 +317,10 @@ function exec_step_dc_rely_harbor() {
 
         ## 标准启动参数
         local TMP_DC_HB_SETUP_ATT_MOUNTS=""
+
+        if [ "${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}" == "postgresql" ]; then
+            TMP_DC_HB_SETUP_ATT_MOUNTS="/usr/bin/xargs:/usr/bin/xargs /usr/bin/sed:/usr/bin/sed /usr/bin/awk:/usr/bin/awk"
+        fi
 
         setup_dc_rely_harbor
 

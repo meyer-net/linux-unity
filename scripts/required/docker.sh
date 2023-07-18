@@ -11,7 +11,7 @@
 #         https://www.51cto.com/article/652770.html
 #------------------------------------------------
 # 安装时版本：
-# 依赖compose版本：2.19.0
+# 依赖compose版本：2.20.0
 #------------------------------------------------
 # Debug：
 #------------------------------------------------
@@ -299,8 +299,9 @@ function test_docker()
     echo_style_wrap_text "Starting 'restore' <docker> snapshot, hold on please"
     
     ## 1：检测启停
+    systemctl stop docker.socket
     systemctl stop docker.service
-    systemctl start docker.service
+    systemctl start docker
     
     ## 2：还原已有的docker快照
     # 普通快照目录    
@@ -436,7 +437,7 @@ function down_ext_docker()
     echo_style_wrap_text "Starting 'download' <docker> exts, hold on please"
         
     # 安装docker-compose
-    soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.19.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && chmod +x ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
+    soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.20.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && chmod +x ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
 
 	return $?
 }
@@ -477,6 +478,7 @@ function reconf_docker()
     file_content_not_exists_echo "^alias ds=.*" "~/.bashrc" "alias ds='docker stop'"
     file_content_not_exists_echo "^alias dr=.*" "~/.bashrc" "alias dr='docker rm'"
     file_content_not_exists_echo "^alias dri=.*" "~/.bashrc" "alias dri='docker rmi'"
+    file_content_not_exists_echo "^alias dl=.*" "~/.bashrc" "alias dri='docker logs'"
     source ~/.bashrc
 
 	return $?
@@ -517,7 +519,7 @@ function exec_step_docker()
 
 	boot_docker 
 
-	# reconf_docker 
+	reconf_docker
 
     # 结束
     exec_sleep 30 "Install <docker> over, please checking the setup log, this will stay [%s] secs to exit"

@@ -1091,7 +1091,7 @@ function bind_style_text()
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_LEFT='['
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_RIGHT=']'
 				# 紫红
-				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=${_TMP_BIND_STYLE_TEXT_VAR_STYLE:-"201"}
+				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=${_TMP_BIND_STYLE_TEXT_VAR_STYLE:-"200"}
 			;;
 			# '{')
 			# 	_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_LEFT='{'
@@ -1101,11 +1101,12 @@ function bind_style_text()
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_LEFT='<'
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_RIGHT='>'
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_ESCAPE=''
-				# 红色
-				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=${_TMP_BIND_STYLE_TEXT_VAR_STYLE:-"202"}
+				# 土黄
+				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=${_TMP_BIND_STYLE_TEXT_VAR_STYLE:-"220"}
 			;;
 			'"')
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_RIGHT='"'
+				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_STYLE=${_TMP_BIND_STYLE_TEXT_VAR_STYLE:-"230"}
 			;;
 			*)
 				_TMP_BIND_STYLE_TEXT_WRAP_FUNC_CHAR_ESCAPE=''
@@ -2863,9 +2864,9 @@ function bind_if_choice()
 	function _TMP_BIND_IF_CHOICE_GUM_FUNC() {		
 		for I in ${!_TMP_BIND_IF_CHOICE_ARR[@]};  
 		do
-			local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=1
+			local _TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=170
 			if [ $(($I%2)) -eq 0 ]; then
-				_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=2
+				_TMP_BIND_IF_CHOICE_NORMAL_FUNC_TMP_COLOR=180
 			fi
 
 			local _TMP_BIND_IF_CHOICE_GUM_FUNC_SIGN=$((I+1))
@@ -2907,7 +2908,8 @@ function bind_if_choice()
 	
 	echo "Choice of '${_TMP_BIND_IF_CHOICE_NEW_VAL//√/}' checked"
 
-	eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
+	# eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[([0-9]{1,2}(;[0-9]{1,2})?)?[m|K]//g")
+	eval ${1}=$(echo "${_TMP_BIND_IF_CHOICE_NEW_VAL}" | sed -r "s/\x1B\[(([0-9]+)(;[0-9]+)*)?[m,K,H,f,J]//g")
 	
 	return $?
 }
@@ -3364,8 +3366,11 @@ function su_bash_channel_exec()
     local _TMP_SU_BASH_CHANNEL_EXEC_USER=${2:-$(whoami)}
 	local _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=$(pwd)
 
+	# 用户默认目录
+	local _TMP_SU_BASH_CHANNEL_EXEC_USER_HOME=$(su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "pwd")
+
 	# 尝试进入
-	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR="/home/${_TMP_SU_BASH_CHANNEL_EXEC_USER}"
+	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR="${_TMP_SU_BASH_CHANNEL_EXEC_USER_HOME}"
 	su - ${_TMP_SU_BASH_CHANNEL_EXEC_USER} -c "cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}" 2&>/dev/null || _TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR=""
 
 	local _TMP_SU_BASH_CHANNEL_EXEC_BASIC_SCRIPT="cd ${_TMP_SU_BASH_CHANNEL_EXEC_DEFAULT_DIR}"
@@ -3382,16 +3387,19 @@ function su_bash_channel_exec()
 function su_bash_env_channel_exec()
 {
 	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_USER=${2:-$(whoami)}
-	
 	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="source /etc/profile && source /etc/bashrc"
+
+	# 用户默认目录
+	local _TMP_SU_BASH_ENV_CHANNEL_EXEC_USER_HOME=$(su - ${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER} -c "pwd")
+
+	if [[ -a ${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER_HOME}/.bashrc ]]; then
+		_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source ${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER_HOME}/.bashrc"
+	fi
+
 	if [ "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}" == "root" ]; then
 		if [[ -a /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc ]]; then
 			_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source /${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc"
 		fi
-	fi
-
-	if [[ -a /home/${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc ]]; then
-		_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT="${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && source /home/${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}/.bashrc"
 	fi
 
 	su_bash_channel_exec "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_BASIC_SCRIPT} && (${1})" "${_TMP_SU_BASH_ENV_CHANNEL_EXEC_USER}"
@@ -3423,9 +3431,10 @@ function su_bash_conda_channel_exec()
 
 	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME="${CONDA_HOME}"
 	if [ -z "${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME}" ]; then
-		_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME=$(whereis conda | awk '{print $2}' | awk -F'/' '{print "/"$2"/"$3}')
+		# _TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME=$(whereis conda | awk '{print $2}' | awk -F'/' '{print "/"$2"/"$3}')
+		_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME=$(whereis conda | awk '{print $2}' | xargs dirname | xargs dirname)
 	fi
-
+	
 	local _TMP_SU_BASH_CONDA_CHANNEL_EXEC_BASIC_SCRIPT="CONDA_HOME=\${CONDA_HOME:-${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_CONDA_HOME}} && PATH=\$CONDA_HOME/bin:\$PATH && export CONDA_HOME PATH"
 	su_bash_env_channel_exec "${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_BASIC_SCRIPT} && (${_TMP_SU_BASH_CONDA_CHANNEL_EXEC_SCRIPTS})" "conda"
 
@@ -3442,6 +3451,7 @@ function su_bash_env_conda_channel_exec()
     local _TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV=${2:-"${PY_ENV}"}
 
 	su_bash_env_channel_exec "conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV} && (${1})" "conda"
+	# su_bash_conda_channel_exec "conda activate ${_TMP_SU_BASH_CHANNEL_CONDA_ENV_EXEC_ENV} && (${1})"
 
 	return $?
 }
@@ -3463,7 +3473,11 @@ function su_bash_conda_create_env()
 		su_bash_conda_create_env "${@}"
 	fi
 	
-	su_bash_env_conda_channel_exec "pip install --upgrade pip && pip install --upgrade setuptools && conda deactivate" "${1}"
+	# 过期库更新
+	local _TMP_SU_BASH_CONDA_CREATE_ENV_OUT_DATED=$(su_bash_env_conda_channel_exec "pip list --outdated | awk 'NR>2{print \$1}' && conda deactivate" "${1}")
+	if [ -n "${_TMP_SU_BASH_CONDA_CREATE_ENV_OUT_DATED}" ]; then
+		su_bash_env_conda_channel_exec "echo '${_TMP_SU_BASH_CONDA_CREATE_ENV_OUT_DATED}' | xargs pip install --ignore-installed --upgrade && conda deactivate" "${1}"
+	fi
 	
 	return $?
 }
@@ -3478,8 +3492,9 @@ function su_bash_conda_create_env()
 #      su_bash_conda_echo_profile "export DISPLAY=:0" "" 'pyenv37'
 function su_bash_conda_echo_profile()
 {
-	local _TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT="egrep '${2:-^${1}$}' /home/conda/.bashrc >& /dev/null"
-	su_bash_env_conda_channel_exec "(${_TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT}) || echo '${1}' >> /home/conda/.bashrc && conda deactivate" "${3}"
+	local _TMP_SU_BASH_CONDA_ECHO_PROFILE_HOME_CONDA=$(su - conda -c "pwd")
+	local _TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT="egrep '${2:-^${1}$}' ${_TMP_SU_BASH_CONDA_ECHO_PROFILE_HOME_CONDA}/.bashrc >& /dev/null"
+	su_bash_env_conda_channel_exec "(${_TMP_SU_BASH_CONDA_ECHO_PROFILE_BASIC_SCRIPT}) || echo '${1}' >> ${_TMP_SU_BASH_CONDA_ECHO_PROFILE_HOME_CONDA}/.bashrc && conda deactivate" "${3}"
 	
 	return $?
 }
@@ -3762,6 +3777,7 @@ function kill_deleted()
 	## 1：找到overlay2种占用最多的文件
 	### find /mountdisk -type f -size +100M -print0 | xargs -0 du -m | sort -nr 
 	## 2：找到对应的文件解除挂载
+	### 例如 code-server的find / -type f -size +100M -print0 | xargs -0 du -m | sort -nr | grep "kite" | cut  -d '/' -f6
 	### umount /mountdisk/data/docker/overlay2/{}/merged && rm -rf /mountdisk/data/docker/overlay2/{}
 	# docker部分资源占用参考：https://blog.csdn.net/Entity_G/article/details/112801239
 
@@ -4081,7 +4097,7 @@ EOF
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
 
-			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl start iptables.service" "" "1" "" "" false 0
+			echo_startup_supervisor_config "iptables" "/usr/bin" "systemctl restart iptables.service" "" "1" "" "" false 0
 		fi
 	fi
 
@@ -4145,7 +4161,10 @@ EOF
 # 参数3：执行脚本
 function file_content_not_exists_action() 
 {
-	egrep "${1}" ${2} >& /dev/null
+	local _TMP_FILE_CONTENT_NOT_EXISTS_ACTION_FILE_PATH="${2}"
+	convert_path "_TMP_FILE_CONTENT_NOT_EXISTS_ACTION_FILE_PATH"
+	
+	egrep "${1}" ${_TMP_FILE_CONTENT_NOT_EXISTS_ACTION_FILE_PATH} >& /dev/null
 	if [ $? -ne 0 ]; then
 		script_check_action "${3}"
 	fi
@@ -6270,7 +6289,7 @@ function docker_change_container_volume_migrate()
 
 			# 1：将根目录作为主链接 !!! 此处只能如此，采用2的话，软链接在容器内会将内容拷贝至容器再操作
 			# !Checked container dir(/home/coder/.local/share/code-server/coder-logs) already exists in parent mounted dir(/home/coder/.local/share/code-server), this will swap to /mountdisk/data/docker_apps/codercom_code-server/f947063c3d26/coder-logs as real
-			echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' [in] 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'swap' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}' as 'real'"
+			echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' [in] 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will [swap] to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}' as 'real'"
 			if [ "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}" != "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" ]; then
 				echo_style_text "'?'[Checked] 'local dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}>) is 'symlink' [to] 'trueth'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}]), this will 'change' to it as 'real'"
 				# 删除原始软链接
@@ -6283,7 +6302,7 @@ function docker_change_container_volume_migrate()
 			path_swap_link "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_DIR}" "${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}"
 		
 			## 2：将挂载目录作为主链接
-			# echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will 'swap' to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}' as 'real'"
+			# echo_style_text "'!'[Checked] 'container dir'(<${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_CDIR}>) 'already exists' in 'parent mounted dir'([${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CTN_DIR}]), this will [swap] to '${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_LCL_CDIR}' as 'real'"
 			# rm -rf ${_TMP_DOCKER_CHANGE_CONTAINER_VOLUME_MIGRATE_MOUNTS_CHECK_TRUTH_DIR}
 
 			# ## 完成如下两种链接
@@ -6586,10 +6605,11 @@ function docker_compose_yml_formal_exec()
         
         ## 3：调整容器挂载卷 volumes
         yq -i ".services.${3}.volumes = [\"/etc/localtime:/etc/localtime:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+		yq -i ".services.${3}.volumes = [\"$(which jq):/usr/bin/jq:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
 		yq -i ".services.${3}.volumes = [\"$(which yq):/usr/bin/yq:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
 		yq -i ".services.${3}.volumes = [\"$(which gum):/usr/bin/gum:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
 		yq -i ".services.${3}.volumes = [\"$(which pup):/usr/bin/pup:ro\"] + .services.${3}.volumes" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
-		
+
         ## 4：调整容器环境 env
         if [ -z "$(echo "${1}" | yq ".environment | select(has(\"TZ\"))")" ]; then
 			echo "${1}" | yq ".environment.TZ" &>/dev/null
@@ -6602,8 +6622,14 @@ function docker_compose_yml_formal_exec()
         local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY="${3}"
         function _docker_compose_yml_formal_exec_port_loop() {
             local _TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT=$(echo "${1}" | awk -F':' '{if(NF==3){print $2}else{print $1}}')
-			echo_style_text "Starting 'formal' service <${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}>('${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME}') container 'expose port' [${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT}]"
-            yq -i ".services.${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}.expose = [\"${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT}\"] + .services.${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}.expose" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+			if [ -z "$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE}" | yq ".expose[] | select(. == \"${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT}\")")" ]; then
+				echo_style_text "Starting 'formal' service <${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}>('${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_IMG_FULL_NAME}') container 'expose port' [${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT}], 'source port' [${1}]"
+
+				yq -i ".services.${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}.expose = [\"${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_OPN_PORT}\"] + .services.${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}.expose" ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH}
+
+				# 更新node
+				_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE=$(cat ${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_COMPOSE_YML_PATH} | yq ".services.${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_SERVICE_KEY}")
+			fi
         }
 
         yaml_split_action "$(echo "${_TMP_DOCKER_COMPOSE_YML_FORMAL_EXEC_YML_FMT_NODE}" | yq ".ports")" "_docker_compose_yml_formal_exec_port_loop"
@@ -8206,7 +8232,7 @@ function docker_container_print()
 				docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "apt-get update" "t"
 			else
 				if [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
-					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					# docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "cd /etc/yum.repos.d/ && sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
 					docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "tdnf -y update" "t"
 					# echo_style_text "'Photon' system, do nothing"
 				elif [ "${_TMP_DOCKER_CTN_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_CTN_PRINT_ISSUE}" ]; then
@@ -8355,7 +8381,7 @@ function docker_image_boot_print()
 				docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "apt-get update && apt-get -y install procps vim" "t"
 			else
 				if [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Photon/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
-					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
+					# docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "cd /etc/yum.repos.d/ && sed -i 's/dl.bintray.com\/vmware/packages.vmware.com\/photon\/\$releasever/g' photon.repo photon-updates.repo photon-extras.repo photon-debuginfo.repo" "t"
 					docker_bash_channel_exec "${_TMP_DOCKER_IMG_BOOT_PRINT_CTN_ID}" "tdnf -y update" "t"
 					# echo_style_text "'Photon' system, do nothing"
 				elif [ "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE//Alpine/}" != "${_TMP_DOCKER_IMG_BOOT_PRINT_ISSUE}" ]; then
@@ -8942,7 +8968,7 @@ function soft_setup_conda_channel_pip()
 		echo_style_text "Starting 'install' the 'conda' pip package <${1}> to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 		echo ${TMP_SPLITER2}
 		su_bash_env_conda_channel_exec "pip install ${_TMP_SOFT_SETUP_CONDA_PIP_PKG_FULL_NAME} && ${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_SCRIPTS}" "${_TMP_SOFT_SETUP_CONDA_PIP_ENV}"
-		echo ${TMP_SPLITER2}
+		echo ${TMP_SPLITER3}
 		echo_style_text "Pip package installed '${1}' to venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}]"
 	else
 		echo_style_text "Pip package '${1}' from venv [${_TMP_SOFT_SETUP_CONDA_PIP_ENV}] exists in [${_TMP_SOFT_SETUP_CONDA_PIP_SETUP_PATH}]"
