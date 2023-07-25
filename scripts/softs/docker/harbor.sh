@@ -16,7 +16,7 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="goharbor" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"goharbor/"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/goharbor* && rm -rf /mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/data/docker_apps/goharbor* && rm -rf /opt/docker/data/apps/goharbor* && rm -rf /opt/docker/conf/goharbor* && rm -rf /opt/docker/logs/goharbor* && rm -rf /mountdisk/repo/migrate/clean/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/goharbor*.conf && rm -rf /home/docker/.harbor
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/conf/goharbor* && rm -rf /mountdisk/repo/backup/opt/docker/logs/goharbor*
@@ -207,14 +207,9 @@ function boot_check_dc_harbor() {
                 echo_style_text "[View] the 'container visit'↓:"
                 curl -s http://localhost:${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}
                 echo
-
-                # 授权iptables端口访问
-                echo "${TMP_SPLITER2}"
-                echo_style_text "[View] echo the 'port'(<${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}>) to iptables:↓"
-                echo_soft_port "${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}"
                 
                 # 生成web授权访问脚本
-                echo_web_service_init_scripts "${TMP_DC_CPL_HB_SETUP_MARK_REPO}_${TMP_DC_HB_SETUP_RELY_IMG_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_HB_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
+                echo_web_service_init_scripts "${TMP_DC_CPL_HB_SETUP_MARK_REPO}_${TMP_DC_HB_SETUP_RELY_IMG_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_HB_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" "${TMP_DC_HB_SETUP_CTN_CURRENT_PORT}" "${LOCAL_HOST}"
 
                 # 结束
                 exec_sleep 10 "Boot <${TMP_DC_HB_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
@@ -223,6 +218,29 @@ function boot_check_dc_harbor() {
 
         docker_container_print "${TMP_DC_HB_SETUP_RELY_CTN_ID}" "_boot_check_dc_harbor"
     fi
+}
+
+# x4-1-5：输出容器端口
+function port_echo_dc_rely_harbor()
+{
+    cd ${TMP_DC_CPL_HB_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'echo port rely' <${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}>, hold on please"
+
+    function _port_echo_dc_rely_harbor_exec() {
+        # local TMP_DC_HB_SETUP_RELY_CTN_PORT_PAIR="${1}"
+        local TMP_DC_HB_SETUP_RELY_OPN_PORT=$(echo "${1}" | cut -d':' -f1)
+        local TMP_DC_HB_SETUP_RELY_INN_PORT=$(echo "${1}" | cut -d':' -f2)
+        local TMP_DC_HB_SETUP_RELY_INN_PORT_TYPE=$(echo "${TMP_DC_HB_SETUP_RELY_INN_PORT}" | awk -F'/' '{print $2}')
+        
+        # 授权iptables端口访问
+        echo_style_text "[View] echo the '${TMP_DC_HB_SETUP_RELY_INN_PORT_TYPE:-tcp} port'(<${TMP_DC_HB_SETUP_RELY_OPN_PORT}>) to iptables:↓"
+        echo_soft_port "${TMP_DC_HB_SETUP_RELY_OPN_PORT}" "" "${TMP_DC_HB_SETUP_RELY_INN_PORT_TYPE}"
+        echo
+    }
+
+    local TMP_DC_HB_SETUP_RELY_CTN_PORT_PAIRS=$(echo "${TMP_DC_HB_SETUP_RELY_CTN_ARGS}" | grep -oP "(?<=-p )\S+")
+    items_split_action "${TMP_DC_HB_SETUP_RELY_CTN_PORT_PAIRS}" "_port_echo_dc_rely_harbor_exec"
 }
 
 ##########################################################################################################
@@ -272,7 +290,7 @@ function exec_step_dc_rely_harbor() {
         # 获取授权用户的UID/GID
         local TMP_DC_HB_SETUP_RELY_CTN_USER="$(echo "${6}" | grep -oP "(?<=--user\=)[^\s]+")"
         if [ -z "${TMP_DC_HB_SETUP_RELY_CTN_USER}" ]; then
-            TMP_DC_HB_SETUP_RELY_CTN_USER=$(docker_bash_channel_exec "${2}" "whoami")
+            TMP_DC_HB_SETUP_RELY_CTN_USER=$(docker_bash_channel_exec "${2}" "whoami" "" "${TMP_DC_HB_SETUP_RELY_CTN_USER}")
         fi
         
         local TMP_DC_HB_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_HB_SETUP_RELY_CTN_USER}")
@@ -329,6 +347,8 @@ function exec_step_dc_rely_harbor() {
         conf_dc_rely_harbor
         
         boot_check_dc_harbor "${TMP_DC_HB_SETUP_RELY_SERVICE_KEY}" "${TMP_DC_HB_SETUP_CTN_PORT}"
+
+        port_echo_dc_rely_harbor
     }
 
     # 从容器中提取启动数据

@@ -285,7 +285,7 @@ function exec_step_browserless_chrome() {
 
     # 默认取进入时的目录
     if [ -z "${TMP_DC_BLC_SETUP_CTN_WORK_DIR}" ]; then
-        TMP_DC_BLC_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd")
+        TMP_DC_BLC_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd" "" "${TMP_DC_BLC_SETUP_IMG_USER}")
     fi
 
     # 获取授权用户的UID/GID

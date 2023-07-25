@@ -18,7 +18,7 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="$img_from_repo" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"$img_from_repo/"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /opt/docker/data/apps/$compose_from_repo* && rm -rf /opt/docker/conf/$compose_from_repo* && rm -rf /opt/docker/logs/$compose_from_repo* && rm -rf /mountdisk/repo/migrate/clean/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/$compose_from_repo*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$compose_from_repo* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$compose_from_repo*
@@ -247,7 +247,7 @@ function boot_check_dc_$soft_setup_name() {
                 echo_soft_port "${TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_PORT}"
                 
                 # 生成web授权访问脚本
-                echo_web_service_init_scripts "${TMP_DC_CPL_$soft_upper_short_name_SETUP_MARK_REPO}_${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
+                echo_web_service_init_scripts "${TMP_DC_CPL_$soft_upper_short_name_SETUP_MARK_REPO}_${TMP_DC_$soft_upper_short_name_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_$soft_upper_short_name_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" "${TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_PORT}" "${LOCAL_HOST}"
                 
                 # 结束
                 exec_sleep 10 "Boot <${TMP_DC_$soft_upper_short_name_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay %s secs to exit"
@@ -256,6 +256,29 @@ function boot_check_dc_$soft_setup_name() {
 
         docker_container_print "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ID}" "_boot_check_dc_$soft_setup_name"
     fi
+}
+
+# x4-1-5：输出容器端口
+function port_echo_dc_rely_$soft_setup_name()
+{
+    cd ${TMP_DC_CPL_$soft_upper_short_name_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'echo port rely' <${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}>, hold on please"
+
+    function _port_echo_dc_rely_$soft_setup_name_exec() {
+        # local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT_PAIR="${1}"
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_OPN_PORT=$(echo "${1}" | cut -d':' -f1)
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_INN_PORT=$(echo "${1}" | cut -d':' -f2)
+        local TMP_DC_$soft_upper_short_name_SETUP_RELY_INN_PORT_TYPE=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_RELY_INN_PORT}" | awk -F'/' '{print $2}')
+        
+        # 授权iptables端口访问
+        echo_style_text "[View] echo the '${TMP_DC_$soft_upper_short_name_SETUP_RELY_INN_PORT_TYPE:-tcp} port'(<${TMP_DC_$soft_upper_short_name_SETUP_RELY_OPN_PORT}>) to iptables:↓"
+        echo_soft_port "${TMP_DC_$soft_upper_short_name_SETUP_RELY_OPN_PORT}" "" "${TMP_DC_$soft_upper_short_name_SETUP_RELY_INN_PORT_TYPE}"
+        echo
+    }
+
+    local TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT_PAIRS=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_ARGS}" | grep -oP "(?<=-p )\S+")
+    items_split_action "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT_PAIRS}" "_port_echo_dc_rely_$soft_setup_name_exec"
 }
 
 ##########################################################################################################
@@ -361,6 +384,8 @@ function exec_step_dc_rely_$soft_setup_name() {
         conf_dc_rely_$soft_setup_name
         
         boot_check_dc_$soft_setup_name "${TMP_DC_$soft_upper_short_name_SETUP_RELY_SERVICE_KEY}" "${TMP_DC_$soft_upper_short_name_SETUP_RELY_CTN_PORT}"
+
+        port_echo_dc_rely_$soft_setup_name
     }
     
     # 从容器中提取启动数据

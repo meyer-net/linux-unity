@@ -5,9 +5,10 @@
 #      author: meyer.cheng
 #------------------------------------------------
 # 相关参考：
-#         https://www.smalljun.com/archives/3223.html
-#         https://github.com/Websoft9Archive/ansible-mattermost/blob/main/README-zh.md
-#		  https://docs.mattermost.com/install/install-docker.html#on-this-page
+#          https://www.smalljun.com/archives/3223.html
+#          https://github.com/Websoft9Archive/ansible-mattermost/blob/main/README-zh.md
+#		   https://docs.mattermost.com/install/install-docker.html#on-this-page
+# 参数搜索：https://docs.mattermost.com/search.html
 #------------------------------------------------
 # Compose文件版本：v2.4
 # 依赖镜像版本：v7.1
@@ -18,12 +19,12 @@
 #------------------------------------------------
 # Debug：
 # dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs docker stop
-# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} dr {} && rm -rf /mountdisk/data/docker/containers/{}*
+# dpa -f name="mattermost" | awk 'NR>1{print $1}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
 # di | awk '{if($1~"mattermost/"){print $3}}' | xargs docker rmi && di | awk '{if($2~"13-alpine"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/mattermost* && rm -rf /mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/data/docker_apps/mattermost* && rm -rf /opt/docker/data/apps/mattermost* && rm -rf /opt/docker/conf/mattermost* && rm -rf /opt/docker/logs/mattermost* && rm -rf /mountdisk/repo/migrate/clean/mattermost* && rm -rf /mountdisk/repo/migrate/clean/library_postgres && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost && rm -rf /mountdisk/repo/backup/mountdisk/data/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker/volumes/000000000000_* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker/volumes/000000000000_* && rm -rf /mountdisk/conf/conda_apps/supervisor/boots/mattermost*.conf
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/conf/mattermost* && rm -rf /mountdisk/repo/backup/opt/docker/logs/mattermost*
-# dvl | awk '{print $2}' | xargs docker volume rm
-# dvl | awk 'NR>1{print $2}' | xargs -I {} docker volume inspect {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
+# dvl | awk '{print $2}' | xargs dvr
+# dvl | awk 'NR>1{print $2}' | xargs -I {} dvi {} | jq ".[0].Mountpoint" | xargs -I {} echo {} | xargs ls -lia
 #------------------------------------------------
 # 安装标题：$title_name
 # Compose仓库名称：mattermost/docker
@@ -179,7 +180,7 @@ function formal_dc_rely_mattermost() {
         docker_change_container_volume_migrate "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" "${TMP_DC_MTTM_SETUP_ATT_MOUNTS} $(docker_container_hostconfig_binds_echo "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}")"
         # docker_change_container_volume_migrate "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" "$(docker_container_hostconfig_binds_echo "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}")" "" $([[ -z "${TMP_DC_MTTM_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
     fi
-
+    
     return $?
 }
 
@@ -192,6 +193,12 @@ function conf_dc_rely_mattermost() {
     echo_style_wrap_text "Starting 'configuration rely' <${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}>, hold on please"
 
     # 开始配置
+    if [ "${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}" == "mattermost" ]; then
+        cd ${TMP_DC_MTTM_SETUP_RELY_LNK_COMPOSE_CONF_DIR}
+        local TMP_DC_CPL_MTTM_CONF_JSON=$(cat config.json)
+        change_json_node_item "TMP_DC_CPL_MTTM_CONF_JSON" ".LogSettings.EnableDiagnostics" "false"
+        echo "${TMP_DC_CPL_MTTM_CONF_JSON}" > config.json
+    fi
 
     return $?
 }
@@ -223,13 +230,8 @@ function boot_check_dc_mattermost() {
                 curl -s http://localhost:${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}
                 echo
 
-                # 授权iptables端口访问
-                echo "${TMP_SPLITER2}"
-                echo_style_text "[View] echo the 'port'(<${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}>) to iptables:↓"
-                echo_soft_port "${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}"
-                
                 # 生成web授权访问脚本
-                echo_web_service_init_scripts "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" ${2} "${LOCAL_HOST}"
+                echo_web_service_init_scripts "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}_${TMP_DC_MTTM_SETUP_RELY_IMG_MARK_VER}-${1}${LOCAL_ID}" "${TMP_DC_CPL_MTTM_SETUP_MARK_REPO}-${1}${LOCAL_ID}-webui.${SYS_DOMAIN}" "${TMP_DC_MTTM_SETUP_CTN_CURRENT_PORT}" "${LOCAL_HOST}"
                 
                 # 结束
                 exec_sleep 10 "Boot <${TMP_DC_MTTM_SETUP_CTN_CURRENT_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
@@ -238,6 +240,29 @@ function boot_check_dc_mattermost() {
 
         docker_container_print "${TMP_DC_MTTM_SETUP_RELY_CTN_ID}" "_boot_check_dc_mattermost"
     fi
+}
+
+# x4-1-5：输出容器端口
+function port_echo_dc_rely_mattermost()
+{
+    cd ${TMP_DC_CPL_MTTM_SETUP_DIR}
+
+    echo_style_wrap_text "Starting 'echo port rely' <${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}>, hold on please"
+
+    function _port_echo_dc_rely_mattermost_exec() {
+        # local TMP_DC_MTTM_SETUP_RELY_CTN_PORT_PAIR="${1}"
+        local TMP_DC_MTTM_SETUP_RELY_OPN_PORT=$(echo "${1}" | cut -d':' -f1)
+        local TMP_DC_MTTM_SETUP_RELY_INN_PORT=$(echo "${1}" | cut -d':' -f2)
+        local TMP_DC_MTTM_SETUP_RELY_INN_PORT_TYPE=$(echo "${TMP_DC_MTTM_SETUP_RELY_INN_PORT}" | awk -F'/' '{print $2}')
+        
+        # 授权iptables端口访问
+        echo_style_text "[View] echo the '${TMP_DC_MTTM_SETUP_RELY_INN_PORT_TYPE:-tcp} port'(<${TMP_DC_MTTM_SETUP_RELY_OPN_PORT}>) to iptables:↓"
+        echo_soft_port "${TMP_DC_MTTM_SETUP_RELY_OPN_PORT}" "" "${TMP_DC_MTTM_SETUP_RELY_INN_PORT_TYPE}"
+        echo
+    }
+
+    local TMP_DC_MTTM_SETUP_RELY_CTN_PORT_PAIRS=$(echo "${TMP_DC_MTTM_SETUP_RELY_CTN_ARGS}" | grep -oP "(?<=-p )\S+")
+    items_split_action "${TMP_DC_MTTM_SETUP_RELY_CTN_PORT_PAIRS}" "_port_echo_dc_rely_mattermost_exec"
 }
 
 ##########################################################################################################
@@ -279,11 +304,6 @@ function exec_step_dc_rely_mattermost() {
             TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(docker container inspect --format '{{.Config.WorkingDir}}' ${TMP_DC_MTTM_SETUP_RELY_CTN_ID})
         fi
 
-        # 默认取进入时的目录
-        if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" ]; then
-            TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(docker_bash_channel_exec "${2}" "pwd")
-        fi
-
         # 获取授权用户的UID/GID
         local TMP_DC_MTTM_SETUP_RELY_CTN_USER=$(echo "${6}" | grep -oP "(?<=--user\=)[^\s]+")
         if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_USER}" ]; then
@@ -291,6 +311,12 @@ function exec_step_dc_rely_mattermost() {
         elif [ "${TMP_DC_MTTM_SETUP_RELY_IMG_NAME}" == "library/postgres" ]; then
             TMP_DC_MTTM_SETUP_RELY_CTN_USER="postgres"
         fi
+
+        # 默认取进入时的目录
+        if [ -z "${TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR}" ]; then
+            TMP_DC_MTTM_SETUP_RELY_CTN_WORK_DIR=$(docker_bash_channel_exec "${2}" "pwd" "" "${TMP_DC_MTTM_SETUP_RELY_CTN_USER}")
+        fi
+
         local TMP_DC_MTTM_SETUP_RELY_CTN_UID=$(docker_bash_channel_exec "${2}" "id -u ${TMP_DC_MTTM_SETUP_RELY_CTN_USER}")
         local TMP_DC_MTTM_SETUP_RELY_CTN_GID=$(docker_bash_channel_exec "${2}" "id -g ${TMP_DC_MTTM_SETUP_RELY_CTN_USER}")
         
@@ -344,6 +370,8 @@ function exec_step_dc_rely_mattermost() {
         conf_dc_rely_mattermost
         
         boot_check_dc_mattermost "${TMP_DC_MTTM_SETUP_RELY_SERVICE_KEY}" "${TMP_DC_MTTM_SETUP_RELY_CTN_PORT}"
+
+        port_echo_dc_rely_mattermost
     }
     
     # 从容器中提取启动数据
@@ -443,12 +471,17 @@ function conf_adjust_cps_dc_mattermost() {
     confirm_postgresql_setup_step_action "${TMP_DC_CPS_MTTM_PSQ_HOST}" "${TMP_DC_CPS_MTTM_PSQ_PORT}" "${TMP_DC_CPS_MTTM_PSQ_LOGIN_NAME}" "${TMP_DC_CPS_MTTM_PSQ_LOGIN_PASSWORD}" "${TMP_DC_CPS_MTTM_PSQ_MAIN_DB}" "_conf_cps_dc_mattermost_custom_postgresql"
 
     ### 1.1-N：配置变量参数
+    # yq -i '.services.mattermost.environment = .services.mattermost.environment + "MM_SERVICESETTINGS_WEBSOCKETURL"' docker-compose.yml
+    # file_content_not_exists_echo "^MM_SERVICESETTINGS_WEBSOCKETURL=.*" .env "MM_SERVICESETTINGS_WEBSOCKETURL=ws://\${DOMAIN}:${TMP_DC_MTTM_SETUP_OPN_APP_PORT}"
+    yq -i '.services.mattermost.environment = .services.mattermost.environment + "MM_SERVICESETTINGS_ALLOWCORSFROM"' docker-compose.yml
+    file_content_not_exists_echo "^MM_SERVICESETTINGS_ALLOWCORSFROM=.*" .env "MM_SERVICESETTINGS_ALLOWCORSFROM=*"
+        
     file_content_not_exists_echo "^POSTGRES_HOST=.*" .env "POSTGRES_HOST=${TMP_DC_CPS_MTTM_PSQ_HOST}"
     file_content_not_exists_echo "^POSTGRES_PORT=.*" .env "POSTGRES_PORT=${TMP_DC_CPS_MTTM_PSQ_PORT}"
     sed -i "s@^POSTGRES_PASSWORD=.*@POSTGRES_PASSWORD=${TMP_DC_CPS_MTTM_PSQ_LOGIN_PASSWORD}@g" .env
     sed -i "/^MM_SQLSETTINGS_DATASOURCE=.*/d" .env
     file_content_not_exists_echo "^MM_SQLSETTINGS_DATASOURCE=.*" .env "MM_SQLSETTINGS_DATASOURCE=postgres://\\\${POSTGRES_USER}:\\\${POSTGRES_PASSWORD}@\\\${POSTGRES_HOST}:\\\${POSTGRES_PORT}/\\\${POSTGRES_DB}?sslmode=disable&connect_timeout=60"
-    
+        
     ## 1.2：配置变量参数(由compose.yml中指定存储编译安装时的数据，并存放在对等的compose目录中，即默认预制数据)
     ### 按情况调整基础目录(目录需对应services节点下的keys)
     #### mattermost
@@ -458,13 +491,16 @@ function conf_adjust_cps_dc_mattermost() {
     sed -i "s@^MATTERMOST_PLUGINS_PATH=.*@MATTERMOST_PLUGINS_PATH=${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}/plugins@g" .env
     sed -i "s@^MATTERMOST_CLIENT_PLUGINS_PATH=.*@MATTERMOST_CLIENT_PLUGINS_PATH=${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}/client/plugins@g" .env
     sed -i "s@^MATTERMOST_BLEVE_INDEXES_PATH=.*@MATTERMOST_BLEVE_INDEXES_PATH=${TMP_DC_CPL_MTTM_SETUP_COMPOSE_DIR}/bleve-indexes@g" .env
+    ##### 调整版本
+    sed -i "s@MATTERMOST_IMAGE=.*@MATTERMOST_IMAGE=mattermost-team-edition@g" .env
 
     #### postgres
     sed -i "s@^POSTGRES_DATA_PATH=.*@POSTGRES_DATA_PATH=${TMP_DC_CPL_MTTM_SETUP_LNK_DATA_DIR}/${DEPLOY_COMPOSE_MARK}/postgres@g" .env
 
     ### 按情况调整占用端口
     #### mattermost
-    sed -i "s@^DOMAIN=.*@DOMAIN=0.0.0.0@g" .env
+    sed -i "s@^DOMAIN=.*@DOMAIN=${LOCAL_HOST}:${TMP_DC_MTTM_SETUP_OPN_APP_PORT}@g" .env
+    sed -i "s@^MM_SERVICESETTINGS_SITEURL=.*@MM_SERVICESETTINGS_SITEURL=http:\/\/\${DOMAIN}@g" .env
     sed -i "s@^APP_PORT=.*@APP_PORT=${TMP_DC_MTTM_SETUP_OPN_APP_PORT}@g" .env
     sed -i "s@^CALLS_PORT=.*@CALLS_PORT=${TMP_DC_MTTM_SETUP_OPN_CALLS_PORT}@g" .env
     #### mattermost

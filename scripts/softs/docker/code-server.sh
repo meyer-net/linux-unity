@@ -328,9 +328,20 @@ meyer.cheng
 
 EOF
 
-    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR} && git clone https://github.com/apache/beam"
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR} && \
+    git clone https://github.com/encode/orm && \
+    git clone https://github.com/rednafi/fastapi-nano"
+
+    bash -c "cd ${TMP_DC_CS_SETUP_PRJ_APP_PY_DIR} && \
+    git clone https://github.com/imWildCat/scylla && \
+    git clone https://github.com/caronc/apprise"
+
     bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_JV_DIR} && \
     git clone https://github.com/jeecgboot/jeecg-boot && \
+    git clone https://github.com/xkcoding/spring-boot-demo && \
+    git clone https://github.com/lets-mica/mica && \
+    git clone https://github.com/dromara/sureness && \
+    git clone https://github.com/justauth/justauth  && \
     git clone https://github.com/halo-dev/halo"
 
     bash -c "cd ${TMP_DC_CS_SETUP_PRJ_APP_SH_DIR} && \
@@ -564,50 +575,49 @@ function down_ext_dc_codercom_code-server() {
     
     # 静默安装 conda
     echo_style_text "${TMP_SPLITER2}"
-    echo_style_text "'|'Starting 'download ext' - [conda], hold on please"
+    echo_style_text "'|'Starting 'integration ext' - [conda], hold on please"
     ## ??? 检测外部conda是否存在
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'wget --quiet https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p $HOME/.local/share/conda && rm Miniconda3-latest-Linux-x86_64.sh' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'wget --quiet https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh && /bin/bash Miniconda3-latest-Linux-x86_64.sh -f -b -p ~/.local/share/conda && rm Miniconda3-latest-Linux-x86_64.sh' "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 同步新增的bashrc内容
     ## 提取行号参考：https://blog.csdn.net/Jerry_1126/article/details/85800485
     local TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA=$(su - conda -c "pwd")
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# <<< conda initialize <<<$" | cut -d':' -f1)
-    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | sed -n "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START},${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END}p" | sed "s@${CONDA_HOME}@\$HOME/.local/share/conda@g")
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | sed -n "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START},${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END}p" | sed "s@${CONDA_HOME}@~/.local/share/conda@g")
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH=$(cat <<EOF
-cat >> .bashrc <<${EOF_TAG}
+cat >> .bashrc <<'${EOF_TAG}'
 
 ${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC}
 ${EOF_TAG}
 
 mkdir .conda
-cat >> .conda/environments.txt <<${EOF_TAG}
-$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.conda/environments.txt | sed "s@${CONDA_HOME}@\$HOME/.local/share/conda@g")
+cat >> .conda/environments.txt <<'${EOF_TAG}'
+$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.conda/environments.txt | sed "s@${CONDA_HOME}@~/.local/share/conda@g")
 ${EOF_TAG}
 
-cat >> .condarc <<${EOF_TAG}
+cat >> .condarc <<'${EOF_TAG}'
 $(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.condarc)
 ${EOF_TAG}
 EOF
 )
 
-    # 输出环境变量
+    # 输出环境变量(软链接确保内部路径不会冲突)
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH}" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ln -sf ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}" 
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv .conda && touch .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"\${HOME}/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"~/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 给fastapi-demo添加环境
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 \${HOME}/projects/www/lang/python/fastapi-demo/.conda && echo \${HOME}/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 ~/projects/www/lang/python/fastapi-demo/.conda && echo ~/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     
     # 调整基本配置
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda update -y conda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels microsoft' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels conda-forge' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --add channels bioconda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd $HOME/.local/share/conda && condabin/conda config --set auto_activate_base false' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda update -y conda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels microsoft' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels conda-forge' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels bioconda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --set auto_activate_base false' "" "${TMP_DC_CS_SETUP_IMG_USER}"
    
     return $?
 }
@@ -646,10 +656,24 @@ function setup_ext_dc_codercom_code-server() {
 
     # PHP
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension devsense.phptools-vscode" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension bmewburn.vscode-intelephense-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # JAVASCRIPT
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension dbaeumer.vscode-eslint" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension eg2.vscode-npm-script" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension formulahendry.auto-close-tag" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ecmel.vscode-html-css" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension mrcrowl.easy-less" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension syler.sass-indented" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension xabikos.javascriptsnippets" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension techer.open-in-browser" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension hookyqr.beautify" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension formulahendry.auto-rename-tag" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension christian-kohler.npm-intellisense" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension streetsidesoftware.code-spell-checker" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension msjsdiag.debugger-for-edge" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension msjsdiag.debugger-for-chrome" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension firefox-devtools.vscode-firefox-debug" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # SHELL
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension foxundermoon.shell-format" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -685,6 +709,20 @@ function setup_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension kiteco.kite" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-office" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension dendron.dendron-paste-image" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension rangav.vscode-thunder-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension humao.rest-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-database-client2" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension formulahendry.code-runner" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-redis-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension christian-kohler.path-intellisense" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension alefragnani.project-manager" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension adpyke.codesnap" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension eamodio.gitlens" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension mhutchie.git-graph" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension oderwat.indent-rainbow" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension markwylde.vscode-filesize" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension wix.vscode-import-cost" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension wakatime.vscode-wakatime" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     return $?
 }
@@ -744,15 +782,36 @@ function reconf_dc_codercom_code-server()
     ### 使用eslint来fix，包括格式化会自动fix和代码质量检查会给出错误提示
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."editor.codeActionsOnSave"."source.fixAll.eslint"' "true"
 
+    ## easyless
+    ### 是否压缩
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."less.compile"."compress"' "false"
+    ### 是否开启SourceMap，用于查看文件的行数
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."less.compile"."sourceMap"' "false"
+    ### 输出路径
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."less.compile"."out"' '"${workspaceRoot}\\css\\"'
+    ### 输出文件的后缀
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."less.compile"."outExt"' '".css"'
+
+    ## code-runner
+    ### 
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."code-runner.runInTerminal"' "true"
+    ### 
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."code-runner.saveFileBeforeRun"' "true"
+
     ## prettier
     ### 让prettier使用eslint的代码格式进行校验 
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.eslintIntegration"' "true"
-    ### 去掉代码结尾的分号
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.semi"' "false"
+    ### 代码末尾添加分号
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.semi"' "true"
     ### 使用单引号替代双引号 
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.singleQuote"' "true"
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."javascript.validate.enable"' "false"
-    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."javascript.validate.enable"' "false"
+    ### 箭头函数添加括号
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.arrowParents"' '"always"'
+    ### 在对象或数组最后一个元素后面是否加逗号 
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.trailingComma"' '"none"'
+
+    ## path-intellisense
+    change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."path-intellisense.mappings"."@"' '"${workspaceRoot}/src"'
 
     ### java
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."rsp-ui.rsp.java.home"' "\"${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/code-server/User/globalStorage/pleiades.java-extension-pack-jdk/java/17\""
@@ -807,7 +866,7 @@ function exec_step_dc_codercom_code-server() {
 
     # 默认取进入时的目录
     if [ -z "${TMP_DC_CS_SETUP_CTN_WORK_DIR}" ]; then
-        TMP_DC_CS_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd")
+        TMP_DC_CS_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd" "" "${TMP_DC_CS_SETUP_IMG_USER}")
     fi
 
     # 获取授权用户的UID/GID

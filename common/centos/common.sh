@@ -254,12 +254,15 @@ function echo_web_service_init_scripts()
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST=${4:-"${LOCAL_HOST}"}
 	
 	local TMP_KNG_SETUP_CHAR_PORT_SPLIT=":"
-
 	# 开放端口给kong所在服务器
-	echo_soft_port ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT} "${5%:*}"
+	if [ -n "${5}" ]; then
+		echo_soft_port "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT}" "${5%:*}"
+	fi
 	
 	# 开放端口给caddy所在服务器
-	echo_soft_port ${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT} "${6%:*}"
+	if [ -n "${6}" ]; then
+		echo_soft_port "${_TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_HOST_PORT}" "${6%:*}"
+	fi
 
 	local _TMP_ECHO_WEB_SERVICE_INIT_SCRIPTS_KONG_HOST=${5:-localhost}
 	
@@ -4093,6 +4096,8 @@ EOF
 		fi
 	else
 		if [ ! -f "/etc/sysconfig/iptables" ]; then
+			systemctl stop firewalld
+			systemctl disable firewalld
 			soft_yum_check_setup "iptables-services"
 			chkconfig --level 345 iptables on
 			systemctl enable iptables.service
@@ -8081,8 +8086,8 @@ function docker_container_print()
 		fi
         
         echo_style_text "[View] the 'container user'↓:"
-        echo_style_text "Docker exec [login]: <${_TMP_DOCKER_CTN_PRINT_CTN_LOGIN_USER}>"
-        echo_style_text "Docker env [configuration]: <${_TMP_DOCKER_CTN_PRINT_CTN_CONFG_USER:-None}>"
+        echo_style_text "Docker exec 'login': <${_TMP_DOCKER_CTN_PRINT_CTN_LOGIN_USER}>:[$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "pwd" "" "${_TMP_DOCKER_CTN_PRINT_CTN_LOGIN_USER}")]"
+        echo_style_text "Docker env 'configuration': <${_TMP_DOCKER_CTN_PRINT_CTN_CONFG_USER:-None}>:[$(docker_bash_channel_exec "${_TMP_DOCKER_CTN_PRINT_CTN_ID}" "pwd" "" "${_TMP_DOCKER_CTN_PRINT_CTN_CONFG_USER}")]"
 
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] the 'container time'↓:"

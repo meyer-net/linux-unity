@@ -475,10 +475,13 @@ function reconf_docker()
     file_content_not_exists_echo "^alias dpa=.*" "~/.bashrc" "alias dpa='docker ps -a'"
     file_content_not_exists_echo "^alias dpan=.*" "~/.bashrc" "alias dpan='docker ps -a --no-trunc'"
     file_content_not_exists_echo "^alias de=.*" "~/.bashrc" "alias de='docker exec'"
-    file_content_not_exists_echo "^alias ds=.*" "~/.bashrc" "alias ds='docker stop'"
-    file_content_not_exists_echo "^alias dr=.*" "~/.bashrc" "alias dr='docker rm'"
+    file_content_not_exists_echo "^alias drm=.*" "~/.bashrc" "alias drm='docker rm'"
     file_content_not_exists_echo "^alias dri=.*" "~/.bashrc" "alias dri='docker rmi'"
     file_content_not_exists_echo "^alias dl=.*" "~/.bashrc" "alias dri='docker logs'"
+    
+    file_content_not_exists_echo "^alias dst=.*" "~/.bashrc" "alias dst='docker start'"
+    file_content_not_exists_echo "^alias dsp=.*" "~/.bashrc" "alias dsp='docker stop'"
+    file_content_not_exists_echo "^alias drs=.*" "~/.bashrc" "alias drs='docker restart'"
     source ~/.bashrc
 
 	return $?
