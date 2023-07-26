@@ -12,12 +12,12 @@
 # source scripts/softs/docker/$image_project.sh
 #------------------------------------------------
 # Debug：
-# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker stop
-# docker ps -a --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
-# docker images | awk '{if($1~"$image_from"){print $3}}' | xargs docker rmi
+# dpa --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs docker stop
+# dpa --no-trunc | awk '{if($2~"$image_from"){print $1}}' | xargs -I {} docker rm {} && rm -rf /mountdisk/data/docker/containers/{}*
+# di | awk '{if($1~"$image_from"){print $3}}' | xargs docker rmi
 # rm -rf /opt/docker_apps/$setup_name* && rm -rf /mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/data/docker_apps/$setup_name* && rm -rf /opt/docker/data/apps/$setup_name* && rm -rf /opt/docker/conf/$setup_name* && rm -rf /opt/docker/logs/$setup_name* && rm -rf /mountdisk/repo/migrate/clean/$setup_name*
 # rm -rf /mountdisk/repo/backup/opt/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/conf/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/logs/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/mountdisk/data/docker_apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/data/apps/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/conf/$setup_name* && rm -rf /mountdisk/repo/backup/opt/docker/logs/$setup_name*
-# docker volume ls | awk 'NR>1{print $2}' | xargs docker volume rm
+# dvl | awk 'NR>1{print $2}' | xargs docker volume rm
 #------------------------------------------------
 # 安装标题：$soft_title
 # 镜像仓库：$image_from
@@ -66,7 +66,7 @@ function setup_dc_$setup_name() {
         # docker container inspect ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID} | jq ".[].Mounts[].Destination" | grep -oP "(?<=\"${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/).+(?=\")" | xargs -I {} rm -rf ${1}/{}
         
         # 授权
-        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
+        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
         
         # 查看拷贝列表
         ls -lia ${1}
@@ -111,7 +111,7 @@ function formal_dc_$setup_name() {
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_LOGS_MARK} ${1}/app >& /dev/null
         
         # 授权
-        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
+        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
     
         # 查看拷贝列表
         ls -lia ${1}/app
@@ -130,7 +130,7 @@ function formal_dc_$setup_name() {
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${1} >& /dev/null
         
         # 授权
-        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
+        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
         
         # 查看拷贝列表
         ls -lia ${1}
@@ -154,7 +154,7 @@ function formal_dc_$setup_name() {
         docker cp -a ${TMP_DC_$soft_upper_short_name_SETUP_CTN_ID}:/etc/${TMP_DC_$soft_upper_short_name_SETUP_APP_MARK} ${1}/app >& /dev/null
         
         # 授权
-        # sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
+        sudo chown -R ${TMP_DC_$soft_upper_short_name_SETUP_CTN_UID}:${TMP_DC_$soft_upper_short_name_SETUP_CTN_GID} ${1}
 
         # 查看拷贝列表
         ls -lia ${1}/app
@@ -424,7 +424,7 @@ function boot_build_dc_$setup_name() {
     # local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_USER="--user $(id -u):$(id -g)"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}:${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
-    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
+    local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS="--env=TZ=Asia/Shanghai --privileged=true --expose ${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT} --env=PASSWORD=${TMP_DC_$soft_upper_short_name_SETUP_DB_PASSWD}"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS="--volume=/etc/localtime:/etc/localtime:ro --volume=$(which jq):/usr/bin/jq --volume=$(which yq):/usr/bin/yq --volume=$(which gum):/usr/bin/gum --volume=$(which pup):/usr/bin/pup"
     local TMP_DC_$soft_upper_short_name_SETUP_PRE_ARGS="--name=${TMP_DC_$soft_upper_short_name_SETUP_IMG_MARK_NAME}_${TMP_DC_$soft_upper_short_name_SETUP_IMG_VER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_USER} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_PORTS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_NETWORKS} --restart=always ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_ENVS} ${TMP_DC_$soft_upper_short_name_SETUP_PRE_ARG_MOUNTS}"
 
