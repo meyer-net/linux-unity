@@ -266,17 +266,28 @@ function boot_check_dc_$setup_name() {
     echo_style_wrap_text "Starting 'boot check' <${TMP_DC_$soft_upper_short_name_SETUP_IMG_NAME}>, hold on please"
 
     if [ -n "${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}" ]; then
-        echo_style_text "[View] the 'container visit'↓:"
-        curl -s http://localhost:${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}
-        echo
+        function _port_echo_dc_$setup_name_exec() {
+            # local TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT_PAIR="${1}"
+            local TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT=$(echo "${1}" | cut -d':' -f1)
+            local TMP_DC_$soft_upper_short_name_SETUP_INN_PORT=$(echo "${1}" | cut -d':' -f2)
+            local TMP_DC_$soft_upper_short_name_SETUP_INN_PORT_TYPE=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT}" | awk -F'/' '{print $2}')
+                
+            echo_style_text "[View] the 'container visit'↓:"
+            curl -s http://localhost:${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}
+            echo
 
-        # 授权iptables端口访问
-        echo "${TMP_SPLITER2}"
-        echo_style_text "[View] echo the 'port'(<${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT}>) to iptables:↓"
-        echo_soft_port "TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT"
+            # 授权iptables端口访问
+            echo "${TMP_SPLITER2}"
+            echo_style_text "[View] echo the '${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT_TYPE:-tcp} port'(<${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}>) to iptables:↓"
+            echo_soft_port "${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT}" "" "${TMP_DC_$soft_upper_short_name_SETUP_INN_PORT_TYPE}"
+            echo
         
-        # 生成web授权访问脚本
-        # echo_web_service_init_scripts "$setup_name${LOCAL_ID}" "$setup_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} "${LOCAL_HOST}"
+            # 生成web授权访问脚本
+            echo_web_service_init_scripts "$setup_name${LOCAL_ID}" "$setup_name${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_$soft_upper_short_name_SETUP_OPN_PORT} "${LOCAL_HOST}"
+        }
+
+        local TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT_PAIRS=$(echo "${TMP_DC_$soft_upper_short_name_SETUP_CTN_ARGS}" | grep -oP "(?<=-p )\S+")
+        items_split_action "${TMP_DC_$soft_upper_short_name_SETUP_CTN_PORT_PAIRS}" "_port_echo_dc_$setup_name_exec"
     fi
     
     # 授权开机启动
