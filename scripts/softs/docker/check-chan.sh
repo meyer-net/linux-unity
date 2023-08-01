@@ -5,7 +5,7 @@
 #      author: meyer.cheng
 #------------------------------------------------
 # 相关参考：
-#		  
+#		  浏览器预装：OneTab, GoogleTranslate, JSONFormatter, Linter, PlayWright, Postman, TimeCat, FeHelper
 #------------------------------------------------
 # 安装版本：
 #------------------------------------------------
@@ -63,8 +63,8 @@ function setup_dc_check_chan() {
 
         # 拷贝应用目录
         # docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:/usr/lib/${TMP_DC_CC_SETUP_APP_MARK} ${1} >& /dev/null
-        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:${TMP_DC_CC_SETUP_CTN_WORK_DIR} ${1} >& /dev/null
-                
+        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:${TMP_DC_CC_SETUP_CTN_WORK_DIR} ${1} >&/dev/null
+
         # 查看拷贝列表
         ls -lia ${1}
     }
@@ -99,11 +99,11 @@ function formal_dc_check_chan() {
         # 拷贝日志目录
         # mkdir -pv ${1}
         # docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:/var/lib/${TMP_DC_CC_SETUP_APP_MARK} ${1} >& /dev/null
-        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:${TMP_DC_CC_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${1} >& /dev/null
-        
+        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:${TMP_DC_CC_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${1} >&/dev/null
+
         # 授权
         sudo chown -R ${TMP_DC_CC_SETUP_CTN_UID}:${TMP_DC_CC_SETUP_CTN_GID} ${1}
-        
+
         # 查看拷贝列表
         ls -lia ${1}
     }
@@ -121,21 +121,21 @@ function formal_dc_check_chan() {
 
         # 拷贝配置目录
         ## /mountdisk/conf/docker_apps/easychen_checkchan/imgver111111/app
-        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:/etc/${TMP_DC_CC_SETUP_APP_MARK} ${1}/app >& /dev/null
-        
+        docker cp -a ${TMP_DC_CC_SETUP_CTN_ID}:/etc/${TMP_DC_CC_SETUP_APP_MARK} ${1}/app >&/dev/null
+
         # 授权
         sudo chown -R ${TMP_DC_CC_SETUP_CTN_UID}:${TMP_DC_CC_SETUP_CTN_GID} ${1}
 
         # 查看拷贝列表
         ls -lia ${1}/app
-    
-    #     # 移除本地配置目录(挂载)
-    #     rm -rf ${TMP_DC_CC_SETUP_WORK_DIR}/${DEPLOY_CONF_MARK}
+
+        #     # 移除本地配置目录(挂载)
+        #     rm -rf ${TMP_DC_CC_SETUP_WORK_DIR}/${DEPLOY_CONF_MARK}
         #### /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/conf/docker_apps/easychen_checkchan/imgver111111/container
         soft_path_restore_confirm_swap "${TMP_DC_CC_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_CC_SETUP_CTN_DIR}"
     }
     soft_path_restore_confirm_create "${TMP_DC_CC_SETUP_LNK_CONF_DIR}" "_formal_dc_check_chan_cp_conf"
-   
+
     ### 迁移CONF下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
     ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/easychen_checkchan/imgver111111/container/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
@@ -166,13 +166,13 @@ function formal_dc_check_chan() {
     #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/conf/docker_apps/easychen_checkchan/imgver111111/container
     path_not_exists_link "${TMP_DC_CC_SETUP_CTN_DIR}" "" "${TMP_DC_CC_SETUP_LNK_CONF_CTN_DIR}"
 
-    # 预实验部分        
+    # 预实验部分
     echo "${TMP_SPLITER2}"
     echo_style_text "Starting 'inspect change' <${TMP_DC_CC_SETUP_IMG_NAME}>, hold on please"
 
     # 挂载目录(必须停止服务才能修改，否则会无效)
     docker_change_container_volume_migrate "${TMP_DC_CC_SETUP_CTN_ID}" "${TMP_DC_CC_SETUP_WORK_DIR}:${TMP_DC_CC_SETUP_CTN_WORK_DIR} ${TMP_DC_CC_SETUP_LNK_DATA_DIR}:${TMP_DC_CC_SETUP_CTN_WORK_DIR}/${DEPLOY_DATA_MARK} ${TMP_DC_CC_SETUP_LNK_CONF_DIR}/app:/etc/${TMP_DC_CC_SETUP_APP_MARK}" "" $([[ -z "${TMP_DC_CC_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
-    
+
     return $?
 }
 
@@ -195,7 +195,7 @@ function conf_dc_check_chan() {
 # 3-5：测试软件
 function test_dc_check_chan() {
     cd ${TMP_DC_CC_SETUP_DIR}
-    
+
     echo_style_wrap_text "Starting 'test' <${TMP_DC_CC_SETUP_IMG_NAME}>, hold on please"
 
     # 实验部分
@@ -221,7 +221,7 @@ function boot_check_dc_check_chan() {
             local TMP_DC_CC_SETUP_OPN_PORT=$(echo "${1}" | cut -d':' -f1)
             local TMP_DC_CC_SETUP_INN_PORT=$(echo "${1}" | cut -d':' -f2)
             local TMP_DC_CC_SETUP_INN_PORT_TYPE=$(echo "${TMP_DC_CC_SETUP_INN_PORT}" | awk -F'/' '{print $2}')
-                
+
             echo_style_text "[View] the 'container visit'↓:"
             curl -s http://localhost:${TMP_DC_CC_SETUP_OPN_PORT}
             echo
@@ -231,7 +231,7 @@ function boot_check_dc_check_chan() {
             echo_style_text "[View] echo the '${TMP_DC_CC_SETUP_INN_PORT_TYPE:-tcp} port'(<${TMP_DC_CC_SETUP_OPN_PORT}>) to iptables:↓"
             echo_soft_port "${TMP_DC_CC_SETUP_OPN_PORT}" "" "${TMP_DC_CC_SETUP_INN_PORT_TYPE}"
             echo
-        
+
             # 生成web授权访问脚本
             echo_web_service_init_scripts "check_chan${LOCAL_ID}" "check_chan${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_CC_SETUP_OPN_PORT} "${LOCAL_HOST}"
         }
@@ -239,13 +239,13 @@ function boot_check_dc_check_chan() {
         local TMP_DC_CC_SETUP_CTN_PORT_PAIRS=$(echo "${TMP_DC_CC_SETUP_CTN_ARGS}" | grep -oP "(?<=-p )\S+")
         items_split_action "${TMP_DC_CC_SETUP_CTN_PORT_PAIRS}" "_port_echo_dc_check_chan_exec"
     fi
-    
+
     # 授权开机启动
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_CC_SETUP_IMG_MARK_NAME}" "${TMP_DC_CC_SETUP_DIR}" "systemctl start ${TMP_DC_CC_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_CC_SETUP_IMG_MARK_NAME}" "${TMP_DC_CC_SETUP_DIR}" "bin/${TMP_DC_CC_SETUP_IMG_MARK_NAME} start"
-    
+
     # 结束
     exec_sleep 10 "Boot <${TMP_DC_CC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 }
@@ -273,13 +273,12 @@ function setup_ext_dc_check_chan() {
 ##########################################################################################################
 
 # 3-8：重新配置（有些软件安装完后需要重新配置）
-function reconf_dc_check_chan()
-{
+function reconf_dc_check_chan() {
     cd ${TMP_DC_CC_SETUP_DIR}
-	
+
     echo_style_wrap_text "Starting 'reconf' <${TMP_DC_CC_SETUP_IMG_NAME}>, hold on please"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
@@ -308,7 +307,7 @@ function exec_step_dc_check_chan() {
     if [ -z "${TMP_DC_CC_SETUP_CTN_WORK_DIR}" ]; then
         TMP_DC_CC_SETUP_CTN_WORK_DIR=$(docker_bash_channel_exec "${1}" "pwd" "" "${TMP_DC_CC_SETUP_IMG_USER}")
     fi
-    
+
     # 获取授权用户的UID/GID
     local TMP_DC_CC_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_CC_SETUP_IMG_USER}")
     local TMP_DC_CC_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_CC_SETUP_IMG_USER}")
@@ -330,7 +329,7 @@ function exec_step_dc_check_chan() {
     local TMP_DC_CC_SETUP_LOGS_DIR=${TMP_DC_CC_SETUP_DIR}/${DEPLOY_LOGS_MARK}
     local TMP_DC_CC_SETUP_DATA_DIR=${TMP_DC_CC_SETUP_DIR}/${DEPLOY_DATA_MARK}
     local TMP_DC_CC_SETUP_CONF_DIR=${TMP_DC_CC_SETUP_DIR}/${DEPLOY_CONF_MARK}
-    
+
     echo_style_wrap_text "Starting 'execute step' <${TMP_DC_CC_SETUP_IMG_NAME}>:[${TMP_DC_CC_SETUP_CTN_VER}]('${TMP_DC_CC_SETUP_CTN_ID}'), hold on please"
 
     set_env_dc_check_chan
@@ -349,7 +348,7 @@ function exec_step_dc_check_chan() {
     boot_check_dc_check_chan
 
     reconf_dc_check_chan
-    
+
     # 结束
     exec_sleep 30 "Install <${TMP_DC_CC_SETUP_IMG_NAME}> over, please checking the setup log, this will stay %s secs to exit"
 
@@ -381,7 +380,7 @@ function boot_build_dc_check_chan() {
     # 设置密码
     local TMP_DC_CC_SETUP_DASH_PASSWD=$(console_input "$(rand_simple_passwd 'cc' 'dash' "${TMP_DC_CC_SETUP_IMG_VER}")" "Please sure your 'checkchan' <dash password>" "y")
     local TMP_DC_CC_SETUP_APIKEY=$(console_input "$(rand_simple_passwd 'cc' 'api' "${TMP_DC_CC_SETUP_IMG_VER}")" "Please sure your 'checkchan' <api-key>" "y")
-    
+
     ## 标准启动参数
     # local TMP_DC_CC_SETUP_PRE_ARG_USER="--user $(id -u):$(id -g)"
     local TMP_DC_CC_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_CC_SETUP_OPN_PORT1}:${TMP_DC_CC_SETUP_INN_PORT1} -p ${TMP_DC_CC_SETUP_OPN_PORT2}:${TMP_DC_CC_SETUP_INN_PORT2} -p ${TMP_DC_CC_SETUP_OPN_PORT3}:${TMP_DC_CC_SETUP_INN_PORT3}"
@@ -394,12 +393,12 @@ function boot_build_dc_check_chan() {
     echo_style_text "[Container] 'pre' args && cmd↓:"
     echo "Args：${TMP_DC_CC_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_CC_SETUP_CTN_ARG_CMD:-None}"
-    
+
     echo "${TMP_SPLITER3}"
     echo_style_text "[Container] 'ctn' args && cmd↓:"
     echo "Args：${TMP_DC_CC_SETUP_CTN_ARGS:-None}"
     echo "Cmd：${TMP_DC_CC_SETUP_CTN_ARG_CMD:-None}"
-    
+
     echo "${TMP_SPLITER3}"
     echo_style_text "Starting 'combine container' <${TMP_DC_CC_SETUP_IMG_NAME}>:[${TMP_DC_CC_SETUP_IMG_VER}] boot args, hold on please"
     docker_image_args_combine_bind "TMP_DC_CC_SETUP_PRE_ARGS" "TMP_DC_CC_SETUP_CTN_ARGS"
@@ -409,7 +408,7 @@ function boot_build_dc_check_chan() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_CC_SETUP_IMG_NAME}" "${TMP_DC_CC_SETUP_IMG_VER}" "${TMP_DC_CC_SETUP_CTN_ARG_CMD}" "${TMP_DC_CC_SETUP_PRE_ARGS}" "" "exec_step_dc_check_chan"
-    
+
     return $?
 }
 
@@ -417,7 +416,7 @@ function boot_build_dc_check_chan() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_check_chan() {
-	# 当前路径（仅记录）
+    # 当前路径（仅记录）
     local TMP_DC_CC_CURRENT_DIR=$(pwd)
 
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
