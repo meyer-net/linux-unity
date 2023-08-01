@@ -718,7 +718,7 @@ function setup_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension humao.rest-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-database-client2" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension formulahendry.code-runner" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-redis-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-redis-client" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension christian-kohler.path-intellisense" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension alefragnani.project-manager" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension adpyke.codesnap" "" "${TMP_DC_CS_SETUP_IMG_USER}"
