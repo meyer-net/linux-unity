@@ -5,7 +5,7 @@
 #      author: meyer.cheng
 #------------------------------------------------
 # 相关参考：
-#		  浏览器预装：OneTab, GoogleTranslate, JSONFormatter, Linter, PlayWright, Postman, TimeCat, FeHelper
+#		  浏览器预装：OneTab, GoogleTranslate, JSONFormatter, Liner, PlayWright, Postman, TimeCat, FeHelper
 #------------------------------------------------
 # 安装版本：
 #------------------------------------------------
