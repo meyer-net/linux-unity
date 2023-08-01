@@ -17,11 +17,11 @@
 #------------------------------------------------
 # - 容器导入导出与镜像导入导出区别
 #       export/import 操作对象（容器）：
-#                             导出对象：tar文件 
+#                             导出对象：tar文件
 #                             导入对象：镜像，镜像层数：一层
 #                             通过export 和 import导出的容器形成镜像时, 该镜像只有一层
 #       save/load 操作对象（镜像）：
-#                             导出对象：tar文件 
+#                             导出对象：tar文件
 #                             导入对象：镜像，镜像层数：多层
 #                             通过save 和 load 导出的镜像保留了原镜像所有的层次结构, 导出时原镜像有几层, 导入的时候就还是有几层
 #       说明：
@@ -41,8 +41,7 @@ local TMP_SETUP_DOCKER_BC_PS_PORT=13000
 ##########################################################################################################
 
 # 1-配置环境
-function set_env_docker()
-{
+function set_env_docker() {
     cd ${__DIR}
 
     echo_style_wrap_text "Starting 'configuare' <docker> 'install envs', hold on please"
@@ -50,21 +49,19 @@ function set_env_docker()
     #对应删除
     #${SYS_SETUP_COMMAND} remove docker-ce
     #rm -rf /mountdisk/logs/docker && rm -rf /mountdisk/data/docker* && rm -rf /opt/docker && rm -rf /etc/docker && rm -rf /var/lib/docker && rm -rf /opt/.requriements_ivhed && rm -rf /mountdisk/conf/docker && rm -rf /var/run/docker && systemctl daemon-reload && systemctl disable docker.service
-    
-	return $?
+
+    return $?
 }
 
 # *-特殊备份，会嵌入在备份时执行
-function special_backup_docker()
-{
+function special_backup_docker() {
     echo_style_wrap_text "Starting 'create' <docker> 'containers snapshop'"
 
     # 参数1：e75f9b427730
     # 参数2：browserless/chrome:latest
     # 参数3：/mountdisk/repo/migrate/snapshot/browserless_chrome/1670329246
     # 参数4：latest_1670329246
-    function _special_backup_docker_snap_trail()
-    {
+    function _special_backup_docker_snap_trail() {
         # 镜像ID
         # local TMP_DOCKER_SETUP_IMG_ID=$(docker container inspect ${1} | jq ".[0].Image" | grep -oP "(?<=^\").*(?=\"$)" | cut -d':' -f2)
 
@@ -77,7 +74,7 @@ function special_backup_docker()
         ## 前几行内容无效，如下 2>/dev/null
         #  .
         #  ..
-        # docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"  
+        # docker exec -u root -w /tmp -i ${1} sh -c "ls -a | tail -n +3 | xargs rm -rfv"
         docker_bash_channel_exec "${1}" "ls -a | tail -n +3 | xargs rm -rfv" "" "" "/tmp"
         echo_style_text "[after]:"
         # docker exec -u root -w /tmp -i ${1} sh -c "ls -lia"
@@ -88,9 +85,9 @@ function special_backup_docker()
         echo_style_text "[View] the 'container status after stop command now'↓:"
         docker stop ${1}
         echo "[-]"
-		docker ps -a | awk 'NR==1'
+        docker ps -a | awk 'NR==1'
         docker ps -a | grep "^${1:0:12}"
-        
+
         # # 删除容器
         # echo "${TMP_SPLITER3}"
         # echo_style_text "Starting remove 'container' <${2}>([${1}])↓:"
@@ -98,7 +95,7 @@ function special_backup_docker()
         # echo "${TMP_SPLITER3}"
         # echo_style_text "[View] the 'surplus containers'↓:"
         # docker ps -a
-        
+
         # # 删除镜像
         # echo "${TMP_SPLITER3}"
         # echo_style_text "Starting remove 'image' <${2}>:↓"
@@ -107,25 +104,24 @@ function special_backup_docker()
         # echo "${TMP_SPLITER3}"
         # echo_style_text "Starting remove 'image cache' <${2}>([image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}]):"
         # rm -rf ${TMP_DOCKER_SETUP_LNK_DATA_DIR}/image/overlay2/imagedb/content/sha256/${TMP_DOCKER_SETUP_IMG_ID}
-        
+
         # echo "${TMP_SPLITER3}"
         # echo_style_text "[View] the 'surplus images'↓:"
         # docker images
     }
 
-    local TMP_DOCKER_SETUP_CTNS=$(docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v '^$')    
-    function _special_backup_docker_backup()
-    {
-        
+    local TMP_DOCKER_SETUP_CTNS=$(docker container ls -a | cut -d' ' -f1 | grep -v "CONTAINER" | grep -v '^$')
+    function _special_backup_docker_backup() {
+
         local _TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS=$(echo_service_node_content "docker" "Active")
         if [ "${_TMP_SPECIAL_BACKUP_DOCKER_DC_STATUS}" != "active" ]; then
             echo_style_text "Starting boot 'services' of soft <docker>"
             ## systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r | xargs systemctl start
             local _TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST=$(systemctl list-unit-files | grep -E "docker|containerd" | cut -d' ' -f1 | grep -v '^$' | sort -r)
             echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}"
-            echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start    
-		fi
-        
+            echo "${_TMP_SPECIAL_BACKUP_DOCKER_SYSCTL_LIST}" | xargs systemctl start
+        fi
+
         if [ -n "${TMP_DOCKER_SETUP_CTNS}" ]; then
             # 废弃下述两行代码，因外部函数无法调用
             # export -f docker_snap_create_action
@@ -143,18 +139,17 @@ function special_backup_docker()
         local TMP_DOCKER_SETUP_BACKUP_CTN_Y_N="Y"
         confirm_yn_action "TMP_DOCKER_SETUP_BACKUP_CTN_Y_N" "([special_backup_docker]) Please sure if u want to [backup] the <docker containers> to 'snapshot'" "_special_backup_docker_backup"
     fi
-  
-	return $?
+
+    return $?
 }
 
 ##########################################################################################################
 
 # 2-安装软件
-function setup_docker()
-{
+function setup_docker() {
     echo_style_wrap_text "Starting 'install' <docker>, hold on please"
 
-    # 预先删除运行时文件 
+    # 预先删除运行时文件
     rm -rf /run/containerd/containerd.sock
 
     # 安装初始
@@ -164,25 +159,24 @@ function setup_docker()
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_DIR}"
     soft_path_restore_confirm_create "${DOCKER_APP_SETUP_DIR}"
 
-	cd ${TMP_DOCKER_SETUP_DIR}
-    
+    cd ${TMP_DOCKER_SETUP_DIR}
+
     # 开始安装
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 3-规格化软件目录格式
-function formal_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
-    
+function formal_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
+
     echo_style_wrap_text "Starting 'formal dirs' <docker>, hold on please"
 
     # 预先初始化一次，启动后才有文件生成
     systemctl start docker
-    
+
     # 停止服务，否则运行时修改会引起未知错误
     # 不执行会出警告：
     # Warning: Stopping docker.service, but it can still be activated by:
@@ -191,48 +185,47 @@ function formal_docker()
     systemctl stop docker.service
 
     # 还原 & 创建 & 迁移
-	## 日志
+    ## 日志
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
     soft_path_restore_confirm_create "${DOCKER_APP_LOGS_DIR}"
-	## 数据
+    ## 数据
     soft_path_restore_confirm_swap "${TMP_DOCKER_SETUP_LNK_DATA_DIR}" "/var/lib/docker"
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_APP_DATA_DIR}"
     soft_path_restore_confirm_create "${DOCKER_APP_DATA_DIR}"
-	## CONF - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
+    ## CONF - ①-2Y：存在配置文件：配置文件在 /etc 目录下，因为覆写，所以做不得真实目录
     soft_path_restore_confirm_create "${TMP_DOCKER_SETUP_LNK_CONF_DIR}"
     soft_path_restore_confirm_create "/etc/docker"
     soft_path_restore_confirm_create "${DOCKER_APP_CONF_DIR}"
 
-	# 创建链接规则
-	## 日志
+    # 创建链接规则
+    ## 日志
     path_not_exists_link "${TMP_DOCKER_SETUP_LOGS_DIR}" "" "${TMP_DOCKER_SETUP_LNK_LOGS_DIR}"
-	## 数据
+    ## 数据
     path_not_exists_link "${TMP_DOCKER_SETUP_DATA_DIR}" "" "${TMP_DOCKER_SETUP_LNK_DATA_DIR}"
-	## CONF - ①-2Y
+    ## CONF - ①-2Y
     path_not_exists_link "${TMP_DOCKER_SETUP_CONF_DIR}" "" "${TMP_DOCKER_SETUP_LNK_CONF_DIR}"
     path_not_exists_link "${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main" "" "/etc/docker"
-    
+
     ## 安装不产生规格下的bin目录，所以手动还原创建
     path_not_exists_create "${TMP_DOCKER_SETUP_LNK_BIN_DIR}" "" "path_not_exists_link '${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker' '' '/usr/bin/docker'"
-        
-	# 预实验部分
-    
-	return $?
+
+    # 预实验部分
+
+    return $?
 }
 
 ##########################################################################################################
 
 # 4-设置软件
-function conf_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
-    
+function conf_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
+
     echo_style_wrap_text "Starting 'configuration' <docker>, hold on please"
 
-	# 开始配置，iptables为false时，容器间通讯会存在问题。但不影响安装
+    # 开始配置，iptables为false时，容器间通讯会存在问题。但不影响安装
     ## 目录调整完重启进程(目录调整是否有效的验证点)
     if [ ! -a ${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main/daemon.json ]; then
-        cat > ${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main/daemon.json << 'EOF'
+        cat >${TMP_DOCKER_SETUP_LNK_CONF_DIR}/main/daemon.json <<'EOF'
 {
   "registry-mirrors": ["https://hub.docker.com/", "https://hub.daocloud.io/"],
   "insecure-registries": []
@@ -246,24 +239,22 @@ EOF
 
     ## 修改服务运行用户
     change_service_user docker docker
-    
-	chown -R docker:root ${TMP_DOCKER_SETUP_DIR}
+
+    chown -R docker:root ${TMP_DOCKER_SETUP_DIR}
     chown -R docker:root ${TMP_DOCKER_SETUP_LNK_LOGS_DIR}
     chown -R docker:root ${TMP_DOCKER_SETUP_LNK_DATA_DIR}
-	chown -R docker:root ${TMP_DOCKER_SETUP_LNK_CONF_DIR}
+    chown -R docker:root ${TMP_DOCKER_SETUP_LNK_CONF_DIR}
 
     # 启动服务
     systemctl start docker.service
-    
+
     # 配置私有仓库
-    function _conf_docker_conf_insecure_registry()
-    {
+    function _conf_docker_conf_insecure_registry() {
         # 确定是否存在私有仓库
         local TMP_DOCKER_SETUP_INSECURE_REGISTRY=""
         bind_if_input "TMP_DOCKER_SETUP_INSECURE_REGISTRY" "Please ender 'your insecure registries with protocol'"
-        
-        function _conf_docker_conf_insecure_registry_change_ref()
-        {
+
+        function _conf_docker_conf_insecure_registry_change_ref() {
             # 在本地添加仓库指向
             docker_change_insecure_registries "${1}"
         }
@@ -272,7 +263,7 @@ EOF
     }
 
     confirm_y_action "N" "Please sure if u got 'insecure registry'" "_conf_docker_conf_insecure_registry"
-    
+
     ## 创建自有内部网络
     if [ -z "$(docker network ls | awk -F' ' "{if(\$2==\"${DOCKER_NETWORK}\"){print}}")" ]; then
         local TMP_DOCKER_SETUP_NETWORK_SUBNET="172.16.0.0/16"
@@ -280,31 +271,36 @@ EOF
         if [ -n "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" ]; then
             docker network create ${DOCKER_NETWORK} --subnet ${TMP_DOCKER_SETUP_NETWORK_SUBNET}
             docker network inspect ${DOCKER_NETWORK}
+
+            echo_style_text "[View] echo the 'tcp port'(<22>) to iptables:↓"
+            echo_soft_port "22" "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" "tcp"
+            echo "${TMP_SPLITER3}"
+            echo_style_text "[View] echo the 'tcp port'(<10022>) to iptables:↓"
+            echo_soft_port "10022" "${TMP_DOCKER_SETUP_NETWORK_SUBNET}" "tcp"
         fi
     fi
-    
-    # 记录配置完服务时的启动状态
-    nohup systemctl status docker.service > logs/boot.log 2>&1 &
 
-	return $?
+    # 记录配置完服务时的启动状态
+    nohup systemctl status docker.service >logs/boot.log 2>&1 &
+
+    return $?
 }
 
 ##########################################################################################################
 
 # 5-测试软件
-function test_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
+function test_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'restore' <docker> snapshot, hold on please"
-    
+
     ## 1：检测启停
     systemctl stop docker.socket
     systemctl stop docker.service
     systemctl start docker
-    
+
     ## 2：还原已有的docker快照
-    # 普通快照目录    
+    # 普通快照目录
     local TMP_DOCKER_SETUP_SNAP_DIR="${MIGRATE_DIR}/snapshot"
     local TMP_DOCKER_SETUP_SNAP_IMG_NAMES=""
     if [ -a "${TMP_DOCKER_SETUP_SNAP_DIR}" ]; then
@@ -333,12 +329,11 @@ function test_docker()
     # 参数4：启动参数，例 --volume /etc/localtime:/etc/localtime:ro
     # 参数5：快照类型(还原时有效)，例 image/container/dockerfile
     # 参数6：快照来源，例 snapshot/clean/hub/commit，默认snapshot
-    function _docker_snap_restore_build()
-    {
+    function _docker_snap_restore_build() {
         # 镜像目录重建
         local TMP_DOCKER_SETUP_IMG_MARK_NAME="${1/\//_}"
         local TMP_DOCKER_SETUP_IMG_LOCAL_SH=${__DIR}/scripts/required/docker/${TMP_DOCKER_SETUP_IMG_MARK_NAME}.sh
-        if [[ -a "${TMP_DOCKER_SETUP_IMG_LOCAL_SH}" ]]; then
+        if [[ -e "${TMP_DOCKER_SETUP_IMG_LOCAL_SH}" ]]; then
             echo_style_wrap_text "Starting 'rebuild' <docker> snapshot struct, hold on please"
             cp ${TMP_DOCKER_SETUP_IMG_LOCAL_SH} ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
             sed -i '/^soft_setup_basic/d' ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
@@ -346,13 +341,12 @@ function test_docker()
             boot_build_dc_${TMP_DOCKER_SETUP_IMG_MARK_NAME} "${@}"
             rm -rf ${TMP_DOCKER_SETUP_IMG_LOCAL_SH}.tmp.sh
         fi
-        
-        function _docker_snap_restore_boot_print()
-        {
+
+        function _docker_snap_restore_boot_print() {
             docker images | awk 'NR==1'
             docker images | grep "^${1}" | awk -F" " "{if(\$2==\"${2}\"){print}}"
         }
-        
+
         # 目录重建时变已启动，故注释
         # local TMP_DOCKER_SETUP_YN_BOOT="Y"
         # confirm_yn_action "TMP_DOCKER_SETUP_YN_BOOT" "Checked image(<${1}>:[${2}]) was restored, please 'sure' u will [boot] 'still or not'" "docker_image_boot_print" "(docker images | awk 'NR==1') && docker images | awk -F' ' '{if(\$1==\"${1}\"&&\$2==\"${2}\"){print}}'" "${@:1:4}" "" '_docker_snap_restore_boot_print'
@@ -361,62 +355,61 @@ function test_docker()
 
     items_split_action "${TMP_DOCKER_SETUP_IMG_NAMES//_//}" "docker_snap_restore_choice_action '%s' '' '_docker_snap_restore_build'"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 6-启动软件
-function boot_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
+function boot_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
 
-	# 验证安装/启动
+    # 验证安装/启动
     ## 当前启动命令 && 等待启动
     echo_style_wrap_text "Starting 'boot' <docker>, hold on please"
 
     ## 设置系统管理，开机启动
     echo_style_text "[View] the 'systemctl info'↓:"
     chkconfig docker on # systemctl enable docker.service
-	systemctl enable containerd.service
-	systemctl enable docker.socket
-	systemctl list-unit-files | grep docker
+    systemctl enable containerd.service
+    systemctl enable docker.socket
+    systemctl list-unit-files | grep docker
 
-	# 启动及状态检测
+    # 启动及状态检测
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'service status'↓:"
     systemctl start docker.service
 
     exec_sleep 3 "Initing <docker>, hold on please"
 
-    echo "[-]">> logs/boot.log
-    nohup systemctl status docker.service >> logs/boot.log 2>&1 &
+    echo "[-]" >>logs/boot.log
+    nohup systemctl status docker.service >>logs/boot.log 2>&1 &
     cat logs/boot.log
 
-    echo "${TMP_SPLITER2}"	
+    echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'version'↓:"
     docker -v
 
-    echo "${TMP_SPLITER2}"	
+    echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'info'↓:"
     docker info
-    
+
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'network list'↓:"
     docker network ls
-    
+
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'bridge inspect'↓:"
     docker inspect bridge
-        
+
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'images'↓:"
     docker images
-    
+
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'containers'↓:"
     docker ps -a
-    
+
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] the 'system df'↓:"
     docker system df
@@ -424,48 +417,45 @@ function boot_docker()
     # 结束
     exec_sleep 10 "Boot <docker> over, please check the setup log, this will stay [%s] secs to exit"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 下载扩展/驱动/插件
-function down_ext_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
-    
+function down_ext_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
+
     echo_style_wrap_text "Starting 'download' <docker> exts, hold on please"
-        
+
     # 安装docker-compose
     soft_cmd_check_confirm_git_action "docker-compose" "docker/compose" "https://github.com/docker/compose/releases/download/v%s/docker-compose-$(uname -s)-$(uname -m)" "2.20.0" "mv docker-compose-$(uname -s)-$(uname -m) ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && chmod +x ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose && ln -sf ${TMP_DOCKER_SETUP_LNK_BIN_DIR}/docker-compose /usr/local/bin/docker-compose"
 
-	return $?
+    return $?
 }
 
 # 安装与配置扩展/驱动/插件
-function setup_ext_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
+function setup_ext_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'install' <docker> exts, hold on please"
-    
+
     local TMP_DOCKER_SETUP_REQUIRED_DIR="$(cd "$(dirname ${__DIR}/${BASH_SOURCE[0]})" && pwd)"
     local TMP_DOCKER_SETUP_REQUIRED_SHS="$(cd ${TMP_DOCKER_SETUP_REQUIRED_DIR} && ls docker/*.sh)"
     items_split_action "TMP_DOCKER_SETUP_REQUIRED_SHS" "cd ${TMP_DOCKER_SETUP_REQUIRED_DIR} && source %s"
 
     # 新增兼容它监视正在运行的容器，如果有一个具有相同标记的新版本可用，它将拉取新映像并重新启动容器。
-    # https://github.com/containrrr/watchtower 
+    # https://github.com/containrrr/watchtower
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # 重新配置（有些软件安装完后需要重新配置）
-function reconf_docker()
-{
-	cd ${TMP_DOCKER_SETUP_DIR}
-  
+function reconf_docker() {
+    cd ${TMP_DOCKER_SETUP_DIR}
+
     echo_style_wrap_text "Starting 're-configuration' <docker>, hold on please"
     file_content_not_exists_echo "^alias di=.*" "~/.bashrc" "alias di='docker images'"
     file_content_not_exists_echo "^alias dv=.*" "~/.bashrc" "alias dv='docker volume'"
@@ -478,69 +468,67 @@ function reconf_docker()
     file_content_not_exists_echo "^alias drm=.*" "~/.bashrc" "alias drm='docker rm'"
     file_content_not_exists_echo "^alias dri=.*" "~/.bashrc" "alias dri='docker rmi'"
     file_content_not_exists_echo "^alias dl=.*" "~/.bashrc" "alias dri='docker logs'"
-    
+
     file_content_not_exists_echo "^alias dst=.*" "~/.bashrc" "alias dst='docker start'"
     file_content_not_exists_echo "^alias dsp=.*" "~/.bashrc" "alias dsp='docker stop'"
     file_content_not_exists_echo "^alias drs=.*" "~/.bashrc" "alias drs='docker restart'"
     source ~/.bashrc
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # x2-执行步骤
-function exec_step_docker()
-{
-	# 变量覆盖特性，其它方法均可读取
-	local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
+function exec_step_docker() {
+    # 变量覆盖特性，其它方法均可读取
+    local TMP_DOCKER_SETUP_DIR=${SETUP_DIR}/docker
 
-	# 统一编排到的路径
+    # 统一编排到的路径
     local TMP_DOCKER_SETUP_LNK_BIN_DIR=${TMP_DOCKER_SETUP_DIR}/bin
     local TMP_DOCKER_SETUP_LNK_LOGS_DIR=${LOGS_DIR}/docker
     local TMP_DOCKER_SETUP_LNK_DATA_DIR=${DATA_DIR}/docker
-	local TMP_DOCKER_SETUP_LNK_CONF_DIR=${CONF_DIR}/docker
+    local TMP_DOCKER_SETUP_LNK_CONF_DIR=${CONF_DIR}/docker
 
-	# 安装后的真实路径
+    # 安装后的真实路径
     local TMP_DOCKER_SETUP_LOGS_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_LOGS_MARK}
     local TMP_DOCKER_SETUP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/main
     local TMP_DOCKER_SETUP_APP_DATA_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_DATA_MARK}/apps
-	local TMP_DOCKER_SETUP_CONF_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}
+    local TMP_DOCKER_SETUP_CONF_DIR=${TMP_DOCKER_SETUP_DIR}/${DEPLOY_CONF_MARK}
 
-	set_env_docker 
+    set_env_docker
 
-	setup_docker 
+    setup_docker
 
-	formal_docker 
+    formal_docker
 
-	conf_docker 
+    conf_docker
 
-	test_docker 
+    test_docker
 
-    down_ext_docker 
-    setup_ext_docker 
+    down_ext_docker
+    setup_ext_docker
 
-	boot_docker 
+    boot_docker
 
-	reconf_docker
+    reconf_docker
 
     # 结束
     exec_sleep 30 "Install <docker> over, please checking the setup log, this will stay [%s] secs to exit"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
 
 # x1-下载软件
-function check_setup_docker()
-{
+function check_setup_docker() {
     echo_style_wrap_text "Checking <docker> 'install', hold on please"
 
     # 重装/更新/安装
     soft_${SYS_SETUP_COMMAND}_check_upgrade_action "docker" "exec_step_docker" "yum -y update docker"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
