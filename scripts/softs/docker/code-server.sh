@@ -72,11 +72,11 @@ function setup_dc_codercom_code-server() {
         echo_style_text "[View] the 'workingdir copy'↓:"
 
         # 拷贝应用目录
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${1} >& /dev/null
-        
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${1} >&/dev/null
+
         # 授权
         sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}
-        
+
         # 查看拷贝列表
         ls -lia ${1}
     }
@@ -84,7 +84,7 @@ function setup_dc_codercom_code-server() {
     # 创建安装目录(纯属为了规范)
     ## 1：存在working dir
     soft_path_restore_confirm_pcreate "${TMP_DC_CS_SETUP_WORK_DIR}" "_setup_dc_codercom_code-server_cp_source"
-    
+
     # 创建工作目录
     ## 1：手动创建关联workspace dir
     echo "${TMP_SPLITER2}"
@@ -144,7 +144,7 @@ function setup_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_PRJ_APP_SH_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/shell
     local TMP_DC_CS_SETUP_PRJ_APP_LUA_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/lua
     local TMP_DC_CS_SETUP_PRJ_APP_JV_DIR=${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}/java
-    
+
     # 工具-画图目录
     local TMP_DC_CS_SETUP_DRAWS_DIR=${TMP_DC_CS_SETUP_WORKSPACE_DIR}/projects/draws
     ################################################################################################
@@ -208,7 +208,7 @@ function setup_dc_codercom_code-server() {
     # /mountdisk/svr_sync/applications/init/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app/init
     path_not_exists_link "${APP_INIT_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_INIT_DIR}"
     # /mountdisk/svr_sync/applications/lang/coder -> /opt/docker_apps/codercom_code-server/4.14.1/workspace/projects/app/lang
-    path_not_exists_link "${APP_LANG_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}"    
+    path_not_exists_link "${APP_LANG_DIR}/${TMP_DC_CS_SETUP_IMG_USER}" "" "${TMP_DC_CS_SETUP_PRJ_APP_LANG_DIR}"
     ################################################################################################
     # 示例项目下载
     bash -c "cd ${TMP_DC_CS_SETUP_PRJ_WWW_HTML_DIR} && \
@@ -223,12 +223,12 @@ function setup_dc_codercom_code-server() {
 
     # 手动创建fastapi依赖项目
     mkdir -pv ${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo
-    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/requirements.txt<<EOF
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/requirements.txt <<EOF
 fastapi==0.100.0
 uvicorn[standard] >=0.12.0,<0.23.0
 EOF
 
-    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/setup.py<<EOF
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/setup.py <<EOF
 """Script to recursively install.
 
 Usage:
@@ -261,7 +261,7 @@ setup(
 )
 EOF
 
-    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/main.py<<EOF
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/main.py <<EOF
 """Script to test.
 
 Usage:
@@ -299,7 +299,7 @@ def update_item(item_id: int, item: Item):
     return {"item_name": item.name, "item_id": item_id}
 EOF
 
-    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/README.md<<EOF
+    cat >${TMP_DC_CS_SETUP_PRJ_WWW_PY_DIR}/fastapi-demo/README.md <<EOF
 <!--
     Licensed to the Apache Software Foundation (ASF) under one
     or more contributor license agreements.  See the NOTICE file
@@ -353,8 +353,8 @@ EOF
     git clone https://github.com/beego/beego && \
     git clone https://github.com/gorilla/mux"
     ################################################################################################
-    echo > ${TMP_DC_CS_SETUP_DRAWS_DIR}/empty.dio
-    
+    echo >${TMP_DC_CS_SETUP_DRAWS_DIR}/empty.dio
+
     # 授权
     sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}
 
@@ -379,15 +379,15 @@ function formal_dc_codercom_code-server() {
 
         # 拷贝日志目录
         ## /mountdisk/logs/docker_apps/codercom_code-server/imgver111111/app
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs ${1}/app >&/dev/null
 
         ## /mountdisk/logs/docker_apps/codercom_code-server/imgver111111/app
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs ${1}/workspace >& /dev/null
-        
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs ${1}/workspace >&/dev/null
+
         # 授权
         sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}/app
         sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}/workspace
-            
+
         # 查看拷贝列表
         echo_style_text "'|'[app]↓:"
         ls -lia ${1}/app
@@ -405,14 +405,14 @@ function formal_dc_codercom_code-server() {
         # 拷贝日志目录 Using user-data-dir (~/.local/share/code-server == /home/coder/.local/share/code-server)
         # mkdir -pv ${1}
         # docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR} ${SYNC_DIR}/ >& /dev/null
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT} ${1} >& /dev/null
-        
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT} ${1} >&/dev/null
+
         # 授权 & 查看拷贝列表
         sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}
         ls -lia ${1}/
     }
     soft_path_restore_confirm_pcreate "${TMP_DC_CS_SETUP_LNK_DATA_DIR}" "_formal_dc_codercom_code-server_cp_data"
-    
+
     ### CONF - ①-1Y：存在配置文件：原路径文件放给真实路径
     #### /mountdisk/data/docker/containers/${CTN_ID}
     local TMP_DC_CS_SETUP_CTN_DIR="${DATA_DIR}/docker/containers/${TMP_DC_CS_SETUP_CTN_ID}"
@@ -428,22 +428,22 @@ function formal_dc_codercom_code-server() {
 
         # 1：拷贝配置目录
         ## /mountdisk/conf/docker_apps/codercom_code-server/imgver111111/app
-        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config/${TMP_DC_CS_SETUP_IMG_PRJT} ${1}/app >& /dev/null
+        docker cp -a ${TMP_DC_CS_SETUP_CTN_ID}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config/${TMP_DC_CS_SETUP_IMG_PRJT} ${1}/app >&/dev/null
 
         # 2：添加python环境
         ## /home/coder/env
 
         # 授权
         sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${1}/app
-        
+
         # 查看拷贝列表
         ls -lia ${1}/app
-        
+
         ## /mountdisk/data/docker/containers/${CTN_ID} ©&<- /mountdisk/conf/docker_apps/codercom_code-server/imgver111111/container
         soft_path_restore_confirm_swap "${TMP_DC_CS_SETUP_LNK_CONF_CTN_DIR}" "${TMP_DC_CS_SETUP_CTN_DIR}"
     }
     soft_path_restore_confirm_create "${TMP_DC_CS_SETUP_LNK_CONF_DIR}" "_formal_dc_codercom_code-server_cp_conf"
-   
+
     ### 迁移CONF下LOGS归位
     #### [ 废弃，logs路径会被强制修改未docker root dir对应的数据目录，一旦软连接会被套出多层路径，如下（且修改无效）：
     ##### "LogPath": "/mountdisk/data/docker/containers/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22/mountdisk/logs/docker_apps/codercom_code-server/imgver111111/container/4f8b1ca03fe001037e3d701079f094bb5f2a65da089305825546df486c082c22-json.log"
@@ -474,7 +474,7 @@ function formal_dc_codercom_code-server() {
     #### /mountdisk/data/docker/containers/${CTN_ID} -> /mountdisk/conf/docker_apps/codercom_code-server/imgver111111/container
     path_not_exists_link "${TMP_DC_CS_SETUP_CTN_DIR}" "" "${TMP_DC_CS_SETUP_LNK_CONF_CTN_DIR}"
 
-    # 预实验部分        
+    # 预实验部分
     ## 目录调整完修改启动参数
     echo "${TMP_SPLITER2}"
     echo_style_text "Starting 'inspect change' <${TMP_DC_CS_SETUP_IMG_NAME}>, hold on please"
@@ -489,7 +489,7 @@ function formal_dc_codercom_code-server() {
     bind_symlink_link_path "TMP_DC_CS_SETUP_CDA_CONF_DIR"
 
     docker_change_container_volume_migrate "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_WORK_DIR}:/usr/lib/${TMP_DC_CS_SETUP_APP_MARK} ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/app:/root/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${TMP_DC_CS_SETUP_LNK_DATA_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}:rw,z ${TMP_DC_CS_SETUP_LNK_LOGS_DIR}/workspace:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/coder-logs:rw,z ${SYNC_DIR}/${TMP_DC_CS_SETUP_IMG_USER}/projects:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/projects:rw,z ${TMP_DC_CS_SETUP_LNK_CONF_DIR}/app:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.config/${TMP_DC_CS_SETUP_IMG_PRJT} ${CONDA_HOME}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${TMP_DC_CS_SETUP_CDA_ENVS_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/envs:rw,z ${TMP_DC_CS_SETUP_CDA_PKGS_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/pkgs:rw,z ${TMP_DC_CS_SETUP_CDA_CONF_DIR}:${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda/etc:rw,z" "" $([[ -z "${TMP_DC_CS_SETUP_IMG_SNAP_TYPE}" ]] && echo true)
-    
+
     return $?
 }
 
@@ -511,7 +511,7 @@ function conf_dc_codercom_code-server() {
 # 5-测试软件
 function test_dc_codercom_code-server() {
     cd ${TMP_DC_CS_SETUP_DIR}
-    
+
     echo_style_wrap_text "Starting 'test' <${TMP_DC_CS_SETUP_IMG_NAME}>, hold on please"
 
     # 实验部分
@@ -540,17 +540,17 @@ function boot_check_dc_codercom_code-server() {
         echo "${TMP_SPLITER2}"
         echo_style_text "[View] echo the 'port'(<${TMP_DC_CS_SETUP_CTN_PORT}>) to iptables:↓"
         echo_soft_port "TMP_DC_CS_SETUP_OPN_PORT"
-        
+
         # 生成web授权访问脚本
         # echo_web_service_init_scripts "codercom_code-server${LOCAL_ID}" "codercom_code-server${LOCAL_ID}-webui.${SYS_DOMAIN}" ${TMP_DC_CS_SETUP_OPN_PORT} "${LOCAL_HOST}"
     fi
-    
+
     # 授权开机启动
     echo "${TMP_SPLITER2}"
     echo_style_text "[View] echo the 'supervisor startup conf'↓:"
     # echo_startup_supervisor_config "${TMP_DC_CS_SETUP_IMG_MARK_NAME}" "${TMP_DC_CS_SETUP_DIR}" "systemctl start ${TMP_DC_CS_SETUP_IMG_MARK_NAME}.service" "" "999" "" "" false 0
     echo_startup_supervisor_config "${TMP_DC_CS_SETUP_IMG_MARK_NAME}" "${TMP_DC_CS_SETUP_DIR}" "bin/${TMP_DC_CS_SETUP_IMG_MARK_NAME} start"
-    
+
     # 结束
     exec_sleep 10 "Boot <${TMP_DC_CS_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 }
@@ -562,7 +562,7 @@ function down_ext_dc_codercom_code-server() {
     cd ${TMP_DC_CS_SETUP_DIR}
 
     echo_style_wrap_text "Starting 'download' <${TMP_DC_CS_SETUP_IMG_NAME}> 'exts', hold on please"
-    
+
     # 安装python环境插件
     echo_style_text "'|'Starting 'download ext' - [pip], hold on please"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "apt-get -y install python"
@@ -572,7 +572,7 @@ function down_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip install --upgrade setuptools" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "pip install playwright==1.30.0" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "python3 --version" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    
+
     # 静默安装 conda
     echo_style_text "${TMP_SPLITER2}"
     echo_style_text "'|'Starting 'integration ext' - [conda], hold on please"
@@ -585,7 +585,8 @@ function down_ext_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# >>> conda initialize >>>$" | cut -d':' -f1)
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | grep -naE "^# <<< conda initialize <<<$" | cut -d':' -f1)
     local TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC=$(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.bashrc | sed -n "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_START},${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASHRC_LINE_END}p" | sed "s@${CONDA_HOME}@~/.local/share/conda@g")
-    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH=$(cat <<EOF
+    local TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH=$(
+        cat <<EOF
 cat >> .bashrc <<'${EOF_TAG}'
 
 ${TMP_DC_CS_SETUP_SUPPORT_CONDA_BASH_RC}
@@ -600,25 +601,25 @@ cat >> .condarc <<'${EOF_TAG}'
 $(cat ${TMP_DC_CS_SETUP_SUPPORT_HOME_CONDA}/.condarc)
 ${EOF_TAG}
 EOF
-)
+    )
 
     # 输出环境变量(软链接确保内部路径不会冲突)
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_SUPPORT_CONDA_BOOT_RC_SH}" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ln -sf ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}" 
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_CTN_WORK_DIR}/.local/share/conda ${CONDA_HOME}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "mkdir -pv .conda && touch .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "ls -lia .local/share/conda/envs | awk 'NR>4{print \$NF}' | xargs -I {} echo \"~/.local/share/conda/envs/{}\" >> .conda/environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
 
     # 给fastapi-demo添加环境
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "cp -r ${CONDA_HOME}/envs/pyenv37 ~/projects/www/lang/python/fastapi-demo/.conda && echo ~/projects/www/lang/python/fastapi-demo/.conda >> environments.txt" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    
+
     # 调整基本配置
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda update -y conda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels microsoft' "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels conda-forge' "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --add channels bioconda' "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" 'cd ~/.local/share/conda && condabin/conda config --set auto_activate_base false' "" "${TMP_DC_CS_SETUP_IMG_USER}"
-   
+
     return $?
 }
 
@@ -690,12 +691,12 @@ function setup_ext_dc_codercom_code-server() {
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension shd101wyy.markdown-preview-enhanced" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension redhat.vscode-yaml" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # !!!docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension sumneko.lua" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    
+
     # GIT
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension knisterpeter.vscode-github" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension github.github-vscode-theme" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cschleiden.vscode-github-actions" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    
+
     # 远程工具
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ritwickdey.liveserver" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension ms-vscode.live-server" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -709,7 +710,8 @@ function setup_ext_dc_codercom_code-server() {
 
     # 辅助工具
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension hediet.vscode-drawio" "" "${TMP_DC_CS_SETUP_IMG_USER}"
-    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension mutable-ai.mutable-ai" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    # docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension mutable-ai.mutable-ai" "" "${TMP_DC_CS_SETUP_IMG_USER}"
+    docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension continue.continue" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension tabnine.tabnine-vscode" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension kiteco.kite" "" "${TMP_DC_CS_SETUP_IMG_USER}"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "${TMP_DC_CS_SETUP_IMG_PRJT} --install-extension cweijan.vscode-office" "" "${TMP_DC_CS_SETUP_IMG_USER}"
@@ -735,20 +737,19 @@ function setup_ext_dc_codercom_code-server() {
 ##########################################################################################################
 
 # 8-重新配置（有些软件安装完后需要重新配置）
-function reconf_dc_codercom_code-server()
-{
+function reconf_dc_codercom_code-server() {
     cd ${TMP_DC_CS_SETUP_DIR}
-	
+
     echo_style_wrap_text "Starting 'reconf' <${TMP_DC_CS_SETUP_IMG_NAME}>, hold on please"
-    
+
     # 开始配置
     ## 修改默认主题颜色
     # local TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH="${TMP_DC_CS_SETUP_LNK_DATA_DIR}/.local/share/${TMP_DC_CS_SETUP_IMG_PRJT}/User/settings.json"
     local TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH="${TMP_DC_CS_SETUP_LNK_DATA_DIR}/User/settings.json"
     if [ ! -f ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH} ]; then
-        echo "{}" > ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
+        echo "{}" >${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
     fi
-    
+
     local TMP_DC_CS_SETUP_USER_SETTINGS_JSON=$(cat ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH})
 
     # /home/coder/.local/share/code-server/User/settings.json
@@ -798,21 +799,21 @@ function reconf_dc_codercom_code-server()
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."less.compile"."outExt"' '".css"'
 
     ## code-runner
-    ### 
+    ###
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."code-runner.runInTerminal"' "true"
-    ### 
+    ###
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."code-runner.saveFileBeforeRun"' "true"
 
     ## prettier
-    ### 让prettier使用eslint的代码格式进行校验 
+    ### 让prettier使用eslint的代码格式进行校验
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.eslintIntegration"' "true"
     ### 代码末尾添加分号
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.semi"' "true"
-    ### 使用单引号替代双引号 
+    ### 使用单引号替代双引号
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.singleQuote"' "true"
     ### 箭头函数添加括号
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.arrowParents"' '"always"'
-    ### 在对象或数组最后一个元素后面是否加逗号 
+    ### 在对象或数组最后一个元素后面是否加逗号
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."prettier.trailingComma"' '"none"'
 
     ## path-intellisense
@@ -834,16 +835,16 @@ function reconf_dc_codercom_code-server()
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."java.debug.settings.hotCodeReplace"' '"auto"'
     change_json_node_item "TMP_DC_CS_SETUP_USER_SETTINGS_JSON" '."boot-java.rewrite.reconcile"' "true"
 
-    echo "${TMP_DC_CS_SETUP_USER_SETTINGS_JSON}" | jq > ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
+    echo "${TMP_DC_CS_SETUP_USER_SETTINGS_JSON}" | jq >${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
 
     # 授权
     sudo chown -R ${TMP_DC_CS_SETUP_CTN_UID}:${TMP_DC_CS_SETUP_CTN_GID} ${TMP_DC_CS_SETUP_USER_SETTINGS_JSON_PATH}
-    
+
     # 调整系统配置
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "echo 'fs.inotify.max_user_watches=524288' >> /etc/sysctl.conf"
     docker_bash_channel_exec "${TMP_DC_CS_SETUP_CTN_ID}" "sysctl -p"
 
-	return $?
+    return $?
 }
 
 ##########################################################################################################
@@ -877,7 +878,7 @@ function exec_step_dc_codercom_code-server() {
     # 获取授权用户的UID/GID
     local TMP_DC_CS_SETUP_CTN_UID=$(docker_bash_channel_exec "${1}" "id -u ${TMP_DC_CS_SETUP_IMG_USER}")
     local TMP_DC_CS_SETUP_CTN_GID=$(docker_bash_channel_exec "${1}" "id -g ${TMP_DC_CS_SETUP_IMG_USER}")
-    
+
     # 软件内部标识版本（$3已返回该版本号，仅测试选择5.7.42的场景）
     local TMP_DC_CS_SETUP_SOFT_VER=$(docker_bash_channel_exec "${1}" "code-server -v | awk '{print \$NF}'")
 
@@ -896,7 +897,7 @@ function exec_step_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_LOGS_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_LOGS_MARK}
     local TMP_DC_CS_SETUP_DATA_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_DATA_MARK}
     local TMP_DC_CS_SETUP_CONF_DIR=${TMP_DC_CS_SETUP_DIR}/${DEPLOY_CONF_MARK}
-    
+
     echo_style_wrap_text "Starting 'execute step' <${TMP_DC_CS_SETUP_IMG_NAME}>:[${TMP_DC_CS_SETUP_CTN_VER}]('${TMP_DC_CS_SETUP_CTN_ID}'), hold on please"
 
     set_env_dc_codercom_code-server
@@ -915,7 +916,7 @@ function exec_step_dc_codercom_code-server() {
     boot_check_dc_codercom_code-server
 
     reconf_dc_codercom_code-server
-    
+
     # 结束
     exec_sleep 30 "Install <${TMP_DC_CS_SETUP_IMG_NAME}> over, please checking the setup log, this will stay [%s] secs to exit"
 
@@ -949,7 +950,7 @@ function boot_build_dc_codercom_code-server() {
     local TMP_DC_CS_SETUP_GUI_PASSWD=$(console_input "$(rand_simple_passwd 'cs.gui' 'ide' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'ide gui' <access password>" "y")
     ## SUDO密码
     local TMP_DC_CS_SETUP_SUDO_PASSWD=$(console_input "$(rand_passwd 'cs.sudo' 'ide' "${TMP_DC_CS_SETUP_IMG_VER}")" "Please sure your 'ide sudo' <terminal password>" "y")
-    
+
     ## 标准启动参数
     local TMP_DC_CS_SETUP_PRE_ARG_PORTS="-p ${TMP_DC_CS_SETUP_OPN_PORT}:${TMP_DC_CS_SETUP_INN_PORT}"
     local TMP_DC_CS_SETUP_PRE_ARG_NETWORKS="--network=${DOCKER_NETWORK}"
@@ -964,12 +965,12 @@ function boot_build_dc_codercom_code-server() {
     echo_style_text "[Container] 'pre' args && cmd↓:"
     echo "Args：${TMP_DC_CS_SETUP_PRE_ARGS:-None}"
     echo "Cmd：${TMP_DC_CS_SETUP_CTN_ARG_CMD:-None}"
-    
+
     echo "${TMP_SPLITER3}"
     echo_style_text "[Container] 'ctn' args && cmd↓:"
     echo "Args：${TMP_DC_CS_SETUP_CTN_ARGS:-None}"
     echo "Cmd：${TMP_DC_CS_SETUP_CTN_ARG_CMD:-None}"
-    
+
     echo "${TMP_SPLITER3}"
     echo_style_text "Starting 'combine container' <${TMP_DC_CS_SETUP_IMG_NAME}>:[${TMP_DC_CS_SETUP_IMG_VER}] boot args, hold on please"
     docker_image_args_combine_bind "TMP_DC_CS_SETUP_PRE_ARGS" "TMP_DC_CS_SETUP_CTN_ARGS"
@@ -979,7 +980,7 @@ function boot_build_dc_codercom_code-server() {
 
     # 开始启动
     docker_image_boot_print "${TMP_DC_CS_SETUP_IMG_NAME}" "${TMP_DC_CS_SETUP_IMG_VER}" "${TMP_DC_CS_SETUP_CTN_ARG_CMD}" "${TMP_DC_CS_SETUP_PRE_ARGS}" "" "exec_step_dc_codercom_code-server"
-    
+
     return $?
 }
 
@@ -987,7 +988,7 @@ function boot_build_dc_codercom_code-server() {
 
 # x1-下载/安装/更新软件
 function check_setup_dc_codercom_code-server() {
-	# 当前路径（仅记录）
+    # 当前路径（仅记录）
     local TMP_DC_CS_CURRENT_DIR=$(pwd)
 
     echo_style_wrap_text "Checking 'install' <${1}>, hold on please"
